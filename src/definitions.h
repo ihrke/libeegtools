@@ -1,3 +1,13 @@
+/** \mainpage 
+ *
+ * This is libEEGTools.
+ *
+ * Synopsis:
+ * - helper.h, helper.c contain helper math, print, plot functions etc.
+ * - denoising.h, denoising.c - core functionality
+ *
+ */
+
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 

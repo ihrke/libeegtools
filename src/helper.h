@@ -81,6 +81,7 @@ void    print_timewarpparameters(FILE *out, const TimewarpParameters *p);
 
 
 /**\addtogroup helperplot
+ *\ingroup helper
  *\{*/
 #ifdef HAVE_MATLAB
 Engine*  ml_init(void);

@@ -17,6 +17,14 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
+/**\file averaging.h
+ * Averaging functions.
+ * \defgroup averaging Averaging functions
+ *\{
+ *    \defgroup timewarp Timewarping-functions
+ *\}
+ */
 #ifndef AVERAGING_H
 # define AVERAGING_H
 #include "mathadd.h"
@@ -26,13 +34,17 @@
    -- Timewarping                                                            -- 
    ---------------------------------------------------------------------------- */
 /** \addtogroup timewarp
+ *\ingroup averaging
  *\{
  */
-double* ADTW(const double *s1, int n1, const double *s2, int n2, double *avg);
+double* ADTW (const double *s1, int n1, const double *s2, int n2, double *avg);
+double* PADTW(const double **s, int N, int n, int zero, int *sR, double *wa);
+
 double timewarp(const double *ref, int n1, double *d, int n2, 
 		double theta1, double theta2);
 double* avgwarp_from_path(const double *u, int J, const double *s, int K, 
 			  const WarpPath *P, double *avg);
+
 double get_warppath(const double *u, int J, const double *s, int K,
 		    double theta1, double theta2, int* path);
 WarpPath* get_warppath2(const double *u, int J, const double *s, int K,
@@ -40,6 +52,7 @@ WarpPath* get_warppath2(const double *u, int J, const double *s, int K,
 WarpPath* get_warppath3(const double *u, int J, 
 			const double *s, int K,	
 			double theta1, double theta2, double *Djk);
+
 void   warp_to_path(double *s, int K, int *path, int J);
 double* warpavg_two(const double *u, const double *s, int n, int zero, 
 		    int sRu, int sRs, double *wavg);

@@ -299,6 +299,10 @@ int extend_and_denoise(double *data, int n, int L,
   return 0;
 }
 
+/** Implements soft-thresholding.
+ * Formula: \f$ \eta_s(\lambda, w)=\f$
+ * \ingroup thresholding
+ */
 double eta_s(double d, double lambda){
   /* soft thresholding, formula (6) */
 /*   dprintf("Db: eta_s\n"); */
@@ -311,43 +315,16 @@ double eta_s(double d, double lambda){
   }
   return d;
 }
-
+/** Implements hard-thresholding.
+ * Formula: \f$ \eta_h(\lambda, w)=\f$
+ * \ingroup thresholding
+ */
 double eta_h(double d, double lambda){
   /* hard thresholding */
 /*   dprintf("Db: eta_h\n"); */
   if(fabs(d)<=lambda)
     d=0.0;
   return d;
-}
-
-/* ---------------------------------------------------------------------------- 
-   -- Merit Measures                                                         -- 
-   ---------------------------------------------------------------------------- */
-
-/** \f$ 
-    RMSE = \sqrt{ \frac{1}{\#r}  \sum{ (r-d)^2)}} 
-    \f$ 
- */
-double rmse(const double *r, const double *d, int n){
-  int i;
-  double res=0.0;
-  for(i=0; i<n; i++)
-    res = res + pow(r[i]-d[i], 2);
-  return sqrt(res*1/n);
-}
-
-/** \f$
-    SNR = 10\log_{10} \frac{\sum{r^2}}{\sum{(r-d)^2}} 
- \f$*/
-double snr (const double *r, const double *d, int n){
-  int i;
-  double res, tmp;
-  res = 0.0; tmp = 0.0;
-  for(i=0; i<n; i++){
-    res = res+pow(r[i], 2);
-    tmp = tmp+pow(r[i]-d[i], 2);
-  }
-  return 10*(glog(res/tmp, 10));
 }
 
 /* ---------------------------------------------------------------------------- 

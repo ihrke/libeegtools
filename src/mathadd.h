@@ -53,6 +53,12 @@ int* linspace(int first, int last);
 double* loocv(const ModelData *m, double* err,
 				  double*(*model)(const ModelData*,double*));
 
+/* ---------------------------------------------------------------------------- 
+   -- Merit Measures                                                         -- 
+   ---------------------------------------------------------------------------- */
+double rmse(const double *r, const double *d, int n);
+double snr (const double *r, const double *d, int n);
+
 /**\}*/
 
 #endif

@@ -19,6 +19,37 @@
  ***************************************************************************/
 #include "mathadd.h"
 
+/* ---------------------------------------------------------------------------- 
+   -- Merit Measures                                                         -- 
+   ---------------------------------------------------------------------------- */
+
+/** \f$ 
+    RMSE = \sqrt{ \frac{1}{\#r}  \sum{ (r-d)^2)}} 
+    \f$ 
+ */
+double rmse(const double *r, const double *d, int n){
+  int i;
+  double res=0.0;
+  for(i=0; i<n; i++)
+    res = res + pow(r[i]-d[i], 2);
+  return sqrt(res*1/n);
+}
+
+/** \f$
+    SNR = 10\log_{10} \frac{\sum{r^2}}{\sum{(r-d)^2}} 
+ \f$*/
+double snr (const double *r, const double *d, int n){
+  int i;
+  double res, tmp;
+  res = 0.0; tmp = 0.0;
+  for(i=0; i<n; i++){
+    res = res+pow(r[i], 2);
+    tmp = tmp+pow(r[i]-d[i], 2);
+  }
+  return 10*(glog(res/tmp, 10));
+}
+
+
 double glog(double v, int b){
   /* compute log_b(v) using ansi-C log */
   return (double)((double)log((double)v)/(double)log((double)b));
