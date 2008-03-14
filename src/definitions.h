@@ -6,6 +6,13 @@
  * - helper.h, helper.c contain helper math, print, plot functions etc.
  * - denoising.h, denoising.c - core functionality
  *
+ * History:
+\code
+ * $Log$
+ * Revision 1.3  2008/03/14 15:44:27  mihrke
+ * distribution 0.15
+ *
+\endcode
  */
 
 #ifndef DEFINITIONS_H
