@@ -7,7 +7,21 @@
    -- Helper functions                                                       -- 
    ---------------------------------------------------------------------------- */
 
+/** deep copy of double ptrptr
+ */
+double** copy_double_ptrptr(const double **s, int N, int n){
+  double **r;
+  int i, j;
 
+  r = (double**)malloc(N*sizeof(double*));
+  for(i=0; i<N; i++){
+    r[i] = (double*)malloc(n*sizeof(double));
+	 for(j=0; j<n; j++){
+		r[i][j] = s[i][j];
+	 }
+  }
+  return r;
+}
 
 /** shallow copy of ModelData struct
  */

@@ -67,6 +67,7 @@ if(x) fprintf(stderr, "Assertion failed: " #text, ## __VA_ARGS__)
 /**\addtogroup helperorg
  *\ingroup helper
  *\{*/
+
 int     v_printf(int v, char *format, ...);
 int     vprint_vector(const char* name, double *v, int n);
 void    errormsg(int err_no, int fatal);
@@ -77,6 +78,8 @@ void    free_warppath(WarpPath *p);
 void    print_modeldata(FILE *out, const ModelData *m);
 void    print_denoisingparameters(FILE *out, const DenoisingParameters *p);
 void    print_timewarpparameters(FILE *out, const TimewarpParameters *p);
+
+double** copy_double_ptrptr(const double **s, int N, int n);
 /**\}*/
 
 

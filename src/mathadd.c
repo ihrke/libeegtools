@@ -223,3 +223,87 @@ double* loocv(const ModelData *m, double* err, double*(*model)(const ModelData*,
 	free(hatu);
 	return err;
 }	 
+
+
+/* ---------------------------------------------------------------------------- 
+   -- Matrix ops                                                             -- 
+   ---------------------------------------------------------------------------- */\
+
+/** Delete a row in a matrix. Memory remains allocated and the row pointer
+ *  is moved to the end of the matrix. Index runs from 0,...,N-1
+ * \param m - matrix 
+ * \param N - num of rows
+ * \param n - num of cols
+ * \param row- num of row to delete
+ */
+double** matrix_delrow(double **m, int N, int n, int row){
+  double *tmp;
+  int i;
+  massert(row>N-1, "cannot delete row %i because only %i rows\n", row, N);
+  tmp = m[row];
+  for(i=row; i<N-1; i++){
+    m[i]=m[i+1];
+  }
+  m[N-1] = tmp;
+  return m;
+}
+
+/** Delete a column in a matrix. Memory remains allocated and everything is 
+ *  moved (deleted column sits at index n). Index runs from 0,...,n-1
+ * \param m - matrix 
+ * \param N - num of rows
+ * \param n - num of cols
+ * \param col- num of col to delete
+ */
+double** matrix_delcol(double **m, int N, int n, int col){
+  int i, j;
+  double tmp;
+  massert(col>n-1, "cannot delete col %i because only %i cols\n", col, n);
+  for(i=0; i<N; i++){
+    tmp = m[i][col];
+    for(j=col; j<n-1; j++){
+      m[i][j]=m[i][j+1];
+    }
+    m[i][n-1]=tmp;
+  }
+  return m;
+}
+
+/** Get minimum entry from matrix. Set indices accordingly.
+ * \param m, N, n - Nxn matrix
+ * \param i1,i2 - pointer to indices of min-element. If NULL, ignored.
+ */
+double matrix_min(const double **m, int N, int n, int *i1, int *i2){
+  int i,j;
+  double minel=DBL_MAX;
+  for(i=0; i<N; i++){
+    for(j=0; j<n; j++){
+      if(m[i][j]<minel){
+		  minel = m[i][j];
+		  if(i1 && i2){
+			 *i1 = i;
+			 *i2 = j;
+		  }
+      }
+    }
+  }
+  dprintf("matrix_min: m(%i,%i)=%f (%f)\n", *i1, *i2, m[*i1][*i2], minel);
+  return minel;
+}
+
+/** print a matrix.
+ */
+void matrix_print(double **m, int N, int n){
+  int i,j;
+
+  for(i=0; i<N; i++){
+	 printf("[ ");
+	 for(j=0; j<n; j++){
+		if(m[i][j]>1000000)
+		  printf("<max> ");
+		else
+		  printf("%2.2f ", m[i][j]);
+	 }
+	 printf(" ]\n");
+  }
+}

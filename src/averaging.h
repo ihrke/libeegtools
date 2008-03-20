@@ -38,8 +38,12 @@
  *\{
  */
 double* ADTW (const double *s1, int n1, const double *s2, int n2, double *avg);
+double* ADTW_signal(const double *s1, int sR1, 
+						  const double *s2, int sR2, 
+						  int zero, int n, double *avg);
 double* PADTW(const double **s, int N, int n, int zero, int *sR, double *wa);
 
+double* simple_average(const double *s1, const double *s2, int n, double *avg);
 double timewarp(const double *ref, int n1, double *d, int n2, 
 		double theta1, double theta2);
 double* avgwarp_from_path(const double *u, int J, const double *s, int K, 

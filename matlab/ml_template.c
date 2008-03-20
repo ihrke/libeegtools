@@ -1,5 +1,5 @@
-/**\file ml_template.c
- * \brief Matlab wrapper for <INSERT>
+/**\file ml_running_median.c
+ * \brief Matlab wrapper for Running Median
  *
  *   Compilation:
  *     MATLAB will need to see libGSL, helper.o, denoising.o
@@ -37,17 +37,47 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
   /* DOKU
    */
   char msg[500];
+  int n, win;
+  double *s, *fs;
+  double(*metric)(double,double);
 
+  char *docstring = "[filtered] = ml_weighted_running_median(x, win, [opt])\n"
+    "x - vector to filter\n"
+    "win - [int] window size for running median\n"
+    "OPTS:\n"
+    "  metric - values: 'euclidean'";
   /* check proper input and output */
-  if(nrhs!=2)
-    mexErrMsgTxt("Need 2 inputs");
-  else if(!mxIsDouble(prhs[0]) || !mxIsDouble(prhs[1]))
-    mexErrMsgTxt("First and second Input must be double array.");
-  else if(mxGetM(prhs[0])!=1 || mxGetM(prhs[1])!=1){
-    sprintf(msg, "Inputs must be 1-dim vectors, got %ix%i.", mxGetM(prhs[0]), mxGetN(prhs[0]));
+  if(nrhs<2){
+    sprintf(msg, "Need at least 2 inputs.\n%s\n", docstring);
+    mexErrMsgTxt(msg);
+  } else if(!mxIsDouble(prhs[0]) || !mxIsDouble(prhs[1])){
+    sprintf(msg, "First and second Input must be double array.\n%s\n", docstring);
+    mexErrMsgTxt(msg);
+  } else if(mxGetM(prhs[0])!=1 || mxGetM(prhs[1])!=1){
+    sprintf(msg, "Inputs must be 1-dim vectors, got %ix%i.\n%s\n", 
+	    mxGetM(prhs[0]), mxGetN(prhs[0]), docstring);
     mexErrMsgTxt(msg);
   } 
   
+  n = mxGetN(prhs[0]);
+  s = mxGetPr(prhs[0]);
+  win = (int)mxGetPr(prhs[1])[0];
+  if(nrhs>2){
+    if(!strcmp(mxGetPr(prhs[2]), 'euclidean'))
+      metric = dist_euclidean;
+    else{
+      sprintf(msg, "Metric not known: %s\n", mxGetPr(prhs[2]));
+      mexErrMsgTxt(msg);
+    }
+  }
+
+  /* printf("win=%i\n", n); */
+  plhs[0] = mxCreateDoubleMatrix(1, n, mxREAL);
+  fs = mxGetPr(plhs[0]);
+  fs = memcpy((void*)fs, (void*)s, n*sizeof(double));
+  /*   printf("fs[0] = %f, fs[n-1]=%f\n", fs[0], fs[n-1]); */
+  fs = weighted_running_median(fs, n, win, dist_euclidean);
+
   /* Important functions.
      mxGetPr(prhs[0]);
      mxCalloc((int)MAX(J,K), sizeof(double));

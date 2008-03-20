@@ -36,14 +36,14 @@ double get_warppath(const double *u, int J, const double *s, int K,
   int j,k;
   double avgu, avgs, rmsu=0.0, rmss=0.0;
   double snorm, snormp; /* variable for a point of the normalized
-			   signal and the preceding point */
+									signal and the preceding point */
   double unorm, unormp;
-
+  
   /* d is JxK */
   d = (double**)malloc(J*sizeof(double*));
   for(j=0; j<J; j++)
     d[j]=(double*)malloc(K*sizeof(double));
-
+  
   avgu = gsl_stats_mean(u, 1, J);
   avgs = gsl_stats_mean(s, 1, K);
   for(j=0; j<J; j++) rmsu += pow(u[j], 2);
@@ -61,15 +61,15 @@ double get_warppath(const double *u, int J, const double *s, int K,
       d[j][k] = theta1 * fabs(unorm - snorm) + theta2 * fabs( (unorm-unormp) - (snorm-snormp) ); /* (1) */
       if(k==0 && j==0) ;
       else if(k==0 && j>0)
-	d[j][k] += d[j-1][k];
+		  d[j][k] += d[j-1][k];
       else if(k>0 && j==0)
-	d[j][k] += d[j][k-1];
+		  d[j][k] += d[j][k-1];
       else /* j,k > 0 */
-	d[j][k] += MIN(MIN(d[j][k-1], d[j-1][k]), d[j-1][k-1]);
+		  d[j][k] += MIN(MIN(d[j][k-1], d[j-1][k]), d[j-1][k-1]);
     }
   }
   Djk = d[J-1][K-1];
-
+  
   /* Backtracking */
   j=J-1; k=K-1;
   path[k]=j;
@@ -78,8 +78,8 @@ double get_warppath(const double *u, int J, const double *s, int K,
       path[k]=0; break;
     } else if(j==0){
       while(k>=0){
-	path[k]=0; 
-	k--;
+		  path[k]=0; 
+		  k--;
       }
       break;
     }
@@ -89,19 +89,21 @@ double get_warppath(const double *u, int J, const double *s, int K,
     } 
     else {
       if(d[j-1][k]<d[j-1][k-1]){
-	j--;
+		  j--;
       } 
       else {
-	j--; k--;
-	path[k]=j;
+		  j--; k--;
+		  path[k]=j;
       }
     }
   }
-
+  
   for(j=0; j<J; j++) free(d[j]);
   free(d);
+  //  printf("get_warppath: Djk=%f\n", Djk);
   return Djk;
 }
+
 /** same as get_warppath, but the warpPath struct ist used as return value;
  * the path is allocated by this function.
  */
@@ -126,6 +128,7 @@ WarpPath* get_warppath3(const double *u, int J, const double *s, int K,	double t
 	path->spath = (int*)calloc(J+K, sizeof(int));
 
 	(*Djk) = get_warppath( u, J, s, K, theta1, theta2, p );
+	//	dprintf("get_warppath3: Djk = %f\n", *Djk);
 
 	/* handle base case */
 	path->upath[0]=0;
@@ -216,6 +219,7 @@ double* avgwarp_from_path(const double *u, int J, const double *s, int K, const 
 	int i;
 	tmp = (double*)calloc(K+J, sizeof(double));
 	if(avg==NULL){
+	  dprintf("Allocating own memory\n");
 		avg = (double*)calloc((K+J)/2+1, sizeof(double));
 	}
 	
@@ -234,6 +238,19 @@ double* avgwarp_from_path(const double *u, int J, const double *s, int K, const 
 	return avg;
 }
 
+/** Calculate a simple, pointwise average. avg[i] = (s1[i]+s2[i])/2
+ * \param avg - user-allocated memory of length n; if NULL, the function 
+ *              allocates the memory
+ */
+double* simple_average(const double *s1, const double *s2, int n, double *avg){
+  int i;
+  if(!avg)
+    avg = (double*)malloc(n*sizeof(double));
+  for(i=0; i<n; i++)
+    avg[i] = (s1[i]+s2[i])/2.0;
+  return avg;
+}
+
 /** Warpaverage two signals (ADTW). Use method described in Picton.
  * \param u,J - sig1
  * \param s,K - sig2
@@ -248,6 +265,116 @@ double* ADTW(const double *s1, int n1, const double *s2, int n2, double *avg){
   avg = avgwarp_from_path(s1, n1, s2, n2, p, avg);
 
   return avg;
+}
+
+/** Warpaverage two signals (ADTW). Do the warping for a time signal
+ *  where stimulus onset (zero) and reaction time (sR) are given.
+ *   0,...,zero -- simple average
+ *   zero,...,sR-- warpavg
+ *   sR,...,end -- warpavg.
+ * \param s1 - sig1
+ * \param s2 - sig2
+ * \param zero  - stimulus onset in both signals
+ * \param n     - num sampling points of both signals
+ * \param sR1   - reaction time for signal 1 (sampling units)
+ * \param sR2   - reaction time for signal 2
+ * \param avg - pointer to caller-allocated memory (length (K+J)/2+1); 
+ *              if NULL is given, memory is allocated by the function.
+ */
+double* ADTW_signal(const double *s1, int sR1, 
+						  const double *s2, int sR2, 
+						  int zero, int n, double *avg){
+  WarpPath *p;
+  double Djk;
+  dprintf("ADTW_signal: zero=%i, sR1=%i, sR2=%i\n", zero, sR1, sR2);
+  if(!avg) avg = (double*)malloc(n*sizeof(double));
+  avg = simple_average(s1, s2, zero, avg);
+  /*&(avg[zero]) = */
+  ADTW(&(s1[zero]), sR1-zero+1, &(s2[zero]), sR2-zero+1, &(avg[zero]));
+  /*  &(avg[((sR1-zero)+(sR2-zero))/2+1])=*/
+  ADTW(&(s1[sR1]), n-sR1, &(s2[sR2]), n-sR2, &(avg[(sR1+sR2)/2]));
+
+  return avg;
+}
+/** Warpaverage N signals (PADTW). Use method described in Ihrke Bachelor.
+ * \param s,N,n - N segments of EEG-data, each n sampling points
+ * \param zero  - the zero marker (stimulus onset) in sampling units
+ * \param sR    - N reaction times in sampling units for each trial
+ * \param wa    - pointer to caller-allocated memory (length n)
+ *                if NULL is given, memory is allocated by the function.
+ */  
+double* PADTW(const double **s, int N, int n, int zero, int *sR, double *wa){
+  WarpPath **Ps;
+  double **sc;
+  double **Djk;
+  double **tmp;
+  double *tmp2;
+  int i,j,k, l;
+  int msize;
+  int curN;
+  
+
+  //  dprintf("PATDW: N=%i,n=%i,zero=%i,sR[0]=%i,sR[N-1]=%i,s[0][0]=%f,s[0][1]=%f,s[1][0]=%f,s[1][1]=%f\n",
+  //	 N,n,zero,sR[0],sR[N-1],s[0][0],s[0][1],s[1][0],s[1][1]);
+  /* initialization */
+  sc = copy_double_ptrptr(s, N, n);
+  Ps = (WarpPath**)malloc(N*sizeof(WarpPath*));
+  tmp= (double**)malloc(N*sizeof(double*));
+  Djk = (double**)malloc(N*sizeof(double*));
+  for(i=0; i<N; i++)
+    Djk[i] = (double*)calloc(N,sizeof(double));
+
+  /* main loop -- iterate until top of pyramid */
+  curN=N;
+  while(curN>1){
+	 dprintf("curN=%i\n", curN);
+    /* calculate the distance matrix and pathes */
+	 for(i=0; i<curN;i++)
+		for(j=0; j<curN;j++)
+		  Djk[i][j]=DBL_MAX;
+
+    for(i=0; i<curN; i++){
+      for(j=i+1; j<curN; j++){
+		  dprintf("(%i,%i)\n", i,j);
+		  get_warppath3(&(sc[i][zero]), sR[i],
+										 &(sc[j][zero]), sR[j], 1.0,1.0,
+										 &(Djk[i][j]));
+		  //		  Djk[j][i]=Djk[i][j];
+      }
+    }
+
+    msize = curN;
+    l = 0;
+    while(l<curN/2){
+		matrix_print(Djk, curN, curN);
+      matrix_min(Djk, curN, curN, &i, &j);
+		dprintf("argmin(Djk)=(%i,%i)\n",i,j);
+      tmp[l]=(double*)malloc(n*sizeof(double));
+      tmp[l] = ADTW_signal(sc[i], sR[i], sc[j], sR[j], zero, n, tmp[l]);
+		for(k=0; k<curN; k++){ // delete row and col
+		  Djk[i][k]=DBL_MAX; 
+		  Djk[j][k]=DBL_MAX;		  
+		}
+      l++;
+    }
+	 for(i=0; i<l; i++){
+		tmp2 = sc[i];
+		sc[i]=tmp[i];
+		free(tmp2);
+	 }
+	 curN = curN/2;
+  }
+  
+  for(i=0; i<n; i++){
+	 wa[i]=sc[0][i];
+  }
+
+  for(i=0; i<N; i++){
+    free(sc[i]);
+  }
+  free(sc);
+  free(Ps);
+  return wa;
 }
 
 /** Get the warpaverage of two signals computed as in Picton 1995.

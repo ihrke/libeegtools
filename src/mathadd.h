@@ -59,6 +59,13 @@ double* loocv(const ModelData *m, double* err,
 double rmse(const double *r, const double *d, int n);
 double snr (const double *r, const double *d, int n);
 
+/* ---------------------------------------------------------------------------- 
+   -- Matrix ops                                                             -- 
+   ---------------------------------------------------------------------------- */
+double** matrix_delrow(double **m, int N, int n, int row);
+double** matrix_delcol(double **m, int N, int n, int col);
+double   matrix_min(const double **m, int N, int n, int *i1, int *i2);
+void     matrix_print(double **m, int N, int n);
 /**\}*/
 
 #endif
