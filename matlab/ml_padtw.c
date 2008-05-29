@@ -1,5 +1,5 @@
-/**\file ml_running_median.c
- * \brief Matlab wrapper for Running Median
+/**\file ml_padtw.c
+ * \brief Matlab wrapper for PADTW
  *
  *   Compilation:
  *     MATLAB will need to see libGSL, helper.o, denoising.o
@@ -27,14 +27,6 @@
  * prhs (Type = const array of pointers to mxArrays): This array hold all of the pointers to the mxArrays of input data
  * for instance, prhs[0] holds the mxArray containing x, prhs[1] holds
  * the mxArray containing y, etc). 
-
-
- Important functions.
-     mxGetPr(prhs[0]);
-     mxCalloc((int)MAX(J,K), sizeof(double));
-     mxFree();
-     mxCreateDoubleMatrix(1, J, mxREAL);
-     mxSetPr(plhs[0], snew);
  */
 #include "mex.h"
 #include <stdlib.h>
@@ -45,29 +37,54 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
   /* DOKU
    */
   char msg[500];
-  int n, win;
-  double *s, *fs;
+  int n, N, zero, i;
+  int *sR;
+  double **ui;
+  double *d, *m;
+  double *wavg;
+
+  char *docstring = "[average] = ml_padtw(s, zero, sR, [opt])\n"
+    "s    - Nxn matrix of EEG-data (N trials, n sampling points)\n"
+    "zero - stimulus onset in sampling units\n"
+    "sR   - N reaction times in sampling units\n"
+    "OPTS:\n";
 
   /* check proper input and output */
-  if(nrhs!=2)
-    mexErrMsgTxt("Need 2 inputs");
-  else if(!mxIsDouble(prhs[0]) || !mxIsDouble(prhs[1]))
-    mexErrMsgTxt("First and second Input must be double array.");
-  else if(mxGetM(prhs[0])!=1 || mxGetM(prhs[1])!=1){
-    sprintf(msg, "Inputs must be 1-dim vectors, got %ix%i.", mxGetM(prhs[0]), mxGetN(prhs[0]));
+  if(nrhs<3){
+    sprintf(msg, "Need at least 3 inputs.\n%s\n", docstring);
+    mexErrMsgTxt(msg);
+  } else if(!mxIsDouble(prhs[0]) || !mxIsDouble(prhs[1])){
+    sprintf(msg, "First and second Input must be double array.\n%s\n", docstring);
+    mexErrMsgTxt(msg);
+  } else if(mxGetM(prhs[1])!=1 || mxGetM(prhs[2])!=1){
+    sprintf(msg, "Inputs must be 1-dim vectors, got %ix%i.\n%s\n", 
+	    mxGetM(prhs[1]), mxGetN(prhs[1]), docstring);
     mexErrMsgTxt(msg);
   } 
   
-  n = mxGetN(prhs[0]);
-  s = mxGetPr(prhs[0]);
-  win = (int)mxGetPr(prhs[1])[0];
-  /* printf("win=%i\n", n); */
-  plhs[0] = mxCreateDoubleMatrix(1, n, mxREAL);
-  fs = mxGetPr(plhs[0]);
-  fs = memcpy((void*)fs, (void*)s, n*sizeof(double));
-  /*   printf("fs[0] = %f, fs[n-1]=%f\n", fs[0], fs[n-1]); */
-  fs = running_median(fs, n, win);
-/*   fs = weighted_running_median(fs, n, win, dist_euclidean); */
+  N = mxGetN(prhs[0]);
+  n = mxGetM(prhs[0]);
+  zero=(int)mxGetPr(prhs[1])[0];
+
+  fprintf(stderr, "N=%i, n=%i, zero=%i\n", (int)N, (int)n, zero);
+  fprintf(stderr, "markers(M=%i, N=%i)\n", mxGetM(prhs[2]), mxGetN(prhs[2]));
+
+  sR = (int*)mxCalloc(N,sizeof(int));
+
+  /* for convenience, create pointers to the correct segments */
+  ui = (double**)mxCalloc(N, sizeof(double*));
+  d = mxGetPr(prhs[0]);
+  m = mxGetPr(prhs[2]);
+  for(i=0; i<N; i++){
+	  ui[i]=&(d[n*i]);
+	  sR[i]=(int)m[i];
+  }
+  fprintf(stderr, "m[0]=%i, m[N]=%i\n", (int)m[0], (int)m[N-1]);
+  
+  plhs[0] = mxCreateDoubleMatrix(1, n, mxREAL); 
+  wavg = mxGetPr(plhs[0]);
+
+  wavg = PADTW((const double**)ui, N, n, zero, sR, wavg);
 
   return;
 }

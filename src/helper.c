@@ -97,8 +97,75 @@ void free_modeldata(ModelData *m){
 	free(m);
 }
 
+
+EEGdata* init_eegdata(int nbchan, int nsamples){
+  int i;
+  EEGdata *eeg;
+
+  eeg = (EEGdata*) malloc( sizeof(EEGdata) );
+  eeg->nbchan = nbchan;
+  eeg->n = nsamples;
+  eeg->d = (double**) malloc( nbchan * sizeof(double*) );
+  for(i=0; i<nbchan; i++)
+	 eeg->d[i] = (double*) malloc( nsamples*sizeof(double) );
+  eeg->markers=NULL;
+  eeg->nmarkers=0;
+
+  return eeg;
+}
+
+EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, int nbchan, int nbsamples){
+  EEGdata_trials *eeg;
+  int i;
+
+  eeg = (EEGdata_trials*)malloc( sizeof( EEGdata_trials ) );
+  eeg->nmarkers_per_trial = markers_per_trial;
+  eeg->ntrials = nbtrials;
+  eeg->markers = (unsigned long **)malloc( nbtrials * sizeof( unsigned long* ) );
+  for(i=0; i<nbtrials; i++){
+	 eeg->markers[i] = (unsigned long*) malloc( markers_per_trial * sizeof( unsigned long ) );
+  }
+  eeg->times = (double*)malloc( nbsamples*sizeof( double ) );
+  eeg->data = (EEGdata**)malloc( nbtrials*sizeof( EEGdata* ) );
+  for(i=0; i<nbtrials; i++)
+	 eeg->data[i] = init_eegdata(nbchan, nbsamples);
+  
+  return eeg;
+}
+
+void print_eegdata_trials(FILE *out, const EEGdata_trials *eeg){
+  	fprintf(out, "EEGdata_trials:\n"	);
+	fprintf(out, "      ntrials=%i\n", eeg->ntrials);
+	fprintf(out, "      nmarkers_per_trial=%i\n", eeg->nmarkers_per_trial);
+}
+
+void free_eegdata_trials(EEGdata_trials *eeg){
+  int i;
+  for(i=0; i<eeg->ntrials; i++){
+	 free_eegdata(eeg->data[i]);
+	 free(eeg->markers[i]);
+  }
+  free(eeg->data);
+  free(eeg->markers);
+  free(eeg);
+}
+
+void free_eegdata(EEGdata *eeg){
+  int i;
+  for(i=0; i<eeg->nbchan; i++){
+	 free(eeg->d[i]);
+  }
+  free(eeg->d);
+  free(eeg);
+}
+
 int v_printf(int v, char *format, ...){
   extern int *verbosity;
+  int tmp;
+  if(!verbosity){
+	 tmp=0;
+	 verbosity=&tmp;
+  }
   va_list arglist;
 
   va_start(arglist,format);
@@ -110,6 +177,74 @@ int v_printf(int v, char *format, ...){
   return 0;
 }
 
+size_t  ffread(void *ptr, size_t size, size_t nmemb, FILE *stream){
+  int bread;
+  /*  dprintf("size=%i, nmemb=%i\n", size, nmemb);*/
+  bread=fread(ptr, size, nmemb, stream);
+  /*  dprintf("feof=%i, ferror=%i\n", feof(stream), ferror(stream));
+		dprintf("bread=%i, exp=%i\n", bread, size*nmemb);*/
+  if(bread<nmemb){
+	 errormsg(ERR_IO, 1);
+  }
+}
+
+
+void    qsort_int_index( int *idx_idx, const int *idx, int n ){
+  int i,j;
+  int *tmp;
+  tmp = (int*)malloc( n*sizeof( int ) );
+  memcpy( tmp, idx, n*sizeof( int ) );
+
+  qsort( tmp, n, sizeof( int ), compare_ints);
+  for(i=0; i<n; i++){
+	 for(j=0; j<n; j++){
+		if( idx[i] == tmp[j] ){
+		  idx_idx[i]=j;
+		  tmp[j]=INT_MIN;
+		  break;
+		}
+	 }
+  }
+  free(tmp);
+}
+
+
+/* well tested */
+void swap_bytes(void *ptr, int nmemb){
+  uint8_t tmp;
+  uint8_t *nptr=(uint8_t*)ptr;
+  int i;
+
+  for(i=0; i<nmemb/2; i++){
+	 tmp = nptr[i];
+	 nptr[i]=nptr[nmemb-i-1];
+	 nptr[nmemb-i-1]=tmp;
+  }
+}
+
+int is_little_endian(){
+  long l=1; 
+  void *ptr=&l; 
+  uint8_t t =*(uint8_t*)ptr;
+  if(t==1) return 0;
+  else if(t==0) return 1;
+  else errormsg(ERR_ENDIAN, ERR_FATAL);
+}
+
+int compare_ints (const int *a, const int *b) {
+  if (*a > *b)
+	 return 1;
+  else if (*a < *b)
+	 return -1;
+  else
+	 return 0;
+}
+
+/** wrapper */
+void wswap(void *ptr, int nmemb, int flag){
+  if(flag)
+	 swap_bytes(ptr, nmemb);
+}
 int vprint_vector(const char* name, double *v, int n){
   int i;
   fprintf(stderr, "%s = \n", name);
@@ -123,16 +258,22 @@ int vprint_vector(const char* name, double *v, int n){
 void   errormsg(int err_no, int fatal){
   switch(err_no){
   case ERR_IO:
-    v_printf(0, "IO Error");
+    v_printf(0, "IO Error\n");
     break;
   case ERR_GSL:
-    v_printf(0, "Error in the GSL-library");
+    v_printf(0, "Error in the GSL-library\n");
     break;
   case ERR_PLOT:
-    v_printf(0, "Error in the Plot-library");
+    v_printf(0, "Error in the Plot-library\n");
+    break;
+  case ERR_ENDIAN:
+    v_printf(0, "Error in the Endianness\n");
+    break;
+  case ERR_PARSEMAT:
+    v_printf(0, "Error while parsing .mat-file! Continue at your own risk...\n");
     break;
   default:
-    v_printf(0, "Unknown Error number");
+    v_printf(0, "Unknown Error number\n");
   }
   if(fatal){
     v_printf(0, "... Fatal\n");
@@ -140,89 +281,9 @@ void   errormsg(int err_no, int fatal){
   } else v_printf(0, "\n");
 }
 
-#ifdef HAVE_PLOTLIB
-void plot_coordsys(double xmin, double xmax, double ymin, double ymax, double *labels, int numlab){
-  int i;
-  char tmp[255];
-  pl_pencolorname("black");
-  pl_linewidth(0.1);
-  pl_fline(xmin, 0.0, xmax, 0.0);
-  pl_fline(0.0, YSCALE*ymin, 0.0, YSCALE*ymax);
-  pl_fontname("Courier");
-  pl_ffontsize(30);
-  for(i=0; i<numlab; i++){
-    pl_fmove(labels[i], 0.0);
-    sprintf(tmp, "%.0f", labels[i]);
-    pl_alabel('c', 't', tmp);
-  }
-}
-
-int plot_init(double xmin, double xmax, double ymin, double ymax, char* plotdev){
-  int h, i, numlabels;
-  double *labels;
-  char tmp[20];
-  if(!plotdev)
-    return -1;
-  sprintf(tmp, "%ix%i", SCREENX, SCREENY);
-  
-  numlabels = (xmax-xmin)/100.0;
-  labels = (double*)malloc(numlabels*sizeof(double));
-  labels[0]=xmin;
-  for(i=1; i<numlabels; i++)
-    labels[i]=labels[i-1]+100.0;
-
-  pl_parampl("BITMAPSIZE", tmp);
-  pl_parampl("PAGESIZE", "a4");
-  if((h=pl_newpl(plotdev, stdin, stdout, stderr))<0){
-    errormsg(ERR_PLOT, 0);
-    return ERR_PLOT;
-  }
-  pl_selectpl(h);
-  if(pl_openpl()<0){
-    errormsg(ERR_PLOT,0);
-    return ERR_PLOT;
-  }
-  
-  //pl_space(xmin, ymin*SCREENX/SCREENY, xmax, ymax*SCREENX/SCREENY);
-  pl_space(xmin, xmin, xmax, xmax);
-  plot_coordsys(xmin, xmax, ymin, ymax, labels, numlabels); 
-
-  return h;
-}
-
-void   plot_trace(const double *times, const double *d, int n, const char *color){
-  /* if times==NULL then the points are plotted from zero on;
-   * else both arrays must be of length n
-   */
-  int i;
-  pl_endpath();
-  pl_pencolorname(color);
-  pl_linewidth(0.1);
-  if(!times)
-    pl_fmove(0.0, d[0]);
-  else
-    pl_fmove(times[0], d[0]);
-
-  for(i=0; i<n; i++){
-    if(!times)
-      pl_fcont((double)i, d[i]); 
-    else
-      pl_fcont(times[i], YSCALE*d[i]);
-  }
-  pl_endpath();
-}
-
-void plot_close(int handle){
-  if(pl_closepl()<0)
-    errormsg(ERR_PLOT, 0);
-  pl_selectpl(0);
-  if(pl_deletepl(handle)<0)
-    errormsg(ERR_PLOT, 0);
-}
-#endif
-
-
-
+/* ----------------------------------------------------------------------
+	MATLAB
+   ----------------------------------------------------------------------*/
 #ifdef HAVE_MATLAB
 Engine* ml_init(){
   Engine *m;

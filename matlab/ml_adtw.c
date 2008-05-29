@@ -1,5 +1,5 @@
-/**\file ml_running_median.c
- * \brief Matlab wrapper for Running Median
+/**\file ml_adtw.c
+ * \brief Matlab wrapper for ADTW
  *
  *   Compilation:
  *     MATLAB will need to see libGSL, helper.o, denoising.o
@@ -27,14 +27,6 @@
  * prhs (Type = const array of pointers to mxArrays): This array hold all of the pointers to the mxArrays of input data
  * for instance, prhs[0] holds the mxArray containing x, prhs[1] holds
  * the mxArray containing y, etc). 
-
-
- Important functions.
-     mxGetPr(prhs[0]);
-     mxCalloc((int)MAX(J,K), sizeof(double));
-     mxFree();
-     mxCreateDoubleMatrix(1, J, mxREAL);
-     mxSetPr(plhs[0], snew);
  */
 #include "mex.h"
 #include <stdlib.h>
@@ -45,29 +37,45 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
   /* DOKU
    */
   char msg[500];
-  int n, win;
-  double *s, *fs;
+  int n, sR1, sR2, zero;
+  double *s1, *s2, *avg;
+
+  char *docstring = "[avg] = ml_adtw(s1, s2, zero, sR)\n"
+    "s1,s2 - signals to average\n"
+    "zero  - stimulus onset in both signals\n"
+    "sR    - 1x2 array of reaction times in both signals (sampling units)\n"
+    "OPTS:\n";
 
   /* check proper input and output */
-  if(nrhs!=2)
-    mexErrMsgTxt("Need 2 inputs");
-  else if(!mxIsDouble(prhs[0]) || !mxIsDouble(prhs[1]))
-    mexErrMsgTxt("First and second Input must be double array.");
-  else if(mxGetM(prhs[0])!=1 || mxGetM(prhs[1])!=1){
-    sprintf(msg, "Inputs must be 1-dim vectors, got %ix%i.", mxGetM(prhs[0]), mxGetN(prhs[0]));
+  if(nrhs<4){
+    sprintf(msg, "Need at least 4 inputs.\n%s\n", docstring);
     mexErrMsgTxt(msg);
-  } 
-  
+  } else if(!mxIsDouble(prhs[0]) || !mxIsDouble(prhs[1])){
+    sprintf(msg, "First and second Input must be double array.\n%s\n", docstring);
+    mexErrMsgTxt(msg);
+  } else if(mxGetM(prhs[0])!=1 || mxGetM(prhs[1])!=1 || mxGetM(prhs[2])!=1|| mxGetM(prhs[3])!=1){
+    sprintf(msg, "Inputs must be 1-dim vectors, got %ix%i.\n%s\n", 
+	    mxGetM(prhs[0]), mxGetN(prhs[0]), docstring);
+    mexErrMsgTxt(msg);
+  } else if(mxGetN(prhs[0])!=mxGetN(prhs[1])){
+    sprintf(msg, "s1 and s2 must have same dimensions, got %i, %i.\n%s\n",
+	    mxGetN(prhs[0]), mxGetN(prhs[1]), docstring);
+    mexErrMsgTxt(msg);
+  }
+
   n = mxGetN(prhs[0]);
-  s = mxGetPr(prhs[0]);
-  win = (int)mxGetPr(prhs[1])[0];
-  /* printf("win=%i\n", n); */
+  s1 = mxGetPr(prhs[0]);
+  s2 = mxGetPr(prhs[1]);
+
+  zero = (int)mxGetPr(prhs[2])[0];
+  sR1  = (int)mxGetPr(prhs[3])[0];
+  sR2  = (int)mxGetPr(prhs[3])[1];
+
+  printf("zero=%i, sR1=%i, sR2=%i\n", zero, sR1, sR2); 
   plhs[0] = mxCreateDoubleMatrix(1, n, mxREAL);
-  fs = mxGetPr(plhs[0]);
-  fs = memcpy((void*)fs, (void*)s, n*sizeof(double));
-  /*   printf("fs[0] = %f, fs[n-1]=%f\n", fs[0], fs[n-1]); */
-  fs = running_median(fs, n, win);
-/*   fs = weighted_running_median(fs, n, win, dist_euclidean); */
+  avg = mxGetPr(plhs[0]);
+
+  ADTW_signal(s1, sR1, s2, sR2, zero, n, avg); 
 
   return;
 }

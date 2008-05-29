@@ -24,37 +24,59 @@ void eeg_filter_running_median(EEGdata *s, int win){
 }
 
 /** Simple Running Median filter.
- * d[i] = median{ d[i-win], ..., d[i+win] }
+ * \code d[i] = median{ d[i-win], ..., d[i+win] } \endcode
  * -- choice of time-window 'win' is crucial
  * use 2*l+1 where l is the size of to-be-preserved details in sampling units
  * Ref: Schelter et al, 2005, chap. 6 (6.2.1)
  */
 double* running_median(double *d, int n, int win){
-  double *tmp, *dptr;
-  int i, cwin;
+  double *tmp, *dptr, *org;
+  int i, awin, ewin;
   double med;
 
-  if(win % 2==0) win++;
-  tmp = (double*)malloc(win*sizeof(double));
+  org = (double*)malloc(n*sizeof(double));
+  org = (double*)memcpy(org, d, n*sizeof(double));
+  tmp = (double*)malloc((2*win+1)*sizeof(double));
 
   for(i=0; i<n; i++){
-    dptr = &(d[i]);
-    cwin = win;
-    if(i-win/2 < 0){
-      dptr=d;
-      cwin = i+win/2;
-    } 
-    if(i+win/2 >= n) cwin=n-i;
+	 awin = i-win;
+	 ewin = i+win;
+	 if(awin<0) awin=0;
+	 if(ewin>n-1) ewin=n;
     
-    tmp = (double*)memcpy((void*)tmp, (const void*)(dptr), sizeof(double)*cwin);
+    tmp = (double*)memcpy(tmp, &(org[awin]), sizeof(double)*(ewin-awin));
    
-    gsl_sort(tmp, 1, cwin);
-    med = gsl_stats_median_from_sorted_data(tmp, 1, cwin);
+    gsl_sort(tmp, 1, ewin-awin);
+    med = gsl_stats_median_from_sorted_data(tmp, 1, ewin-awin);
 
     d[i] = med;
   }
   free(tmp);
+  free(org);
   return d;
+}
+
+/** Simple Moving Average filter.
+ * s[i] = mean{ s[i-win], ..., s[i+win] }
+ */
+double* moving_average(double *s, int n, int win){
+  int i, awin, ewin;
+  double m;
+  double *sptr, *org;
+
+  org = (double*)malloc(n*sizeof(double));
+  org = (double*)memcpy(org, s, n*sizeof(double));
+
+  for(i=0; i<n; i++){
+	 awin = i-win;
+	 ewin = i+win;
+	 if(awin<0) awin=0;
+	 if(ewin>n-1) ewin=n;
+	 m = gsl_stats_mean(&(org[awin]), 1, ewin-awin);
+	 s[i] = m;
+  }
+  free(org);
+  return s;
 }
 
 /**  Weighted Running Median filter.
@@ -71,33 +93,27 @@ void eeg_filter_weighted_running_median(EEGdata *s, int win){
  */
 double* weighted_running_median(double *d, int n, int win, 
 				double(*dist)(double,double)){
-  double *pptr, *wptr, *dptr;
+  double *pptr, *wptr;
   int i, j;
-  int cwin, cstart;
+  int awin, ewin;
   double med;
   
-  if(win % 2==0) win++;
-  pptr = (double*)malloc(win*sizeof(double));
-  wptr = (double*)malloc(win*sizeof(double));
+  pptr = (double*)malloc((2*win+1)*sizeof(double));
+  wptr = (double*)malloc((2*win+1)*sizeof(double));
 
   for(i=0; i<n; i++){
-    dptr = &(d[i]);
-    cwin = win;
-    cstart = i-win/2;
-    if(i-win/2 < 0){
-      dptr=d;
-      cstart = 0;
-      cwin = i+win/2;
-    } 
-    if(i+win/2 >= n) cwin=n-i;
-    
-    pptr = (double*)memcpy((void*)pptr, (const void*)(dptr), sizeof(double)*cwin);
-    for(j=0; j<cwin; j++){
-      wptr[j] = (*dist)(i, cstart+j);
-    }
-   
-    med = weighted_median_from_unsorted(pptr, wptr, cwin);
+	 awin = i-win;
+	 ewin = i+win;
+	 if(awin<0) awin=0;
+	 if(ewin>n-1) ewin=n;
 
+    memcpy(pptr, &(d[awin]), sizeof(double)*(ewin-awin));
+    for(j=0; j<(ewin-awin); j++){
+      wptr[j] = (*dist)(i, awin+j);
+    }
+/* 	 dprintf("i=%i, awin=%i, ewin=%i\n", i, awin, ewin); */
+    med = weighted_median_from_unsorted(pptr, wptr, ewin-awin);
+	 
     d[i] = med;
   }
   free(pptr);
@@ -113,13 +129,18 @@ double* weighted_running_median(double *d, int n, int win,
  * \param w - corresponding weights (>=0)
  */
 double weighted_median_from_unsorted(const double *d, const double *w, int n){
-  int *permut; 
+  size_t *permut; 
   double ref=0.0, refh;
   int k;
-  int i, h;
+  int i, h, idx;
 
-  permut=(int*)malloc(n*sizeof(int));
+  permut=(size_t*)malloc(n*sizeof(size_t));
   gsl_sort_index(permut, d, 1, n);  
+/*   dprintf("i\tperm[i]\td[i]\td[permut[i]]\n"); */
+/*   for(i=0; i<n; i++){ */
+/* 	 dprintf("%i\t%i\t%.2f\t%.2f\n", i, permut[i], d[i], d[permut[i]]); */
+/*   } */
+
   for(i=0; i<n; i++)
     ref+=w[i];
   ref /= 2.0;
@@ -134,9 +155,9 @@ double weighted_median_from_unsorted(const double *d, const double *w, int n){
       break;
     }
   }
+  idx = permut[k];
   free(permut);
-
-  return d[permut[k]];
+  return d[idx];
 }
 
 double dist_euclidean(double x, double y){

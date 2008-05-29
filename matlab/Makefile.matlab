@@ -1,8 +1,8 @@
-MEX=mex
-CFLAGS=-I../src -g
+MEX=/usr/nld/matlab-17/bin/mex
+CFLAGS=-I../src -g -I../../../src
 LDFLAGS=../src/denoising.o ../src/averaging.o ../src/mathadd.o ../src/helper.o #../src/.libs/libeegtools #-leegtools
 MEXFLAGS=-v
-SRCS := $(wildcard ml_padt*.c)
+SRCS := $(wildcard ml_*.c)
 
 all: 
 	cd ../src; make; cd ../matlab;

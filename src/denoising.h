@@ -3,7 +3,7 @@
  *
  * Especially wavelet-based denoising. 
  */
-/** Groups.
+/** 
  * \defgroup denoising Denoising Routines 
  * \{
  *    \defgroup wavelet Wavelet-Denoising
@@ -13,6 +13,7 @@
  *       \defgroup sigext Signal Extension Functions
  *    \}
  *    \defgroup robust_filtering Robust-Filtering
+ *    \defgroup other_filtering Other Filtering
  * \}
  *
  */
@@ -49,6 +50,16 @@ double weighted_median_from_unsorted(const double *d, const double *w, int n);
 double dist_euclidean(double x, double y);
 /** \} */
 
+/* ------------------------------ 
+   -- Other filtering methods  --
+   ------------------------------ */
+
+/** \addtogroup other_filtering
+ * \ingroup denoising
+ *\{
+ */
+double* moving_average(double *s, int n, int win);
+/** \} */
 
 /* ---------------------------------------------------------------------------- 
    -- Wavelet-based Denoising routines                                                     -- 
@@ -79,12 +90,15 @@ double sureshrink(const double *data, int n);
 double heuristic_sure(const double *data, int n);
 /** \} */
 
+
 /* ---------------------------------------------------------------------------- 
    -- Signal extension routines                                              -- 
    ---------------------------------------------------------------------------- */
 
 /** \addtogroup sigext
  * \ingroup wavelet
+ * \{
+ *
  * Signal extension schemes to extend signal of length n to length 2^j
  *    with 2^j being the closest power of 2 to n.
  * The extension functions return a pointer to the former data[0],
@@ -98,12 +112,12 @@ double heuristic_sure(const double *data, int n);
  * -# ns <= n
  * -# n <= 2*ns
  *
- * \{
  */
 double* sigext_zeros(double *data, int ns, int n);
 double* sigext_zerosr(double *data, int ns, int n);
 double* sigext_sym(double *data, int ns, int n);
 double* sigext_smooth(double *data, int ns, int n);
 /** \} */
+
 
 #endif /* - DENOISING_H - */

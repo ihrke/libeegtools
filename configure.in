@@ -1,10 +1,119 @@
-AC_INIT(configure.in)
+# ----------------------------------------------------------------------
+### preludes
+# ----------------------------------------------------------------------
+AC_INIT([libeegtools], [0.15], [mihrke@gwdg.de])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+#AC_DISABLE_SHARED
 
-AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(libeegtools, 0.15)
-
-AC_LANG_C
+# ----------------------------------------------------------------------
+### check for programs
+# ----------------------------------------------------------------------
+## with macros
+#AC_LANG_CPLUSPLUS
+#AC_PROG_CXX
 AC_PROG_CC
 AM_PROG_LIBTOOL
 
-AC_OUTPUT(Makefile src/Makefile test/Makefile progs/Makefile matlab/Makefile misc/Makefile eeglab_plugin/Makefile)
+## or manually, here for tar
+# AC_CHECK_PROGS(VAR, PROGS, [VAL-IF-NOT-FOUND])
+AC_CHECK_PROGS([TAR], [tar gtar], [:])
+if test "$TAR" = :; then
+	AC_MSG_ERROR([This package needs tar.])
+#	AC_MSG_WARN([This package needs tar.]) # or warn only
+fi
+
+## cool thing:
+#AC_SUBST(VARIABLE, [VALUE])
+## Define $(VARIABLE) as VALUE in Makefiles
+
+
+# ----------------------------------------------------------------------
+### check for libraries
+# ----------------------------------------------------------------------
+
+dnl From GSL we need only the 'gsl-config' script
+dnl It can tell us where the libraries and includes are.
+
+AC_ARG_WITH(gsl-config,
+            [  --with-gsl-config=PROG PROG is the gsl-config script],
+            GSL_CONFIG_NAME="$withval",
+            GSL_CONFIG_NAME='gsl-config')
+
+AC_ARG_WITH(gsl,
+            [  --with-gsl=DIR        DIR is the gsl root directory],
+            GSL="$withval",)
+
+AC_PATH_PROG(GSL_CONFIG, ${GSL_CONFIG_NAME},, ${GSL}${GSL:+/bin:}$PATH)
+if test z${GSL_CONFIG} == z; then
+    AC_MSG_ERROR([configure could not find the ${GSL_CONFIG_NAME} script. Aborting.])
+fi
+
+dnl CPLOTTER
+
+AC_ARG_WITH(plotter-config,
+            [  --with-plotter-config=PROG PROG is the plotter-config script],
+            PLOTTER_CONFIG_NAME="$withval",
+            PLOTTER_CONFIG_NAME='plotter-config')
+AC_ARG_WITH([plotter],
+            [--with-plotter=DIR   DIR is the plotter root directory],
+				[plotter_dir="$withval"],
+            [plotter_dir=no])
+
+AC_PATH_PROG(PLOTTER_CONFIG, ${PLOTTER_CONFIG_NAME},, ${plotter_dir}${plotter_dir:+/bin:}$PATH)
+if test z${PLOTTER_CONFIG} == z; then
+    AC_MSG_WARN([[configure could not find the ${PLOTTER_CONFIG_NAME} script. no Plotting.]])
+else
+		  AC_DEFINE([HAVE_LIBPLOTTER], 1, "plotter-library")
+fi
+
+AC_CHECK_LIB([m], [pow], [], \
+						["You need mat-library installed."
+						 exit -1])	
+
+# ----------------------------------------------------------------------
+### check for headers
+# ----------------------------------------------------------------------
+AC_HEADER_STDC # standard library headers, stdlib.h, stdarg.h, string.h, and float.h
+
+
+# check for typedefs etc.
+# check for library functions
+
+# ----------------------------------------------------------------------
+### subprojects
+# ----------------------------------------------------------------------
+## e.g. add fltk2
+#AC_CONFIG_SUBDIRS([fltk2])
+
+# ----------------------------------------------------------------------
+### config files
+# ----------------------------------------------------------------------
+AM_CONFIG_HEADER([config.h])
+AC_OUTPUT(Makefile src/Makefile progs/Makefile test/Makefile matlab/Makefile)
+
+echo "
+
+==================================="
+echo "Found gsl-config in ${GSL_CONFIG_NAME}"
+echo "  gsl-config --prefix : `${GSL_CONFIG_NAME} --prefix`"
+echo "  gsl-config --version: `${GSL_CONFIG_NAME} --version`"
+echo "  gsl-config --cflags : `${GSL_CONFIG_NAME} --cflags`"
+echo "  gsl-config --libs   : `${GSL_CONFIG_NAME} --libs`"
+echo "===================================
+
+"
+
+if test z${PLOTTER_CONFIG} != z; then
+echo "
+
+==================================="
+echo "Found plotter-config in ${PLOTTER_CONFIG_NAME}"
+echo "  plotter-config  --with-capi --prefix : `${PLOTTER_CONFIG_NAME} --with-capi --prefix`"
+echo "  plotter-config  --with-capi --version: `${PLOTTER_CONFIG_NAME} --with-capi --version`"
+echo "  plotter-config  --with-capi --cflags : `${PLOTTER_CONFIG_NAME} --with-capi --cflags`"
+echo "  plotter-config  --with-capi --ldflags: `${PLOTTER_CONFIG_NAME} --with-capi --ldflags`"
+echo "  plotter-config  --with-capi --libs   : `${PLOTTER_CONFIG_NAME} --with-capi --libs`"
+echo "===================================
+
+"
+fi

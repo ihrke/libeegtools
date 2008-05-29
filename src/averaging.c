@@ -161,6 +161,7 @@ WarpPath* get_warppath3(const double *u, int J, const double *s, int K,	double t
 	return path;
 }
 
+/** obsolete*/
 int invert_path(int *path, int K){
   /* path must contain enough memory
    *  - returns length of new array (J)
@@ -180,6 +181,7 @@ int invert_path(int *path, int K){
 }
 
 /** apply warp-path given as integer array to s.
+	 obsolete;
  */
 void warp_to_path(double *s, int K, int *path, int J){
   double *snew;
@@ -549,29 +551,7 @@ double timewarp(const double *u, int J, double *s, int K,
 
   Djk = get_warppath(u, J, s, K, theta1, theta2, path);
   warp_to_path( s, K, path, J );
-// /*  
-//   j=0; l=1;
-//   snew[0]=s[0];
-//   for(k=1; k<K; k++){   
-// /*     printf("k=%i p(k)=%i, j=%i\n", k, path[k],j); */
-//     if(j==path[k]){
-//       snew[j]+=s[k]; l++;
-//  /*      printf("(1) snew[%i]=%f, l=%i, j=%i, k=%i, p(k)=%i\n", j, snew[j], l, j, k, path[k]); */
-//     }
-//     else if(j<path[k]){
-//       snew[j]=snew[j]/((double)l);
-// /*       printf("(2) snew[%i]=%f, l=%i, j=%i, k=%i, p(k)=%i\n", j, snew[j], l, j, k, path[k]); */
-//       l=1; 
-//       for(j=j+1; j<=path[k]; j++){ 
-// 			snew[j]+=s[k];
-// /* 	printf("(3) snew[%i]=%f, l=%i, j=%i, k=%i, p(k)=%i\n", j, snew[j], l, j, k, path[k]); */
-//       }
-//       j=path[k];
-//     }
-//   }*/
 
-//   s = memcpy(s, snew, J*sizeof(double));
-//   free(snew);
   free(path);
   dprintf("db:Djk=%f\n", Djk);
   return Djk;
@@ -638,44 +618,3 @@ double* iterative_warpavg(const ModelData *d, double *hatu){
 	free(ui);
 	return hatu;
 }
-/** Generate a NxN matrix of differences between single-trial data in m.
- * \param m the data
- * \param dm the difference-matrix allocated by the caller
- * \return a pointer to dm
- */
-double** diffmatrix(ModelData *m, double **dm){
-	int i, j;
-	double **ui;
-	int *dummy;
-	
-	print_modeldata(stderr, m);
-	
-	dummy = (int*)malloc(m->n*sizeof(int));
-	/* deep copy, because we have to clean them */
-	ui   = (double**)malloc(m->N*sizeof(double*));
-	for(i=0; i<m->N; i++) {
-		ui[i]=(double*)malloc(m->n*sizeof(double));
-		for(j=0; j<m->n; j++){
-			ui[i][j]=m->si[i][j];
-		}
-	}
-	/* ------- Denoise everything ---------- */
-//	for(i=0; i<m->N; i++){
-	//	extend_and_denoise(ui[i], m->n, m->den_params->L, m->den_params->cleanfct,
-		//						 m->den_params->eta, m->den_params->sigextfct);		
-	//}
-	
-	for(i=0; i<m->N; i++){
-		for(j=i; j<m->N; j++){
-			dm[i][j]=get_warppath( ui[i], m->n, ui[j], m->n, 
-									 m->tw_params->theta1, m->tw_params->theta2, dummy);
-			dm[j][i]= dm[i][j];
-		}
-	}
-	for(i=0; i<m->N; i++)
-		free(ui[i]);
-	free(ui);
-	free(dummy);
-	return dm;
-}
-

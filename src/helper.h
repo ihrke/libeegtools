@@ -23,11 +23,9 @@
 #include <gsl/gsl_sort.h>
 #include <limits.h>
 #include <float.h>
-#include "definitions.h"
+#include <stdint.h>
 
-#ifdef HAVE_PLOTLIB
-#include <plot.h>
-#endif
+#include "definitions.h"
 
 #ifdef HAVE_MATLAB
 #ifndef MATLAB_STARTUP_CMD
@@ -35,24 +33,30 @@
 /* #define MATLAB_STARTUP_CMD "/usr/nld/matlab-17/bin/matlab -nosplash" */
 #endif
 #define ML(code) code /* this macro deletes all ML() statements if
-			 HAVE_MATLAB is not defined */
+								 HAVE_MATLAB is not defined */
 #include "engine.h"
 #else
 #define ML(code)
 #endif
 
+/** custom error stuff */
 #define ERR_GSL  -1
 #define ERR_IO   -2
 #define ERR_PLOT -3
 #define ERR_MEM  -4
 #define ERR_MATLAB -5
-#define SCREENX  1280
-#define SCREENY  800
-#define YSCALE   120
-#define DEBUG
+#define ERR_ENDIAN -6
+#define ERR_PARSEMAT -7
+#define ERR_FATAL 1
+#define ERR_NOFATAL 0
 
+
+/** debugging macros */
+#define DEBUG
 #ifdef DEBUG
-#define dprintf(...) fprintf(stderr, ## __VA_ARGS__)
+/*#define dprintf(...) fprintf(stderr, ## __VA_ARGS__)*/
+#define dprintf(...) { fprintf(stderr, "%s (%i), %s(): ", __FILE__, __LINE__, __FUNCTION__); \
+	 fprintf(stderr, ## __VA_ARGS__); }
 #define massert(x, text, ...) \
 if(x) fprintf(stderr, "Assertion failed: " #text, ## __VA_ARGS__)
 #else
@@ -71,15 +75,37 @@ if(x) fprintf(stderr, "Assertion failed: " #text, ## __VA_ARGS__)
 int     v_printf(int v, char *format, ...);
 int     vprint_vector(const char* name, double *v, int n);
 void    errormsg(int err_no, int fatal);
+size_t  ffread(void *ptr, size_t size, size_t nmemb, FILE *stream);
+
+void    swap_bytes(void *ptr, int nmemb);
+void    wswap(void *ptr, int nmemb, int flag);
+int     is_little_endian();
+
+void    qsort_int_index( int *idx_idx, const int *idx, int n );
+int     compare_ints (const int *a, const int *b);
 
 void    copy_modeldata(const ModelData *m1, ModelData *m2);
+
+
+/* constructors */
+EEGdata* init_eegdata(int nbchan, int nsamples);
+EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, int nbchan, int nbsamples);
+
+/* destructors */
 void    free_modeldata(ModelData *m);
 void    free_warppath(WarpPath *p);
+void    free_eegdata(EEGdata *eeg);
+void    free_eegdata_trials(EEGdata_trials *eeg);
+
+/* printing-functions */
 void    print_modeldata(FILE *out, const ModelData *m);
 void    print_denoisingparameters(FILE *out, const DenoisingParameters *p);
 void    print_timewarpparameters(FILE *out, const TimewarpParameters *p);
+void    print_eegdata_trials(FILE *out, const EEGdata_trials *eeg);
 
 double** copy_double_ptrptr(const double **s, int N, int n);
+
+
 /**\}*/
 
 
@@ -94,12 +120,6 @@ void ml_plot_path(Engine *matlab, const int *path, int K);
 void ml_wait(Engine *matlab);
 #endif
 
-#ifdef HAVE_PLOTLIB
-int    plot_init(double xmin, double xmax, double ymin, double ymax, char *plotdev);
-void   plot_trace(const double *times, const double *d, int n, const char *color);
-void   plot_coordsys(double xmin, double xmax, double ymin, double ymax, double *labels, int numlab);
-void   plot_close(int handle);
-#endif
 /**\}*/
 
 /* ---------------------------------------------------------------------------- 

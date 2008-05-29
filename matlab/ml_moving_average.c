@@ -1,4 +1,4 @@
-/**\file ml_running_median.c
+/**\file ml_moving_average.c
  * \brief Matlab wrapper for Running Median
  *
  *   Compilation:
@@ -66,7 +66,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
   fs = mxGetPr(plhs[0]);
   fs = memcpy((void*)fs, (void*)s, n*sizeof(double));
   /*   printf("fs[0] = %f, fs[n-1]=%f\n", fs[0], fs[n-1]); */
-  fs = running_median(fs, n, win);
+  fs = moving_average(fs, n, win);
 /*   fs = weighted_running_median(fs, n, win, dist_euclidean); */
 
   return;
