@@ -98,7 +98,7 @@ void free_modeldata(ModelData *m){
 }
 
 
-EEGdata* init_eegdata(int nbchan, int nsamples){
+EEGdata* init_eegdata(int nbchan, int nsamples, int nmarkers){
   int i;
   EEGdata *eeg;
 
@@ -108,27 +108,27 @@ EEGdata* init_eegdata(int nbchan, int nsamples){
   eeg->d = (double**) malloc( nbchan * sizeof(double*) );
   for(i=0; i<nbchan; i++)
 	 eeg->d[i] = (double*) malloc( nsamples*sizeof(double) );
-  eeg->markers=NULL;
-  eeg->nmarkers=0;
+  eeg->markers = (unsigned long*)malloc( nmarkers*sizeof(unsigned long) );
+  eeg->nmarkers=nmarkers;
 
   return eeg;
 }
 
-EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, int nbchan, int nbsamples){
+EEGdata_trials* init_eegdata_trials(int nbtrials, int nmarkers_per_trial, int nbchan, int nbsamples){
   EEGdata_trials *eeg;
   int i;
 
   eeg = (EEGdata_trials*)malloc( sizeof( EEGdata_trials ) );
-  eeg->nmarkers_per_trial = markers_per_trial;
+  eeg->nmarkers_per_trial = nmarkers_per_trial;
   eeg->ntrials = nbtrials;
   eeg->markers = (unsigned long **)malloc( nbtrials * sizeof( unsigned long* ) );
   for(i=0; i<nbtrials; i++){
-	 eeg->markers[i] = (unsigned long*) malloc( markers_per_trial * sizeof( unsigned long ) );
+	 eeg->markers[i] = (unsigned long*) malloc( nmarkers_per_trial * sizeof( unsigned long ) );
   }
   eeg->times = (double*)malloc( nbsamples*sizeof( double ) );
   eeg->data = (EEGdata**)malloc( nbtrials*sizeof( EEGdata* ) );
   for(i=0; i<nbtrials; i++)
-	 eeg->data[i] = init_eegdata(nbchan, nbsamples);
+	 eeg->data[i] = init_eegdata(nbchan, nbsamples, nmarkers_per_trial);
   
   return eeg;
 }

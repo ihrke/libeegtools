@@ -60,7 +60,7 @@ EEGdata* read_continuous_eeg_from_binfile(const char *file, int C, int n){
 	  4) number of markers per trial
 	  5) n-doubles giving the times-array (for each sample from 1...n this array
 	     gives the corresponding time in ms)
- 	  6) num_markers*num_trials-doubles giving markers in time-units (ms)
+ 	  6) num_markers*num_trials-doubles giving markers in samples [1,...,n]
 	  7) raw EEG-data in the format of:
 	      - channels x trial x samples
 			- i.e. first all trials of the first channel one after the other, than
@@ -90,7 +90,10 @@ EEGdata_trials* read_eegtrials_from_raw(const char *file){
   ffread(eeg->times, sizeof(double), nsamples, f);
   
   /* read markers */
-  
+  for( i=0; i<ntrials; i++ ){
+	 ffread(eeg->markers[i], sizeof(double), nmarkers, f);
+	 memcpy( eeg->data[i]->markers, eeg->markers[i], nmarkers*sizeof(double) );
+  }
 
   /* read data */
   for( c=0; c<nbchan; c++ )

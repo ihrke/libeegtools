@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------
 ### preludes
 # ----------------------------------------------------------------------
-AC_INIT([libeegtools], [0.15], [mihrke@gwdg.de])
+AC_INIT([libeegtools], [0.2a], [mihrke@gwdg.de])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 #AC_DISABLE_SHARED
 
@@ -89,7 +89,7 @@ AC_HEADER_STDC # standard library headers, stdlib.h, stdarg.h, string.h, and flo
 ### config files
 # ----------------------------------------------------------------------
 AM_CONFIG_HEADER([config.h])
-AC_OUTPUT(Makefile src/Makefile progs/Makefile test/Makefile matlab/Makefile)
+AC_OUTPUT(Makefile src/Makefile progs/Makefile)
 
 echo "
 

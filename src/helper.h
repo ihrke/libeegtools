@@ -88,7 +88,7 @@ void    copy_modeldata(const ModelData *m1, ModelData *m2);
 
 
 /* constructors */
-EEGdata* init_eegdata(int nbchan, int nsamples);
+EEGdata* init_eegdata(int nbchan, int nsamples, int nmarkers);
 EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, int nbchan, int nbsamples);
 
 /* destructors */

@@ -23,6 +23,7 @@
  * \defgroup averaging Averaging functions
  *\{
  *    \defgroup timewarp Timewarping-functions
+ *    \defgroup otheravg Other Averaging functions
  *\}
  */
 #ifndef AVERAGING_H
@@ -37,34 +38,44 @@
  *\ingroup averaging
  *\{
  */
-double* ADTW (const double *s1, int n1, const double *s2, int n2, double *avg);
-double* ADTW_signal(const double *s1, int sR1, 
-						  const double *s2, int sR2, 
-						  int zero, int n, double *avg);
-double* PADTW(const double **s, int N, int n, int zero, int *sR, double *wa);
 
-double* simple_average(const double *s1, const double *s2, int n, double *avg);
-double timewarp(const double *ref, int n1, double *d, int n2, 
-		double theta1, double theta2);
-double* avgwarp_from_path(const double *u, int J, const double *s, int K, 
-			  const WarpPath *P, double *avg);
+double**  DTW_build_cumdistmatrix(const double *u, int J, const double *s, int K, 
+										 double theta1, double theta2, double **d);
+double    DTW_get_warppath(const double *u, int J, const double *s, int K,
+									double theta1, double theta2, int* path);
+WarpPath* DTW_get_warppath2(const double *u, int J, const double *s, int K,	
+									 double theta1, double theta2, double *Djk);
+double    DTW_get_warpdistance(const double *u, int J, const double *s, int K,
+										 double theta1, double theta2);
+WarpPath* DTW_path_from_cumdistmatrix(const double **d, int J, int K);
+void      DTW_cumulate_distmatrix(double **d, int J, int K);
+double**  DTW_build_distmatrix(const double *u, int J, const double *s, int K, 
+										 double theta1, double theta2, double **d);
+void      DTW_markers_to_distmatrix(double **d, int J, int K, const unsigned long **markers, unsigned nmarkers);
+WarpPath* DTW_warppath_with_markers(const double *u, int J, const double *s, int K,
+												double theta1, double theta2, const unsigned long **markers, unsigned nmarkers);
+double    DTW_get_warpdistance_markers(const double *u, int J, const double *s, int K,
+													double theta1, double theta2, const unsigned long **markers, unsigned nmarkers);
 
-double get_warppath(const double *u, int J, const double *s, int K,
-		    double theta1, double theta2, int* path);
-WarpPath* get_warppath2(const double *u, int J, const double *s, int K,
-			double theta1, double theta2);
-WarpPath* get_warppath3(const double *u, int J, 
-			const double *s, int K,	
-			double theta1, double theta2, double *Djk);
+double*   ADTW (const double *s1, int n1, const double *s2, int n2, double *avg);
+double*   ADTW_signal(const double *s1, int sR1, 
+							 const double *s2, int sR2, 
+							 int zero, int n, double *avg);
+double*   ADTW_from_path(const double *u, int J, const double *s, int K, 
+								 const WarpPath *P, double *avg);
+void      eeg_ADTW_markers_channel(const EEGdata *s1, const EEGdata *s2, EEGdata *target, int channel);
 
-void   warp_to_path(double *s, int K, int *path, int J);
-double* warpavg_two(const double *u, const double *s, int n, int zero, 
-		    int sRu, int sRs, double *wavg);
-double* warpaverage(const double **ui, int N, int n,
-		    const int **markers, double *wa);
+double*   PADTW(const double **s, int N, int n, int zero, int *sR, double *wa);
+/** \} */
 
-double* iterative_warpavg(const ModelData *d, double *hatu);
-double** diffmatrix(ModelData *m, double **dm);
+
+/** \addtogroup otheravg
+ *\ingroup averaging
+ *\{
+ */
+double* simple_average_2v(const double *s1, const double *s2, int n, double *avg);
+double* simple_average_nv(const double **s, int N, int n, double *avg);
+double* alternate_average_nv(const double **s, int N, int n, double *avg);
 /** \} */
 
 #endif

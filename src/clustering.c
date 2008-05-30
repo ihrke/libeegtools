@@ -52,12 +52,9 @@ void diffmatrix_standardize(double **d, int N){
 	 \return a number given the distance of the two ERPs
  */
 double clusterdist_tw_complete(EEGdata *s1, EEGdata *s2, int channel){
-  int *P;
   double Djk;
-  P = (int*) malloc( s1->n*sizeof( int ) );
-  Djk = get_warppath( s1->d[channel], s1->n, s2->d[channel], s2->n, 1.0, 1.0, P );
-  free(P);
-
+  Djk = DTW_get_warpdistance( s1->d[channel], s1->n, s2->d[channel], s2->n, 1.0, 1.0);
+  
   return Djk;
 }
 
@@ -68,11 +65,8 @@ double clusterdist_tw_complete(EEGdata *s1, EEGdata *s2, int channel){
 	 \return a number given the distance of the two ERPs
  */
 double clusterdist_tw_markers(EEGdata *s1, EEGdata *s2, int channel){
-  int *P;
   double Djk;
-  P = (int*) malloc( s1->n*sizeof( int ) );
-  Djk = get_warppath( s1->d[channel], s1->n, s2->d[channel], s2->n, 1.0, 1.0, P );
-  free(P);
+  Djk = DTW_get_warpdistance( s1->d[channel], s1->n, s2->d[channel], s2->n, 1.0, 1.0);
 
   return Djk;
 }
@@ -153,7 +147,7 @@ double** diffmatrix(ModelData *m, double **dm){
 	
 	for(i=0; i<m->N; i++){
 		for(j=i; j<m->N; j++){
-			dm[i][j]=get_warppath( ui[i], m->n, ui[j], m->n, 
+			dm[i][j]=DTW_get_warppath( ui[i], m->n, ui[j], m->n, 
 									 m->tw_params->theta1, m->tw_params->theta2, dummy);
 			dm[j][i]= dm[i][j];
 		}

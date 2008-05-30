@@ -248,6 +248,22 @@ double** matrix_delrow(double **m, int N, int n, int row){
   return m;
 }
 
+/** return a 0-initialized matrix of dimension NxM
+ */
+double** matrix_init(int N, int M){
+  int i,j;
+  double **d;
+  d = (double**) malloc( N*sizeof(double*) );
+  for( i=0; i<N; i++){
+	 d[i] = (double*) malloc( M*sizeof(double) );
+	 for( j=0; j<M; j++ ){
+		d[i][j]=0;
+	 }
+  }
+  
+  return d;
+}
+
 /** Delete a column in a matrix. Memory remains allocated and everything is 
  *  moved (deleted column sits at index n). Index runs from 0,...,n-1
  * \param m - matrix 

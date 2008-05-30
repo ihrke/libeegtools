@@ -22,6 +22,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 	int J, K;
 	double *u, *s;
 	double *up, *sp;
+	double Djk;
 	int i;
 	WarpPath *path;
 
@@ -43,7 +44,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 	u = mxGetPr(prhs[0]);
 	s = mxGetPr(prhs[1]);
 
-	path = get_warppath2( u, J, s, K, 1.0, 1.0 );
+	path = DTW_get_warppath2( u, J, s, K, 1.0, 1.0, &Djk );
 
 	plhs[0] = mxCreateDoubleMatrix(1, J+K, mxREAL); /* hold u-path component */
 	plhs[1] = mxCreateDoubleMatrix(1, J+K, mxREAL); /* hold s-path component */

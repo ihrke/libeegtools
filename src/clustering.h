@@ -39,7 +39,7 @@
  */
 double** diffmatrix(ModelData *m, double **dm);
 double** eegtrials_diffmatrix_channel(EEGdata_trials *eeg, 
-												  double(*dist)(EEGdata*,EEGdata*,int,void*), 
+												  double(*dist)(EEGdata*,EEGdata*,int), 
 												  int channel);
 
 Clusters* kmedoids(const double **dist, int N, int K);

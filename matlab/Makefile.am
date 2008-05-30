@@ -10,7 +10,7 @@ noinst_DATA = artificial_data.m closest.m fBm.m \
 #script_SOURCES = ml_testwarppath.c
 #script_COMPILE = mex -v -g $@
 #script_LINK =
-SOURCES = Makefile.matlab	ml_denoise.c ml_dwt.c ml_timewarp.c ml_warpavg.c \
-		 ml_testwarppath.c ml_warptwo.c
+SOURCES = Makefile.matlab	ml_denoise.c ml_dwt.c  \
+		 ml_testwarppath.c 
 all:
 	make -f Makefile.matlab

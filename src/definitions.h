@@ -10,6 +10,7 @@
  * - averaging.h, averaging.c - averaging function
  * - clustering.h clustering.c - clustering functions
  * - reader.c, reader.h - get data
+ * - writer.c writer.h  - write data
  * - helper.h, helper.c contain helper math, print, plot functions etc.
  * - mathadd.h, mathadd.c - mathematical helper
  *
@@ -21,12 +22,37 @@
  *   as main argument and the algorithm is carried out independantly on the
  *   trial segments (usually the corresponding eeg_*() function is called for
  *   each trial-segment)
+ * - Some demo programs are provided in ./progs of the distribution. 
+ * - CAUTION: some of the functions are not well tested (alpha). 
  *
+ * \section Compilation
+ * - You need the GNU Scientific Library >=1.09, available from http://www.gnu.org/software/gsl/
+ * - then compilation and installation according to GNU autotools:
+\code
+$ tar xvfz libeegtools-ver.tar.gz
+$ cd libeegtools-ver.tar.gz
+$ ./configure
+$ make
+$ make install
+\endcode
+ * 
+ * - to install the matlab-files as well, do
+\code
+$ cd matlab
+$ make -f Makefile.matlab
+\endcode
+ * this will compile the Matlab-Mex-files. You can then use all MATLAB-functions in 
+ * this directory from the MATLAB-command line.
+ * - after this, you can install the eeglab-plugin by copying all files from ./matlab and 
+ *   ./eeglab_plugin to a directory in your eeglab-plugin path.
  *
- *
- * History:
+ * 
+\bf History:
 \code
  * $Log$
+ * Revision 1.5  2008/05/30 19:53:09  mihrke
+ * version 0.2a
+ *
  * Revision 1.4  2008/05/29 12:40:37  mihrke
  * version 0.2
  *
