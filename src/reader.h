@@ -58,6 +58,10 @@
 #define mxINT32_CLASS  12 /* Matlab Object */
 #define mxUINT32_CLASS 13 /* Matlab Object */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* -------------------------------------------------------------------- */
 /* functions */
 /* -------------------------------------------------------------------- */
@@ -70,5 +74,8 @@ EEGdata_trials* read_segmented_eeg_from_eeglabset(const char *file);
 int is_compressed_format(uint32_t first, int swapflag);
 
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

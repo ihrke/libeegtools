@@ -97,6 +97,16 @@ void free_modeldata(ModelData *m){
 	free(m);
 }
 
+WarpPath* init_warppath(int J, int K){
+  WarpPath *path;
+  path = (WarpPath*)malloc(sizeof(WarpPath));
+  path->J=J;
+  path->K=K;
+  path->upath = (int*)calloc(J+K, sizeof(int));
+  path->spath = (int*)calloc(J+K, sizeof(int));
+
+  return path;
+}
 
 EEGdata* init_eegdata(int nbchan, int nsamples, int nmarkers){
   int i;

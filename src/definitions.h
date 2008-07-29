@@ -50,6 +50,10 @@ $ make -f Makefile.matlab
 \bf History:
 \code
  * $Log$
+ * Revision 1.6  2008/07/29 18:51:24  mihrke
+ * * fixed texture-bug
+ * * fixed restricted DTW
+ *
  * Revision 1.5  2008/05/30 19:53:09  mihrke
  * version 0.2a
  *
@@ -64,6 +68,10 @@ $ make -f Makefile.matlab
 
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct{
   unsigned int nbchan; /** number of channels */
@@ -128,5 +136,10 @@ typedef struct {
 	double **ui; /** cleaned signals */
 	void *additional; /** user data */
 } ModelData;
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

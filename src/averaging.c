@@ -80,6 +80,110 @@ double DTW_get_warppath(const double *u, int J, const double *s, int K,
 /** build the cumulated dissimilarity matrix D
 	 \param u,J 1st signal
 	 \param s,K 2nd signal
+	 \param R - restriction band ( in [0,1] )
+	 \param d -- if NULL, function allocates the memory
+	 \return pointer to JxK matrix D
+ */
+double** DTW_build_restricted_cumdistmatrix(const double *u, int J, 
+														  const double *s, int K, 
+														  double R, double **d){ 
+  int i,j,k;
+  double avgu, avgs, rmsu=0.0, rmss=0.0;
+  double snorm, snormp; /* variable for a point of the normalized
+									signal and the preceding point */
+  double unorm, unormp;
+  int theta;
+  double left,down,downleft;
+
+  int *bham;
+
+  if( d==NULL ){
+	 d = (double**) malloc(J*sizeof(double*));
+	 for(j=0; j<J; j++)
+		d[j]=(double*)malloc(K*sizeof(double));
+  }
+
+  bham = (int*)malloc( MAX( J,K )*2*sizeof( int ) );
+  bresenham(0,0, J-1, K-1, bham);
+    
+ 
+  if( R>1 ){
+	 dprintf("Restriction R=%f too large, using 1.0\n");
+	 R = 1.0;
+  } else if( R<0 ){
+	 dprintf("Restriction R=%f < 0, aborting\n");
+	 return d;
+  }
+
+  theta = (int)floor( R*K );
+  /* theta = (int)floor( ( R*sqrt( SQR( J )+ SQR( K ) ) )/2.0 ); */
+  dprintf("theta=%i pixels\n", theta);
+
+  avgu = gsl_stats_mean(u, 1, J);
+  avgs = gsl_stats_mean(s, 1, K);
+  for(j=0; j<J; j++) rmsu += SQR( u[j] );
+  rmsu = sqrt(rmsu/(double)J);
+  for(k=0; k<K; k++) rmss += SQR( s[k] );
+  rmss = sqrt(rmss/(double)K);
+
+  for(j=0; j<J; j++){ // set everything to NAN for restrictions
+    for(k=0; k<K; k++){
+  		d[j][k] = NAN;
+  	 }
+  }
+
+  int b = 1;
+  if( K>J ) b=0;
+
+  int lower_corridor, upper_corridor;
+
+  /* computing d_jk */
+  for( j=0; j<MAX( J, K ); j++ ){ // J>K
+	 lower_corridor = MAX( 0, bham[(2*j)+b]-theta );
+	 upper_corridor = MIN( bham[(2*j)+b]+theta, K );
+	 /* dprintf("b=%i, bham=(%i,%i), j=%i, corridor: (%i, %i)\n", */
+	 /* 			b, bham[(2*j)+0], bham[(2*j)+1], j, lower_corridor, upper_corridor); */
+    for( k= lower_corridor; k<upper_corridor; k++ ){ /* corridor */
+      snorm = (s[k]-avgs)/rmss;
+      unorm = (u[j]-avgu)/rmsu;
+      (k==0) ? (snormp = 0) : (snormp = ((s[k-1]-avgs)/rmss));
+      (j==0) ? (unormp = 0) : (unormp = ((u[j-1]-avgu)/rmsu));
+
+		/* swapping necessary for K>J (reswapped after cumulation) */
+		if(K>J) swap2i(&j, &k);
+
+		d[j][k] = fabs(unorm - snorm) + fabs( (unorm-unormp) - (snorm-snormp) ); /* (1) */
+
+		/* cumulate matrix, NAN is treated as inf */
+		if(k==0 && j==0) ;
+      else if(k==0 && j>0) 
+		  d[j][k] += d[j-1][k];
+      else if(k>0 && j==0) 
+		  d[j][k] += d[j][k-1];
+      else { /* j,k > 0 */
+		  (isnan( d[j-1][k  ] ) )?(left     = DBL_MAX):(left     = d[j-1][k  ]);
+		  (isnan( d[j  ][k-1] ) )?(down     = DBL_MAX):(down     = d[j  ][k-1]);
+		  (isnan( d[j-1][k-1] ) )?(downleft = DBL_MAX):(downleft = d[j-1][k-1]);
+
+		  d[j][k] += MIN(MIN(left, down), downleft);
+		}
+
+		/* reswap */
+		if(K>J) swap2i(&j, &k);
+    }
+  }
+ 
+  /* for( i=0; i<MAX( J,K ); i++ ){ */
+  /* 	 d[bham[(2*i)+0]][bham[(2*i)+1]] = NAN; */
+  /* } */
+  
+  free(bham);
+  return d;
+}
+
+/** build the cumulated dissimilarity matrix D
+	 \param u,J 1st signal
+	 \param s,K 2nd signal
 	 \param theta1/theta2 - weights for metric
 	 \param d -- if NULL, function allocates the memory
 	 \return pointer to JxK matrix D
@@ -193,75 +297,122 @@ void DTW_cumulate_distmatrix(double **d, int J, int K){
 /** construct the warppath from distance matrix. Use DTW_build_cumdistmatrix() for that.
 	 \param d - cumulated distmatrix
 	 \param J,K - dims for d
+	 \param path - pointer to WarpPath-struct of length (J+K) or NULL (allocated in function)
 	 \return WarpPath struct
 */
-WarpPath* DTW_path_from_cumdistmatrix(const double **d, int J, int K){
+WarpPath* DTW_path_from_cumdistmatrix(const double **d, int J, int K, WarpPath *path){
   int i, j, k;
-  int *p;
-  WarpPath *path;
-  
-  p = (int*) malloc( K*sizeof(int) );
-  
+  int idx;
+  double left, down, downleft;
+
+  if( path==NULL ){
+	 path = init_warppath(J, K);
+  }
+
   /* Backtracking */
   j=J-1; k=K-1;
-  p[k]=j;
-  while(j>0 || k>0){
-    if(k==0){
-      p[k]=0; break;
-    } else if(j==0){
-      while(k>=0){
-		  p[k]=0; 
-		  k--;
-      }
-      break;
-    }
-    if(d[j][k-1]<d[j-1][k-1] && d[j][k-1]<d[j-1][k]){
-      k--;
-      p[k]=j;
-    } 
-    else {
-      if(d[j-1][k]<d[j-1][k-1]){
-		  j--;
-      } 
-      else {
-		  j--; k--;
-		  p[k]=j;
-      }
-    }
-  }
-  /* conversion to WarpPath struct */
-	path = (WarpPath*)malloc(sizeof(WarpPath));
-	path->J=J;
-	path->K=K;
-	path->upath = (int*)calloc(J+K, sizeof(int));
-	path->spath = (int*)calloc(J+K, sizeof(int));
 
-	/* handle base case */
-	path->upath[0]=0;
-	path->spath[0]=0;
-	if(p[0]>0){
-		for(i=0; i<p[0]; i++){
-			path->spath[i]=0;
-			path->upath[i]=i;
-		}		  
-	}
-	k = p[0];
-	for(i=1; i<K; i++){
-		/* we are at index k in both arrays */
-		if(p[i]==p[i-1]){ // we go in x-direction
-			path->spath[k]=i;
-			path->upath[k]=p[i];
-			k++;
-		} else if(p[i]>p[i-1]){ // diagonal or step
-			for(j=p[i-1]; j<=p[i]; j++){			  
-				path->spath[k]=i;
-				path->upath[k]=j;
-				k++; 
-			}
+  idx = 1;
+  path->upath[0] = j;
+  path->spath[0] = k;
+  while( j>0 || k>0 ){
+	 if( k==0 ){ /* base cases */
+		j--;
+	 } else if( j==0 ){
+		k--;
+	 } else { /* min( d[j-1][k], d[j-1][k-1], d[j][k-1] ) */
+	  
+		left     = d[j-1][k  ];
+		down     = d[j  ][k-1];
+		downleft = d[j-1][k-1];
+
+		(isnan( d[j-1][k  ] ) )?(left     = DBL_MAX):(left     = d[j-1][k  ]);
+		(isnan( d[j  ][k-1] ) )?(down     = DBL_MAX):(down     = d[j  ][k-1]);
+		(isnan( d[j-1][k-1] ) )?(downleft = DBL_MAX):(downleft = d[j-1][k-1]);
+
+		if( left<=downleft ){
+		  if( left <= down )
+			 j--;
+		  else
+			 k--;
+		} else {
+		  if( downleft <= down ){
+			 k--; j--;
+		  } else 
+			 k--;
 		}
-	}
+	 }
 
-  free(p);
+	 path->upath[idx] = j;
+	 path->spath[idx] = k;
+	 idx++;
+  }
+
+
+  /* int *p; */
+  
+  /* p = (int*) malloc( K*sizeof(int) ); */
+  
+  /* /\* Backtracking *\/ */
+  /* j=J-1; k=K-1; */
+  /* p[k]=j; */
+  /* while(j>0 || k>0){ */
+  /*   if(k==0){ */
+  /*     p[k]=0; break; */
+  /*   } else if(j==0){ */
+  /*     while(k>=0){ */
+  /* 		  p[k]=0;  */
+  /* 		  k--; */
+  /*     } */
+  /*     break; */
+  /*   } */
+  /*   if(d[j][k-1]<d[j-1][k-1] && d[j][k-1]<d[j-1][k]){ */
+  /*     k--; */
+  /*     p[k]=j; */
+  /*   }  */
+  /*   else { */
+  /*     if(d[j-1][k]<d[j-1][k-1]){ */
+  /* 		  j--; */
+  /*     }  */
+  /*     else { */
+  /* 		  j--; k--; */
+  /* 		  p[k]=j; */
+  /*     } */
+  /*   } */
+  /* } */
+  /* /\* conversion to WarpPath struct *\/ */
+  /* 	path = (WarpPath*)malloc(sizeof(WarpPath)); */
+  /* 	path->J=J; */
+  /* 	path->K=K; */
+  /* 	path->upath = (int*)calloc(J+K, sizeof(int)); */
+  /* 	path->spath = (int*)calloc(J+K, sizeof(int)); */
+
+  /* 	/\* handle base case *\/ */
+  /* 	path->upath[0]=0; */
+  /* 	path->spath[0]=0; */
+  /* 	if(p[0]>0){ */
+  /* 		for(i=0; i<p[0]; i++){ */
+  /* 			path->spath[i]=0; */
+  /* 			path->upath[i]=i; */
+  /* 		}		   */
+  /* 	} */
+  /* 	k = p[0]; */
+  /* 	for(i=1; i<K; i++){ */
+  /* 		/\* we are at index k in both arrays *\/ */
+  /* 		if(p[i]==p[i-1]){ // we go in x-direction */
+  /* 			path->spath[k]=i; */
+  /* 			path->upath[k]=p[i]; */
+  /* 			k++; */
+  /* 		} else if(p[i]>p[i-1]){ // diagonal or step */
+  /* 			for(j=p[i-1]; j<=p[i]; j++){			   */
+  /* 				path->spath[k]=i; */
+  /* 				path->upath[k]=j; */
+  /* 				k++;  */
+  /* 			} */
+  /* 		} */
+  /* 	} */
+
+  /* free(p); */
   return path;
 }
 
@@ -298,7 +449,7 @@ WarpPath* DTW_warppath_with_markers(const double *u, int J, const double *s, int
   d = DTW_build_distmatrix( u,J,s,K,theta1,theta2, NULL );
   DTW_markers_to_distmatrix( d, J, K, markers, nmarkers );
   DTW_cumulate_distmatrix( d, J, K );
-  P = DTW_path_from_cumdistmatrix( (const double**) d, J, K );
+  P = DTW_path_from_cumdistmatrix( (const double**) d, J, K, NULL );
   
   for( i=0; i<J; i++ )
 	 free(d[i]);
@@ -362,7 +513,7 @@ WarpPath* DTW_get_warppath2(const double *u, int J, const double *s, int K,	doub
 	int i,j,k;
   
 	d = DTW_build_cumdistmatrix( u,J,s,K,theta1,theta2,NULL );
-	path=DTW_path_from_cumdistmatrix( (const double**)d, J,K );
+	path=DTW_path_from_cumdistmatrix( (const double**)d, J,K, NULL );
 
 	for( i=0; i<J; i++) free(d[i]);
 	free(d);

@@ -323,3 +323,96 @@ void matrix_print(double **m, int N, int n){
 	 printf(" ]\n");
   }
 }
+/** free matrix memory 
+ */
+void matrix_free(double **m, int N){
+  int i;
+  for( i=0; i<N; i++){
+	 free(m[i]);
+  }
+  free(m);
+}
+
+/** signum function 
+ */
+int sgn(int x){
+  return (x > 0) ? 1 : (x < 0) ? -1 : 0;
+}
+
+
+/**
+ * Bresenham-Algorithm (stolen but modified from Wikipedia)
+ *
+ *  \param  int xstart, ystart        = Koordinaten des Startpunkts
+ *  \param  int xend, yend            = Koordinaten des Endpunkts
+ *  \param points -- output; saved in pairs (x,y) of the coordinates;
+                     must contain enough allocated memory 2*(maximum of 
+							(yend-ystart) and (xend-xstart)
+ */
+void bresenham(int xstart,int ystart,int xend,int yend, int *points){
+  int x, y, t, dx, dy, incx, incy, pdx, pdy, ddx, ddy, es, el, err;
+  int points_idx;
+  points_idx = 0;
+
+/* Entfernung in beiden Dimensionen berechnen */
+   dx = xend - xstart;
+   dy = yend - ystart;
+ 
+/* Vorzeichen des Inkrements bestimmen */
+   incx = sgn(dx);
+   incy = sgn(dy);
+   if(dx<0) dx = -dx;
+   if(dy<0) dy = -dy;
+ 
+/* feststellen, welche Entfernung größer ist */
+   if (dx>dy)
+   {
+      /* x ist schnelle Richtung */
+      pdx=incx; pdy=0;    /* pd. ist Parallelschritt */
+      ddx=incx; ddy=incy; /* dd. ist Diagonalschritt */
+      es =dy;   el =dx;   /* Fehlerschritte schnell, langsam */
+   } else
+   {
+      /* y ist schnelle Richtung */
+      pdx=0;    pdy=incy; /* pd. ist Parallelschritt */
+      ddx=incx; ddy=incy; /* dd. ist Diagonalschritt */
+      es =dx;   el =dy;   /* Fehlerschritte schnell, langsam */
+   }
+ 
+/* Initialisierungen vor Schleifenbeginn */
+   x = xstart;
+   y = ystart;
+   err = el/2;
+	points[0]=x;
+	points[1]=y;	
+ 
+/* Pixel berechnen */
+   for(t=1; t<=el; t++) /* t zaehlt die Pixel, el ist auch Anzahl */
+   {
+      /* Aktualisierung Fehlerterm */
+      err -= es; 
+      if(err<0)
+      {
+          /* Fehlerterm wieder positiv (>=0) machen */
+          err += el;
+          /* Schritt in langsame Richtung, Diagonalschritt */
+          x += ddx;
+          y += ddy;
+      } else
+      {
+          /* Schritt in schnelle Richtung, Parallelschritt */
+          x += pdx;
+          y += pdy;
+      }
+		points[( 2*t )+0]=x;
+		points[( 2*t )+1]=y;	
+   }
+	dprintf("t=%i, (x,y)=(%i,%i)\n", t,x,y);
+} /* bresenham() */
+
+void    swap2i(int *v1, int *v2){
+  int tmp;
+  tmp = *v1;
+  *v1 = *v2; 
+  *v2 = tmp;
+}

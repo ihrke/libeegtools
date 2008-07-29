@@ -33,6 +33,9 @@
 #include "mathadd.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 /* ------------------------------ 
    -- Robust filtering methods  --
    ------------------------------ */
@@ -120,4 +123,7 @@ double* sigext_smooth(double *data, int ns, int n);
 /** \} */
 
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* - DENOISING_H - */

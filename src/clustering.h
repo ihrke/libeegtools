@@ -34,6 +34,10 @@
 #include "definitions.h"
 #include "averaging.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**\addtogroup clustering
  *\{
  */
@@ -71,6 +75,10 @@ double   gap_get_within_scatter(const double **d, int N, const Clusters *c);
 double*  gap_get_within_scatter_distribution(const double **d, int N, int k, const Clusters **c, double *Wk);
 /** \} */
 
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

@@ -20,6 +20,7 @@
 
 #ifndef MATH_ADD_H
 # define MATH_ADD_H
+#define _ISOC99_SOURCE
 #include <stdlib.h>
 #include <limits.h>
 #include <float.h>
@@ -36,6 +37,9 @@
 #define SQR(a) ((a)*(a))
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 /* -------- Math ----------- */
 /**\addtogroup helpermath
  *\{*/
@@ -43,15 +47,18 @@ double  glog(double v, int b);
 double  mad(const double *data, int n); 
 int     abscmp(const void *p1, const void *p2);
 double  vnorm(const double *v, int n, int p);
+int     sgn(int x);
 double  maxel(double *v, int n);
 int     maxeli(int *v, int n);
 int     closest_index(double *v, int n, double c);
 double* sampled_line(double *ntimes, int n, double start, double end);
 double* lininterp(const double *x1, const double *y1, int n1, 
 						const double *x2,       double *y2, int n2);
-int* linspace(int first, int last);
+int*    linspace(int first, int last);
 double* loocv(const ModelData *m, double* err,
 				  double*(*model)(const ModelData*,double*));
+void    bresenham(int xstart,int ystart,int xend,int yend, int *points);
+void    swap2i(int *v1, int *v2);
 
 /* ---------------------------------------------------------------------------- 
    -- Merit Measures                                                         -- 
@@ -67,6 +74,11 @@ double** matrix_delcol(double **m, int N, int n, int col);
 double   matrix_min(const double **m, int N, int n, int *i1, int *i2);
 void     matrix_print(double **m, int N, int n);
 double** matrix_init(int N, int M);
+void     matrix_free(double **m, int N);
 /**\}*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
