@@ -115,7 +115,7 @@ double** DTW_build_restricted_cumdistmatrix(const double *u, int J,
 	 return d;
   }
 
-  theta = (int)floor( R*K );
+  theta = (int)floor( R*MIN( K, J) );
   /* theta = (int)floor( ( R*sqrt( SQR( J )+ SQR( K ) ) )/2.0 ); */
   dprintf("theta=%i pixels\n", theta);
 
@@ -309,6 +309,8 @@ WarpPath* DTW_path_from_cumdistmatrix(const double **d, int J, int K, WarpPath *
 	 path = init_warppath(J, K);
   }
 
+  reset_warppath(path, J, K);
+
   /* Backtracking */
   j=J-1; k=K-1;
 
@@ -348,71 +350,6 @@ WarpPath* DTW_path_from_cumdistmatrix(const double **d, int J, int K, WarpPath *
 	 idx++;
   }
 
-
-  /* int *p; */
-  
-  /* p = (int*) malloc( K*sizeof(int) ); */
-  
-  /* /\* Backtracking *\/ */
-  /* j=J-1; k=K-1; */
-  /* p[k]=j; */
-  /* while(j>0 || k>0){ */
-  /*   if(k==0){ */
-  /*     p[k]=0; break; */
-  /*   } else if(j==0){ */
-  /*     while(k>=0){ */
-  /* 		  p[k]=0;  */
-  /* 		  k--; */
-  /*     } */
-  /*     break; */
-  /*   } */
-  /*   if(d[j][k-1]<d[j-1][k-1] && d[j][k-1]<d[j-1][k]){ */
-  /*     k--; */
-  /*     p[k]=j; */
-  /*   }  */
-  /*   else { */
-  /*     if(d[j-1][k]<d[j-1][k-1]){ */
-  /* 		  j--; */
-  /*     }  */
-  /*     else { */
-  /* 		  j--; k--; */
-  /* 		  p[k]=j; */
-  /*     } */
-  /*   } */
-  /* } */
-  /* /\* conversion to WarpPath struct *\/ */
-  /* 	path = (WarpPath*)malloc(sizeof(WarpPath)); */
-  /* 	path->J=J; */
-  /* 	path->K=K; */
-  /* 	path->upath = (int*)calloc(J+K, sizeof(int)); */
-  /* 	path->spath = (int*)calloc(J+K, sizeof(int)); */
-
-  /* 	/\* handle base case *\/ */
-  /* 	path->upath[0]=0; */
-  /* 	path->spath[0]=0; */
-  /* 	if(p[0]>0){ */
-  /* 		for(i=0; i<p[0]; i++){ */
-  /* 			path->spath[i]=0; */
-  /* 			path->upath[i]=i; */
-  /* 		}		   */
-  /* 	} */
-  /* 	k = p[0]; */
-  /* 	for(i=1; i<K; i++){ */
-  /* 		/\* we are at index k in both arrays *\/ */
-  /* 		if(p[i]==p[i-1]){ // we go in x-direction */
-  /* 			path->spath[k]=i; */
-  /* 			path->upath[k]=p[i]; */
-  /* 			k++; */
-  /* 		} else if(p[i]>p[i-1]){ // diagonal or step */
-  /* 			for(j=p[i-1]; j<=p[i]; j++){			   */
-  /* 				path->spath[k]=i; */
-  /* 				path->upath[k]=j; */
-  /* 				k++;  */
-  /* 			} */
-  /* 		} */
-  /* 	} */
-
-  /* free(p); */
   return path;
 }
 
@@ -534,7 +471,7 @@ double* ADTW_from_path(const double *u, int J, const double *s, int K, const War
 	tmp = (double*)calloc(K+J, sizeof(double));
 	if(avg==NULL){
 	  dprintf("Allocating own memory\n");
-		avg = (double*)calloc((K+J)/2+1, sizeof(double));
+	  avg = (double*)calloc((K+J)/2+1, sizeof(double));
 	}
 	
 	for(i=0; i<J+K; i++){
@@ -652,12 +589,15 @@ double* ADTW_signal(const double *s1, int sR1,
 
   return avg;
 }
+
+
 /** Warpaverage N signals (PADTW). Use method described in Ihrke Bachelor.
  * \param s,N,n - N segments of EEG-data, each n sampling points
  * \param zero  - the zero marker (stimulus onset) in sampling units
  * \param sR    - N reaction times in sampling units for each trial
  * \param wa    - pointer to caller-allocated memory (length n)
  *                if NULL is given, memory is allocated by the function.
+ * \note NOT FUNCTIONAL YET!
  */  
 double* PADTW(const double **s, int N, int n, int zero, int *sR, double *wa){
   WarpPath **Ps;
@@ -731,6 +671,37 @@ double* PADTW(const double **s, int N, int n, int zero, int *sR, double *wa){
   free(sc);
   free(Ps);
   return wa;
+}
+
+double DTW_distance_between_paths(const WarpPath *P1, const WarpPath *P2){
+  int i, J, K;
+  double dist=0.0;
+
+
+  if(P1->J != P2->J || P1->K != P2->K){
+	 errprintf( "P1 and P2 not comparable (P1->J, P2->J, P1->K, P2->K)\n", P1->J, P2->J, P1->K, P2->K);
+  }
+  J = P1->J;
+  K = P1->K;
+
+  for( i=0; i<(J + K); i++ ){
+	 dist += ABS( P1->upath[i] - P2->upath[i] ) + ABS( P1->spath[i] - P2->spath[i] );
+  }
+  dist = (double)dist/(double)(J+K);
+
+  return dist;
+}
+
+EEGdata* eeg_ADTW_from_path(const EEGdata *s1, const EEGdata *s2, EEGdata *target, int channel, const WarpPath *P){
+  if(target==NULL){
+	 target = init_eegdata(s1->nbchan, (s1->n+s2->n)/2, 0);
+	 dprintf("ALLOC: allocated memory in function!\n");
+  }
+  ADTW_from_path( s1->d[channel], s1->n,
+						s2->d[channel], s2->n,
+						P, target->d[channel] );
+
+  return target;
 }
 
 

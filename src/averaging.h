@@ -68,6 +68,7 @@ extern "C" {
 													  double theta1, double theta2, 
 													  const unsigned long **markers, 
 													  unsigned nmarkers);
+  double    DTW_distance_between_paths(const WarpPath *P1, const WarpPath *P2);
 
   double*   ADTW (const double *s1, int n1, const double *s2, int n2, double *avg);
   double*   ADTW_signal(const double *s1, int sR1, 
@@ -77,7 +78,8 @@ extern "C" {
 									const WarpPath *P, double *avg);
   void      eeg_ADTW_markers_channel(const EEGdata *s1, const EEGdata *s2, 
 												 EEGdata *target, int channel);
-
+  EEGdata*  eeg_ADTW_from_path(const EEGdata *s1, const EEGdata *s2, 
+										 EEGdata *target, int channel, const WarpPath *P);
   double*   PADTW(const double **s, int N, int n, int zero, int *sR, double *wa);
 /** \} */
 

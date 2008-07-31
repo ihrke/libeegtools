@@ -25,6 +25,9 @@
 #include <float.h>
 #include <stdint.h>
 
+#define _WITH_ANSI_ESCAPE_CODES /* necessary for the esc-codes to show up */
+#include "escape_codes.h"
+
 #include "definitions.h"
 
 #ifdef HAVE_MATLAB
@@ -55,14 +58,29 @@
 #define DEBUG
 #ifdef DEBUG
 /*#define dprintf(...) fprintf(stderr, ## __VA_ARGS__)*/
-#define dprintf(...) { fprintf(stderr, "%s (%i), %s(): ", __FILE__, __LINE__, __FUNCTION__); \
-	 fprintf(stderr, ## __VA_ARGS__); }
-#define massert(x, text, ...)														\
-  if(x) fprintf(stderr, "Assertion failed: " #text, ## __VA_ARGS__)
+#define dprintf(...) do{																\
+		fprintf(stderr, ESCAPE_FGYELLOW_STR ESCAPE_BRIGHT_STR "%s (%i), %s(): ", __FILE__, __LINE__, __FUNCTION__); \
+		fprintf(stderr, ## __VA_ARGS__);												\
+		fprintf(stderr, ESCAPE_RESET_STR);											\
+	 } while(0)
+
+#define massert(x, text, ...) \
+  do{																							\
+	 if(x){																					\
+		fprintf(stderr, ESCAPE_FGRED_STR "Assertion failed: " #text, ## __VA_ARGS__); \
+		fprintf(stderr,  ESCAPE_RESET_STR);											\
+	 }																							\
+  } while(0)
 #else
 #define dprintf(...)
 #define massert(...)	    
 #endif
+
+#define errprintf(...) do{ fprintf(stderr, ESCAPE_FGRED_STR ESCAPE_BOLD_STR\
+											  ESCAPE_BGYELLOW_STR "ERROR: %s (%i), %s(): ", \
+											  __FILE__, __LINE__, __FUNCTION__);	\
+	 fprintf(stderr, ## __VA_ARGS__);												\
+	 fprintf(stderr, ESCAPE_RESET_STR); } while(0)
 
 #ifdef __cplusplus
 extern "C" {
@@ -94,6 +112,8 @@ extern "C" {
   EEGdata* init_eegdata(int nbchan, int nsamples, int nmarkers);
   EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, int nbchan, int nbsamples);
   WarpPath* init_warppath(int J, int K);
+
+  void      reset_warppath(WarpPath *P, int J, int K);
 
   /* destructors */
   void    free_modeldata(ModelData *m);

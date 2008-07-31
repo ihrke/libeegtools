@@ -7,5 +7,6 @@ noinst_HEADERS =
 
 libeegtools_la_SOURCES = mathadd.c averaging.c averaging.h denoising.c \
 	helper.c reader.c clustering.c writer.c
-include_HEADERS = averaging.h denoising.h helper.h mathadd.h definitions.h reader.h clustering.h writer.h
+include_HEADERS = averaging.h denoising.h helper.h mathadd.h definitions.h reader.h clustering.h writer.h\
+	escape_codes.h
 libeegtools_la_LDFLAGS =  `@GSL_CONFIG@ --libs`

@@ -291,6 +291,12 @@ void   errormsg(int err_no, int fatal){
   } else v_printf(0, "\n");
 }
 
+void      reset_warppath(WarpPath *P, int J, int K){
+  P->J = J; P->K = K;
+  memset( P->upath, 0, J*sizeof(int) );
+  memset( P->spath, 0, K*sizeof(int) );
+}
+
 /* ----------------------------------------------------------------------
 	MATLAB
    ----------------------------------------------------------------------*/

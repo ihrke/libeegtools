@@ -35,7 +35,8 @@
 #define MIN(a,b) ((a) < (b) ? (a):(b))
 /** \ingroup helpermath*/
 #define SQR(a) ((a)*(a))
-
+/** \ingroup helpermath*/
+#define ABS(a) ( ((a)<0) ? (-1*(a)) : (a) )
 
 #ifdef __cplusplus
 extern "C" {
