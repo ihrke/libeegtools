@@ -61,7 +61,7 @@ struct cmdargs     args; /* the globally available cmd-line args */
    ---------------------------------------------------------------------------- */
 int main(int argc, char **argv){ 
   EEGdata_trials *eeg;
-  WarpPath *P;
+  WarpPath **P;
   double R;
   double **dist, /* distance for two trials */
 	 **wdist; /* distance of two warppaths */
@@ -93,10 +93,13 @@ int main(int argc, char **argv){
   num_chan   = eeg->data[0]->nbchan;
   dprintf("num_chan,num_trial = (%i,%i)\n", num_chan, num_trials);
 
-  /* nxn matrix (maximum necessary) */
-  dist  = matrix_init( eeg->data[0]->n, eeg->data[0]->n );
+  /* allocating stuff */
+  dist  = matrix_init( eeg->data[0]->n, eeg->data[0]->n );  /* nxn matrix (maximum necessary) */
   wdist = matrix_init( num_chan, num_chan );
-  P     = init_warppath( eeg->data[0]->n, eeg->data[0]->n );
+  P     = (WarpPath **) malloc( num_chan * sizeof(WarpPath*));
+  for( chan=0; chan<num_chan; chan++ ){
+	 P[chan] = init_warppath( eeg->data[chan]->n, eeg->data[chan]->n );
+  }
 
   /* main loop */
   for( trial=0; trial<num_trials; trial++ ){ 
@@ -112,32 +115,18 @@ int main(int argc, char **argv){
 																 eeg->data[trial+1]->d[chan], n2, 
 																 args.theta, dist );  
 
-		P = DTW_path_from_cumdistmatrix(dist, n1, n2, P);
-
-		PL( 
-			int xpos = chan/plotmatrix;
-			int ypos = chan - (plotmatrix*xpos);
-			int sb;
-			double sbpos[4], sbsize[4];
-			double psize = 10;
-			position[0] = channelcoords_64[chan].x; //(double)xpos;
-			position[1] = channelcoords_64[chan].y; //(double)ypos;
-			sbpos[0] = position[0]; sbpos[1]=position[1];
-			sbpos[2] = sbpos[0]+psize;  sbpos[3]=sbpos[1]+psize;
-			sbsize[0]=0; sbsize[1]=n1;
-			sbsize[2]=0; sbsize[3]=n2;
-			dprintf("position=(%f,%f)\n", position[0], position[1]);
-			dprintf("sbpos, size = (%f,%f,%f,%f), (%f,%f,%f,%f)\n", 
-					  sbpos[0], sbpos[1], sbpos[2], sbpos[3],
-					  sbsize[0],  sbsize[1], sbsize[2], sbsize[3]);
-			plot_image_position( dist, n1, n2, cmap, position, size); 
-			sb = plot_subplot_create(sbpos, sbsize);
-			plot_subplot_select(sb);
-			plot_format_int( P->upath, P->spath, (P->J)+(P->K), "b." );
-			plot_subplot_select(-1);
-			 );
-
+		P[chan] = DTW_path_from_cumdistmatrix(dist, n1, n2, P[chan]);
 	 } /* chan loop */
+
+	 /* channels are known, now compare them */
+	 for( c1=0; c1<num_chan-1; c1++ ){
+		for( c2=c1+1; c2<num_chan; c2++){
+		  wdist[c1][c2] = DTW_distance_between_paths(P[c1], P[c2]);
+		  wdist[c2][c1] = wdist[c1][c2];
+		}
+	 }
+	 PL( plot_image( wdist, num_chan, num_chan "jet" ); );
+
 	 PL( plot_add(); );
   } /* trial loop */
   
@@ -148,7 +137,10 @@ int main(int argc, char **argv){
   matrix_free(dist, eeg->data[0]->n);
   matrix_free(wdist, num_chan);
   free_eegdata_trials( eeg );
-  free_warppath(P);
+  for( chan=0; chan<num_chan; chan++ ){
+	 free_warppath(P[i]);
+  }
+  free(P);
 
   return 0;
 }
@@ -202,3 +194,27 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
   }
   return 0;
 }
+/*
+		PL( 
+			int xpos = chan/plotmatrix;
+			int ypos = chan - (plotmatrix*xpos);
+			int sb;
+			double sbpos[4], sbsize[4];
+			double psize = 10;
+			position[0] = channelcoords_64[chan].x; //(double)xpos;
+			position[1] = channelcoords_64[chan].y; //(double)ypos;
+			sbpos[0] = position[0]; sbpos[1]=position[1];
+			sbpos[2] = sbpos[0]+psize;  sbpos[3]=sbpos[1]+psize;
+			sbsize[0]=0; sbsize[1]=n1;
+			sbsize[2]=0; sbsize[3]=n2;
+			dprintf("position=(%f,%f)\n", position[0], position[1]);
+			dprintf("sbpos, size = (%f,%f,%f,%f), (%f,%f,%f,%f)\n", 
+					  sbpos[0], sbpos[1], sbpos[2], sbpos[3],
+					  sbsize[0],  sbsize[1], sbsize[2], sbsize[3]);
+			plot_image_position( dist, n1, n2, cmap, position, size); 
+			sb = plot_subplot_create(sbpos, sbsize);
+			plot_subplot_select(sb);
+			plot_format_int( P->upath, P->spath, (P->J)+(P->K), "b." );
+			plot_subplot_select(-1);
+			 );
+*/
