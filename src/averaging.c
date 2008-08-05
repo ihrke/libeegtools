@@ -692,6 +692,69 @@ double DTW_distance_between_paths(const WarpPath *P1, const WarpPath *P2){
   return dist;
 }
 
+
+/** compute multiple warp-Pathes by computing restricted warppathes 
+	 with restriction parameter \f$\theta\f$ for each of the segments 
+	 from marker 0...i, i...i+1, ..., N-1...N (see \ref timewarping).
+	 \param s1,s2 data
+	 \param channel channel to use in the dataset
+	 \param theta restriction parameter (Chiba-Band)
+	 \param P pointer to Warppath-structs (nmarker many); if NULL, own memory is allocated
+ */
+WarpPath* eeg_DTW_get_paths_by_markers( const EEGdata *s1, const EEGdata *s2, int channel, double theta, WarpPath *P ){
+  int i,j, N,n;
+  int J,K;
+  WarpPath *Pptr;
+  unsigned long *mark1, *mark2; /* convenience, to include 0 and n */
+  double **dist;
+
+  if( s1->nmarkers != s2->nmarkers || s1->n != s2->n || s1->nbchan < channel || s2->nbchan<channel){
+	 errprintf("not the same number of markers (%i, %i) or something else\n", s1->nmarkers, s2->nmarkers );
+	 return P;
+  }
+  if( theta>1 ){
+	 errprintf( "Theta > 1, choose theta=1\n");
+	 theta=1;
+  } else if(theta<0){
+	 errprintf( "Theta < 0, choose theta=0\n");
+	 theta=0;
+  }
+
+  N = s1->nmarkers;
+  n = s1->n;
+  mark1 = (unsigned long*) malloc( (N+2)*sizeof( unsigned long ) );
+  mark2 = (unsigned long*) malloc( (N+2)*sizeof( unsigned long ) );
+  mark1[0]   = 0;   mark2[0]   = 0;
+  mark1[N+1] = n-1; mark2[N+1] = n-1;
+  memcpy( mark1, s1->markers, N*sizeof(unsigned long) );
+  memcpy( mark2, s2->markers, N*sizeof(unsigned long) );
+  dist = matrix_init( n, n );
+
+  N += 2;
+  for( i=1; i<N; i++ ){
+	 J = mark1[i] - mark1[i-1];
+	 K = mark2[i] - mark2[i-1];
+
+	 Pptr = &(P[i]);
+	 /* prepare warppath */
+	 if( P==NULL ){
+		Pptr = init_warppath( J, K );
+	 } else {
+		reset_warppath( Pptr, J, K );
+	 }
+
+	 dist = DTW_build_restricted_cumdistmatrix( s1->d[channel], J, 
+															  s2->d[channel], K, 
+															  theta, dist );  
+	 Pptr = DTW_path_from_cumdistmatrix( (const double**) dist, J, K, Pptr);
+  }
+
+  free(mark1); free(mark2);
+  matrix_free(dist, n);
+
+  return Pptr;
+}
+
 EEGdata* eeg_ADTW_from_path(const EEGdata *s1, const EEGdata *s2, EEGdata *target, int channel, const WarpPath *P){
   if(target==NULL){
 	 target = init_eegdata(s1->nbchan, (s1->n+s2->n)/2, 0);

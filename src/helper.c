@@ -268,27 +268,27 @@ int vprint_vector(const char* name, double *v, int n){
 void   errormsg(int err_no, int fatal){
   switch(err_no){
   case ERR_IO:
-    v_printf(0, "IO Error\n");
+    errprintf("IO Error\n");
     break;
   case ERR_GSL:
-    v_printf(0, "Error in the GSL-library\n");
+    errprintf("Error in the GSL-library\n");
     break;
   case ERR_PLOT:
-    v_printf(0, "Error in the Plot-library\n");
+    errprintf("Error in the Plot-library\n");
     break;
   case ERR_ENDIAN:
-    v_printf(0, "Error in the Endianness\n");
+    errprintf( "Error in the Endianness\n");
     break;
   case ERR_PARSEMAT:
-    v_printf(0, "Error while parsing .mat-file! Continue at your own risk...\n");
+    errprintf("Error while parsing .mat-file! Continue at your own risk...\n");
     break;
   default:
-    v_printf(0, "Unknown Error number\n");
+    errprintf("Unknown Error number\n");
   }
   if(fatal){
-    v_printf(0, "... Fatal\n");
+    errprintf(0, "... Fatal\n");
     exit(err_no);
-  } else v_printf(0, "\n");
+  } else errprintf("\n");
 }
 
 void      reset_warppath(WarpPath *P, int J, int K){

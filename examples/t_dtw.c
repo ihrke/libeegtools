@@ -1,7 +1,18 @@
 /** \file t_dtw.c
  *
  * \brief Testing DTW with restriction parameter and multiple electrodes.
+ * 
+ * The program computes WarpPathes for all channels, for trial n vs. n+1.
+ * Then the (mean) difference matrix of all these warppathes is given as output.
  *
+ 
+ There is an R-script
+
+     misc/cluster_channels_with_pathdist.R
+
+ which plots clusters given the output of that program.
+
+
  * Compilation:
  *\code
  *\endcode
@@ -13,8 +24,8 @@
 #include <argp.h>
 #include "reader.h"
 #include "writer.h"
-#include "definitions.h"
 #include "helper.h"
+#include "definitions.h"
 #include "clustering.h"
 
 #include "config.h"
@@ -33,6 +44,7 @@ static struct argp_option options[] = {
    "Output file (default: no output)" }, 
   {"theta",   't', "double [0,1]", 0,
    "restriction parameter (default=1)" },
+  {"clusters", 'c', "int", 0, "number of clusters (default=2)"}, 
 #ifdef HAVE_LIBPLOTTER
   {"plot",  'p', 0, OPTION_ARG_OPTIONAL,  
 	"Use Flag for Plotting [0|1]" },
@@ -43,6 +55,7 @@ static struct argp_option options[] = {
 /* available cmd-line args */
 struct cmdargs {
   char *input;
+  int num_clust; /** number of clusters K to compute */
   double theta;    /** restriction parameter */
   char  *output;   /** file to print the output to */
 };
@@ -64,9 +77,14 @@ int main(int argc, char **argv){
   WarpPath **P;
   double R;
   double **dist, /* distance for two trials */
-	 **wdist; /* distance of two warppaths */
-  int trial, chan, n1, n2, num_chan;
+	 **wdist, /* distance of two warppaths */
+	 **cwdist; /* cumulated (averaged) distance over trials */
+  int trial, chan, /* counter main loop */
+	 n1, n2, 
+	 num_chan, 
+	 c1, c2, i; /* counter diff */
   int num_trials;
+  Clusters *C;
 
 #ifdef HAVE_LIBPLOTTER
   extern int plotit;
@@ -77,33 +95,36 @@ int main(int argc, char **argv){
 
   /* Parse the arguments */
   args.theta=1.0;
-  args.output="stdout";
+  args.num_clust = 2;
+  args.output=NULL;
   argp_parse (&argp, argc, argv, 0, 0, &args);
   
   fprintf( stderr, "reading file          : %s\n", args.input );
   fprintf( stderr, "restriction parameter : %f\n", args.theta );
   fprintf( stderr, "output to             : %p\n", args.output);
   fprintf( stderr, "Plotting enabled      : %i\n", plotit);
+  fprintf( stderr, "num_clust             : %i\n", args.num_clust);
 
   /* get data */
   eeg=read_eegtrials_from_raw(args.input);
   print_eegdata_trials(stderr, eeg);
 
-  num_trials = 2;
+  num_trials = eeg->ntrials-1;
   num_chan   = eeg->data[0]->nbchan;
   dprintf("num_chan,num_trial = (%i,%i)\n", num_chan, num_trials);
 
   /* allocating stuff */
   dist  = matrix_init( eeg->data[0]->n, eeg->data[0]->n );  /* nxn matrix (maximum necessary) */
   wdist = matrix_init( num_chan, num_chan );
+  cwdist = matrix_init( num_chan, num_chan );
   P     = (WarpPath **) malloc( num_chan * sizeof(WarpPath*));
   for( chan=0; chan<num_chan; chan++ ){
-	 P[chan] = init_warppath( eeg->data[chan]->n, eeg->data[chan]->n );
+		P[chan] = init_warppath( eeg->data[chan]->n, eeg->data[chan]->n );
   }
 
   /* main loop */
   for( trial=0; trial<num_trials; trial++ ){ 
-	 dprintf("Matching trial %i <-> %i\n", trial, trial+1);
+	 oprintf("Matching trial %i <-> %i\n", trial, trial+1);
 
 	 for( chan=0; chan<num_chan; chan++){
 		dprintf("  Channel: %i\n", chan);
@@ -115,7 +136,7 @@ int main(int argc, char **argv){
 																 eeg->data[trial+1]->d[chan], n2, 
 																 args.theta, dist );  
 
-		P[chan] = DTW_path_from_cumdistmatrix(dist, n1, n2, P[chan]);
+		P[chan] = DTW_path_from_cumdistmatrix( (const double**) dist, n1, n2, P[chan]);
 	 } /* chan loop */
 
 	 /* channels are known, now compare them */
@@ -125,22 +146,89 @@ int main(int argc, char **argv){
 		  wdist[c2][c1] = wdist[c1][c2];
 		}
 	 }
-	 PL( plot_image( wdist, num_chan, num_chan "jet" ); );
-
-	 PL( plot_add(); );
+	 
+	 /* cumulate for averaging over trials */
+	 matrix_add_matrix( cwdist, (const double**)wdist, num_chan, num_chan ); 
   } /* trial loop */
-  
+
+  matrix_divide_scalar( cwdist, num_chan, num_chan, (double) num_trials );
+
+  /* clustering */
+  C = kmedoids( (const double**) cwdist, num_chan, args.num_clust );
+  print_cluster( C );
+	 
+#ifdef HAVE_LIBPLOTTER
+  if( plotit ){
+	 int sb;
+	 int k;
+	 //plot_image( wdist, num_chan, num_chan, "jet" ); 
+	 double sbpos[4], sbsize[4];
+	 double sbx[64], sby[64];
+	 const char clustformat[][20] = {"r.0", "g.0", "b.0", "m.0", "y.0"};
+	 sbpos[0] = -10; sbpos[1]=-10;
+	 sbpos[2] = 0;   sbpos[3]=0;
+	 sbsize[0]= -100; sbsize[1]=100;
+	 sbsize[2]= -100; sbsize[3]=100;
+	 dprintf("sbpos, size = (%f,%f,%f,%f), (%f,%f,%f,%f)\n", 
+				sbpos[0], sbpos[1], sbpos[2], sbpos[3],
+				sbsize[0],  sbsize[1], sbsize[2], sbsize[3]);
+	 /* sb = plot_subplot_create(sbpos, sbsize); */
+	 /* plot_subplot_select(sb); */
+		 
+	 for( k=0; k<C->K; k++ ){
+		dprintf("Prepare cluster %i/%i\n", k, C->K);
+		for( i=0; i<C->n[k]; i++ ){
+		  dprintf(" C->clust[k][i]=%i,  channelcoords_64[ C->clust[k][i] ].x=%f\n", 
+					 C->clust[k][i],channelcoords_64[ C->clust[k][i] ].x ); 
+		  sbx[i] = channelcoords_64[ C->clust[k][i] ].x;
+		  sby[i] = channelcoords_64[ C->clust[k][i] ].y;
+		}
+		dprintf("Plot cluster %i/%i\n", k, C->K);
+		plot_format( sbx, sby, C->n[k], clustformat[k] );
+	 }
+
+	 /* plot_subplot_select(-1); */
+  }
+
+#endif
+	 
+  free_cluster( C );
+
   /* cleaning up */
   PL( plot_show(); );
  
+
+  /* output */
+  if(!args.output){
+	 fprintf(stdout, "# ");
+	 for( i=0; i<argc; i++ ){
+		fprintf( stdout, "%s ", argv[i]);
+	 }
+	 fprintf( stdout, "\n");
+	 write_double_matrix_ascii( stdout, (const double**)cwdist, num_chan, num_chan );
+  } else {
+	 FILE *f;
+	 if((f= fopen(args.output, "w"))==NULL) 	 
+		errormsg(ERR_IO, 1);
+	 fprintf(f, "# ");
+	 for( i=0; i<argc; i++ ){
+		fprintf( f, "%s ", argv[i]);
+	 }
+	 fprintf( f, "\n");
+	 write_double_matrix_ascii( f, (const double**)cwdist, num_chan, num_chan );
+	 fclose(f);
+  }
+
   dprintf("Freeing Memory\n");
   matrix_free(dist, eeg->data[0]->n);
-  matrix_free(wdist, num_chan);
-  free_eegdata_trials( eeg );
+  matrix_free(wdist, num_chan); 
+  matrix_free(cwdist, num_chan); 
+
   for( chan=0; chan<num_chan; chan++ ){
-	 free_warppath(P[i]);
+	 free_warppath(P[chan]);
   }
   free(P);
+  free_eegdata_trials( eeg );
 
   return 0;
 }
@@ -174,6 +262,10 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
     break;
 #endif
 
+  case 'c':
+	 dprintf(" num_clusters=%s\n", arg);
+	 arguments->num_clust=atoi(arg);
+	 break;
   case ARGP_KEY_ARG:
     if (state->arg_num >= 1){ /* Too many arguments. */
 		errprintf("Too many args\n");

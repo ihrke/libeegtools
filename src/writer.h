@@ -35,7 +35,9 @@ extern "C" {
 /* -------------------------------------------------------------------- */
 /* functions */
 /* -------------------------------------------------------------------- */
-void write_double_matrix_ascii(const char *fname, const double **d, int xdim, int ydim);
+
+  void write_double_matrix_ascii(FILE *out, const double **d, int xdim, int ydim);
+  void write_double_matrix_ascii_file(const char *fname, const double **d, int xdim, int ydim);
 
 #ifdef __cplusplus
 }

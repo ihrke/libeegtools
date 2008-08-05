@@ -1,0 +1,13 @@
+CVS reverting
+-------------
+
+http://www.inf.ed.ac.uk/systems/web/publish/cvs-revert.html
+
+
+# get old version
+$ cvs update -r 1.5 oldfile
+
+... work with it...
+
+# and maybe revert to most recent work
+$ cvs up -A oldfile

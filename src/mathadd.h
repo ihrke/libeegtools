@@ -41,42 +41,44 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/* -------- Math ----------- */
-/**\addtogroup helpermath
- *\{*/
-double  glog(double v, int b);  
-double  mad(const double *data, int n); 
-int     abscmp(const void *p1, const void *p2);
-double  vnorm(const double *v, int n, int p);
-int     sgn(int x);
-double  maxel(double *v, int n);
-int     maxeli(int *v, int n);
-int     closest_index(double *v, int n, double c);
-double* sampled_line(double *ntimes, int n, double start, double end);
-double* lininterp(const double *x1, const double *y1, int n1, 
-						const double *x2,       double *y2, int n2);
-int*    linspace(int first, int last);
-double* loocv(const ModelData *m, double* err,
-				  double*(*model)(const ModelData*,double*));
-void    bresenham(int xstart,int ystart,int xend,int yend, int *points);
-void    swap2i(int *v1, int *v2);
+  /* -------- Math ----------- */
+  /**\addtogroup helpermath
+	*\{*/
+  double  glog(double v, int b);  
+  double  mad(const double *data, int n); 
+  int     abscmp(const void *p1, const void *p2);
+  double  vnorm(const double *v, int n, int p);
+  int     sgn(int x);
+  double  maxel(double *v, int n);
+  int     maxeli(int *v, int n);
+  int     closest_index(double *v, int n, double c);
+  double* sampled_line(double *ntimes, int n, double start, double end);
+  double* lininterp(const double *x1, const double *y1, int n1, 
+						  const double *x2,       double *y2, int n2);
+  int*    linspace(int first, int last);
+  double* loocv(const ModelData *m, double* err,
+					 double*(*model)(const ModelData*,double*));
+  void    bresenham(int xstart,int ystart,int xend,int yend, int *points);
+  void    swap2i(int *v1, int *v2);
 
-/* ---------------------------------------------------------------------------- 
-   -- Merit Measures                                                         -- 
-   ---------------------------------------------------------------------------- */
-double rmse(const double *r, const double *d, int n);
-double snr (const double *r, const double *d, int n);
+  /* ---------------------------------------------------------------------------- 
+	  -- Merit Measures                                                         -- 
+	  ---------------------------------------------------------------------------- */
+  double rmse(const double *r, const double *d, int n);
+  double snr (const double *r, const double *d, int n);
 
-/* ---------------------------------------------------------------------------- 
-   -- Matrix ops                                                             -- 
-   ---------------------------------------------------------------------------- */
-double** matrix_delrow(double **m, int N, int n, int row);
-double** matrix_delcol(double **m, int N, int n, int col);
-double   matrix_min(const double **m, int N, int n, int *i1, int *i2);
-void     matrix_print(double **m, int N, int n);
-double** matrix_init(int N, int M);
-void     matrix_free(double **m, int N);
-/**\}*/
+  /* ---------------------------------------------------------------------------- 
+	  -- Matrix ops                                                             -- 
+	  ---------------------------------------------------------------------------- */
+  double** matrix_delrow(double **m, int N, int n, int row);
+  double** matrix_delcol(double **m, int N, int n, int col);
+  double   matrix_min(const double **m, int N, int n, int *i1, int *i2);
+  void     matrix_print(double **m, int N, int n);
+  double** matrix_init(int N, int M);
+  void     matrix_divide_scalar(double **m, int N, int n, double s);
+  void     matrix_add_matrix(double **m1, const double **m2, int N, int n);
+  void     matrix_free(double **m, int N);
+  /**\}*/
 
 #ifdef __cplusplus
 }

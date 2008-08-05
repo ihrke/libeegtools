@@ -323,6 +323,31 @@ void matrix_print(double **m, int N, int n){
 	 printf(" ]\n");
   }
 }
+/** add matrix m2 to matrix m1 (must be of equal dimensions
+ */
+void matrix_add_matrix(double **m1, const double **m2, int N, int n){
+  int i, j;
+
+  for( i=0; i<N; i++){
+	 for( j=0; j<n; j++ ){
+		m1[i][j]+=m2[i][j];
+	 }
+  }
+}
+
+/** divide all entries in m by s
+ */
+void matrix_divide_scalar(double **m, int N, int n, double s){
+  int i, j;
+
+  for( i=0; i<N; i++){
+	 for( j=0; j<n; j++ ){
+		m[i][j] /= s;
+	 }
+  }
+}
+
+
 /** free matrix memory 
  */
 void matrix_free(double **m, int N){
@@ -407,7 +432,7 @@ void bresenham(int xstart,int ystart,int xend,int yend, int *points){
 		points[( 2*t )+0]=x;
 		points[( 2*t )+1]=y;	
    }
-	dprintf("t=%i, (x,y)=(%i,%i)\n", t,x,y);
+	//	dprintf("t=%i, (x,y)=(%i,%i)\n", t,x,y);
 } /* bresenham() */
 
 void    swap2i(int *v1, int *v2){

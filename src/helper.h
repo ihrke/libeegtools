@@ -55,7 +55,7 @@
 
 
 /** debugging macros */
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
 /*#define dprintf(...) fprintf(stderr, ## __VA_ARGS__)*/
 #define dprintf(...) do{																\
@@ -79,6 +79,12 @@
 #define errprintf(...) do{ fprintf(stderr, ESCAPE_FGRED_STR ESCAPE_BOLD_STR\
 											  ESCAPE_BGYELLOW_STR "ERROR: %s (%i), %s(): ", \
 											  __FILE__, __LINE__, __FUNCTION__);	\
+	 fprintf(stderr, ## __VA_ARGS__);												\
+	 fprintf(stderr, ESCAPE_RESET_STR); } while(0)
+
+#define oprintf(...) do{ fprintf(stderr, ESCAPE_FGCYAN_STR ESCAPE_BRIGHT_STR \
+											"%s (%i), %s() --> ",						\
+											__FILE__, __LINE__, __FUNCTION__);		\
 	 fprintf(stderr, ## __VA_ARGS__);												\
 	 fprintf(stderr, ESCAPE_RESET_STR); } while(0)
 

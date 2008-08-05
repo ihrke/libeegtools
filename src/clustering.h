@@ -38,42 +38,42 @@
 extern "C" {
 #endif
 
-/**\addtogroup clustering
- *\{
- */
-double** diffmatrix(ModelData *m, double **dm);
-double** eegtrials_diffmatrix_channel(EEGdata_trials *eeg, 
-												  double(*dist)(EEGdata*,EEGdata*,int), 
-												  int channel);
+  /**\addtogroup clustering
+	*\{
+	*/
+  double** diffmatrix(ModelData *m, double **dm);
+  double** eegtrials_diffmatrix_channel(EEGdata_trials *eeg, 
+													 double(*dist)(EEGdata*,EEGdata*,int), 
+													 int channel);
 
-Clusters* kmedoids(const double **dist, int N, int K);
-void free_cluster(Clusters *c);
-void print_cluster(Clusters *c);
-Clusters* init_cluster(int K, int maxN);
-void copy_cluster(Clusters *dest, const Clusters *src);
-void diffmatrix_standardize(double **d, int N);
-/** \} */
+  Clusters* kmedoids(const double **dist, int N, int K);
+  void free_cluster(Clusters *c);
+  void print_cluster(Clusters *c);
+  Clusters* init_cluster(int K, int maxN);
+  void copy_cluster(Clusters *dest, const Clusters *src);
+  void diffmatrix_standardize(double **d, int N);
+  /** \} */
 
-/**\addtogroup distances 
-	\ingroup clustering
-	\{*/
-double clusterdist_euclidean_pointwise(EEGdata  *s1, EEGdata *s2, int channel);
-double clusterdist_tw_complete(EEGdata *s1, EEGdata *s2, int channel);
-double clusterdist_tw_markers(EEGdata *s1, EEGdata *s2, int channel);
-/** \} */
+  /**\addtogroup distances 
+	  \ingroup clustering
+	  \{*/
+  double clusterdist_euclidean_pointwise(EEGdata  *s1, EEGdata *s2, int channel);
+  double clusterdist_tw_complete(EEGdata *s1, EEGdata *s2, int channel);
+  double clusterdist_tw_markers(EEGdata *s1, EEGdata *s2, int channel);
+  /** \} */
 
 
-/**\addtogroup gap
-	\ingroup clustering
-	\{
-	Reference paper: Tibshirani, 2001
-*/
-int      gap_get_K(const double *gapstat, int k);
-double*  gap_get_gapstat(const double *Wk, const double **Wkref, int B, int k, double *gapstat);
-double** gap_get_reference_distribution(const double **d, int N, int n, double **ref);
-double   gap_get_within_scatter(const double **d, int N, const Clusters *c);
-double*  gap_get_within_scatter_distribution(const double **d, int N, int k, const Clusters **c, double *Wk);
-/** \} */
+  /**\addtogroup gap
+	  \ingroup clustering
+	  \{
+	  Reference paper: Tibshirani, 2001
+  */
+  int      gap_get_K(const double *gapstat, int k);
+  double*  gap_get_gapstat(const double *Wk, const double **Wkref, int B, int k, double *gapstat);
+  double** gap_get_reference_distribution(const double **d, int N, int n, double **ref);
+  double   gap_get_within_scatter(const double **d, int N, const Clusters *c);
+  double*  gap_get_within_scatter_distribution(const double **d, int N, int k, const Clusters **c, double *Wk);
+  /** \} */
 
 
 #ifdef __cplusplus

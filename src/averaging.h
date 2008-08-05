@@ -69,6 +69,8 @@ extern "C" {
 													  const unsigned long **markers, 
 													  unsigned nmarkers);
   double    DTW_distance_between_paths(const WarpPath *P1, const WarpPath *P2);
+  WarpPath* eeg_DTW_get_paths_by_markers( const EEGdata *s1, const EEGdata *s2, 
+														int channel, double theta, WarpPath *P );
 
   double*   ADTW (const double *s1, int n1, const double *s2, int n2, double *avg);
   double*   ADTW_signal(const double *s1, int sR1, 
