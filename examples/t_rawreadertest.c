@@ -38,7 +38,7 @@ int main(int argc, char **argv){
   print_eegdata_trials(stderr, eeg);
 
   target = init_eegdata( eeg->data[t1]->nbchan, eeg->data[t1]->n, eeg->nmarkers_per_trial );
-  eeg_ADTW_markers_channel( eeg->data[t1], eeg->data[t2], target, chan );
+  eeg_ADTW_markers_channel( eeg->data[t1], eeg->data[t2], target, chan, 1 /*theta*/ );
 
   PL( plot_format( eeg->times, eeg->data[t1]->d[chan], eeg->data[t1]->n, "r" ) );
   PL( plot_format( eeg->times, eeg->data[t2]->d[chan], eeg->data[t2]->n, "r" ) );  

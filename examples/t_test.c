@@ -79,7 +79,7 @@ void dtwtest1(int argc, const char **argv){
 	 dprintf("TRIAL: i=%i, (n1,n2)=(%i,%i)\n", i, n1,n2);
 
 	 if(i==0){
-		P = init_warppath(n1, n2);
+		P = init_warppath(NULL, n1, n2);
 	 }
 
 	 dist = DTW_build_distmatrix( eeg->data[i  ]->d[chan1], n1, 
