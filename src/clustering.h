@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Matthias Ihrke   *
- *   mihrke@uni-goettingen.de   *
+ *   Copyright (C) 2008 by Matthias Ihrke                                  *
+ *   mihrke@uni-goettingen.de                                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,6 +25,7 @@
  \{
     \defgroup distances Distance measures
     \defgroup gap Gap-statistic
+	 \defgroup dendrogram Dendrogram (Hierarchical Clustering)
  \}
  */
 #ifndef CUSTERING_H
@@ -40,18 +41,64 @@ extern "C" {
 
   /**\addtogroup clustering
 	*\{
+	*/ 
+
+  /**\ingroup clustering */
+  typedef struct{
+	 int **clust; /** indices for the trials in the cluster (Kxn)*/
+	 int K;  /** number of clusters */
+	 int *n; /** number of trials in each of the K clusters */
+  } Clusters;
+
+
+  /**\ingroup clustering
+	  This struct is the representation of a rooted binary tree to
+	  hold a dendrogram. 
+	  It is a terminal node if val>0 and left=right=NULL.
+	  Else it is an intermediate node that has at least one child!=NULL.
 	*/
+   struct dgram {
+	 int val; /** content representing object val; if val<0, its an intermediate node */
+	 double height; /** proportional to between sub-cluster distance */
+	 struct dgram *left;
+	 struct dgram *right;
+  };
+  typedef struct dgram Dendrogram;
+
   double** diffmatrix(ModelData *m, double **dm);
   double** eegtrials_diffmatrix_channel(EEGdata_trials *eeg, 
 													 double(*dist)(EEGdata*,EEGdata*,int), 
 													 int channel);
+  void     diffmatrix_standardize(double **d, int N);
 
-  Clusters* kmedoids(const double **dist, int N, int K);
-  void free_cluster(Clusters *c);
-  void print_cluster(Clusters *c);
+
+  Clusters*    kmedoids(const double **dist, int N, int K);
+
+
+  /**\addtogroup dendrogram
+	*\{
+	*/ 
+
+  Dendrogram*  agglomerative_clustering(const double **d, int N, 
+													 double(*dist)(double**,int,const Dendrogram*,const Dendrogram*));
+  double dgram_dist_singlelinkage  (double **d, int N, const Dendrogram *c1, const Dendrogram *c2);
+  double dgram_dist_completelinkage(double **d, int N, const Dendrogram *c1 ,const Dendrogram *c2);
+  double dgram_dist_averagelinkage (double **d, int N, const Dendrogram *c1, const Dendrogram *c2);
+
+  void         dgram_print( Dendrogram *t );
+  void         dgram_print_node( Dendrogram *t );
+  void         dgram_preorder( Dendrogram *t, int *vals, int *n );
+  Dendrogram*  dgram_init(int val, Dendrogram *left, Dendrogram *right);
+  void         dgram_free(Dendrogram *t);
+  /** \} */
+
+
+  void      free_cluster(Clusters *c);
+  void      print_cluster(Clusters *c);
   Clusters* init_cluster(int K, int maxN);
-  void copy_cluster(Clusters *dest, const Clusters *src);
-  void diffmatrix_standardize(double **d, int N);
+  void      copy_cluster(Clusters *dest, const Clusters *src);
+
+
   /** \} */
 
   /**\addtogroup distances 

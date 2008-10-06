@@ -5,6 +5,7 @@
 
 source("functions.R");
 source("channels.R");
+require(cluster);
 
 cluster_channels_with_pathdist <- function(fname){
   
@@ -38,9 +39,32 @@ cluster_channels_with_pathdist <- function(fname){
 #      printf("  k2=%i\n", k2);
  #     print(clusters);
       c = which(clusters$clustering==k2);
-      text( channels_64eog.y[c], channels_64eog.x[c], labels=channels_64eog.name[c], col=cols[k2] );
+#      c = c[!(c %in% c(9,10, 31,32))];
+      print(c);
+#      text( channels_64eog.y[c], channels_64eog.x[c], labels=channels_64eog.name[c], col=cols[k2] );
+      symbols ( channels_64eog.y[c], channels_64eog.x[c], circles=rep(6,length(c)), bg=cols[k2], inches=FALSE, add=TRUE)
+      text( channels_64eog.y[c], channels_64eog.x[c], labels=channels_64eog.name[c], col="black",font=2 );#cols[k2] );
     }
   }
   
   dev.off();
+  
+  ## for poster_bccn2008
+  for( this.k in 2:4 ){
+    printf("writing file '%s'\n", sprintf("poster_%s_%i.eps",fname,this.k));
+    postscript(sprintf("poster_%s_%i.eps",fname,this.k), width=7, height=7, horizontal=F, paper="special");
+    
+    clusters <- pam(as.dist(d), this.k); #cutree(fit1, k=this.k)
+    plot.new();
+    s = 90;
+    plot.window(c(-s, s), c(-s, s));
+    for( k2 in 1:this.k ){
+      c = which(clusters$clustering==k2);
+      c = c[!(c %in% c(9,10, 31,32))];
+      symbols ( channels_64eog.y[c], channels_64eog.x[c], circles=rep(6,length(c)), bg=cols[k2], inches=FALSE, add=TRUE)
+      text( channels_64eog.y[c], channels_64eog.x[c], labels=channels_64eog.name[c], col="black",font=2 );#cols[k2] );
+    }
+    dev.off();
+  }
+  
 }

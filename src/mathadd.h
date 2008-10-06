@@ -60,6 +60,14 @@ extern "C" {
 					 double*(*model)(const ModelData*,double*));
   void    bresenham(int xstart,int ystart,int xend,int yend, int *points);
   void    swap2i(int *v1, int *v2);
+  void    swap2d(double *v1, double *v2);
+
+  double* flip_array( double *v, int n );
+
+  double  drawsample_linear( const double *v, int n, double x );
+  double* resample_linear( const double *s, int n, int newn, double *news );
+  double  drawsample_nearest_neighbour( const double *v, int n, double x );
+  double* resample_nearest_neighbour( const double *s, int n, int newn, double *news );
 
   /* ---------------------------------------------------------------------------- 
 	  -- Merit Measures                                                         -- 

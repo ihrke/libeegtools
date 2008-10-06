@@ -1,4 +1,4 @@
-function [single_trials_noisy single_trials range rts real_rt erp] = ...
+function [single_trials_noisy single_trials range rts real_rt erp trans] = ...
     artificial_data(trials, srate, beta);
 % function [single_trials_noisy single_trials range rts real_rt erp] = ...
 %    artificial_data(trials, srate, beta);
@@ -13,7 +13,7 @@ sd_rt = 100;
 noisebeta= 0;  
 %noiseamp = 100;
 %trials = 100;
-plotit = 1;
+plotit = 0;
 
 rts = [];
 rand('state',sum(100*clock))
@@ -137,7 +137,7 @@ for i=1:p
     single_trials_noisy(:,i) = single_trials(:,i)+noise;%30*randn(N,1);%noise;
 end;
 
-if ~plotit
+if plotit
     plot(range, trans, 'b');
     hold on;
     plot(trans, range, 'r');

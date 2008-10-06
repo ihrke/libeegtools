@@ -80,7 +80,7 @@ int main(int argc, char **argv){
 	 **wdist, /* distance of two warppaths */
 	 **cwdist; /* cumulated (averaged) distance over trials */
   int trial, chan, /* counter main loop */
-	 n1, n2, 
+	 n1, n2, n,
 	 num_chan, 
 	 c1, c2, i; /* counter diff */
   int num_trials;
@@ -111,6 +111,7 @@ int main(int argc, char **argv){
 
   num_trials = eeg->ntrials-1;
   num_chan   = eeg->data[0]->nbchan;
+  n = eeg->data[0]->n;
   dprintf("num_chan,num_trial = (%i,%i)\n", num_chan, num_trials);
 
   /* allocating stuff */
@@ -119,12 +120,16 @@ int main(int argc, char **argv){
   cwdist = matrix_init( num_chan, num_chan );
   P     = (WarpPath **) malloc( num_chan * sizeof(WarpPath*));
   for( chan=0; chan<num_chan; chan++ ){
-		P[chan] = init_warppath( eeg->data[chan]->n, eeg->data[chan]->n );
+	 P[chan] = init_warppath( P[chan], eeg->data[chan]->n, eeg->data[chan]->n );
   }
+
+  FILE *out;
+  out = fopen( "path.txt", "w");
 
   /* main loop */
   for( trial=0; trial<num_trials; trial++ ){ 
 	 oprintf("Matching trial %i <-> %i\n", trial, trial+1);
+
 
 	 for( chan=0; chan<num_chan; chan++){
 		dprintf("  Channel: %i\n", chan);
@@ -137,7 +142,13 @@ int main(int argc, char **argv){
 																 args.theta, dist );  
 
 		P[chan] = DTW_path_from_cumdistmatrix( (const double**) dist, n1, n2, P[chan]);
+		if(trial==4){
+		  write_int_vector_ascii( out, P[chan]->upath, n+n );
+		  write_int_vector_ascii( out, P[chan]->spath, n+n );
+		}
 	 } /* chan loop */
+	 if(trial==4) 		  
+		fclose(out);
 
 	 /* channels are known, now compare them */
 	 for( c1=0; c1<num_chan-1; c1++ ){

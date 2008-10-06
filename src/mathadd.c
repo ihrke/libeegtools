@@ -441,3 +441,123 @@ void    swap2i(int *v1, int *v2){
   *v1 = *v2; 
   *v2 = tmp;
 }
+
+void    swap2d(double *v1, double *v2){
+  double tmp;
+  tmp = *v1;
+  *v1 = *v2; 
+  *v2 = tmp;
+}
+
+
+/** Draw a sample from a discrete distribution.
+	 \param v,n the distribution as a funciton of [0,...,n]
+	 \param x a real value from the interval [0,...,n]
+	 \return v(x) by linear interpolation
+*/
+double drawsample_linear( const double *v, int n, double x ){
+  int x1, x2;
+  double r, m, intercept;
+  x1 = (int)floor( x );
+  x2 = (int)ceil ( x );
+  if( x1==x2 ){
+	 x2++;
+  }
+  if(x2>=n){
+	 x1--; x2--;
+  }
+  if( x1<0 || x1>=n || x2<0 || x2>=n || x1>=x2 ){
+	 errprintf( "(x=%f, x1=%i, x2=%i, n=%i)\n", x, x1, x2, n );
+  }
+  m = (v[x2]-v[x1])/(double)(x2-x1);
+  intercept = v[x2]-m*x1;
+  r = m*x + intercept;
+  if( isnan( r ) ){
+	 errprintf( "r=%f (x=%f, x1=%i, x2=%i, v[x1]=%f, v[x2]=%f, m=%f, n=%f)\n", r, x, x1, x2, v[x1], v[x2], m, intercept );
+  }
+  /*dprintf("(x1, x2, m, n, r) = (%i, %i, %.2f, %.2f, %.2f)\n", x1, x2, m, n, r);*/
+  return r;
+}
+
+
+/** Draw a sample from a discrete distribution (nearest neighbour).
+	 \param v,n the distribution as a funciton of [0,...,n]
+	 \param x a real value from the interval [0,...,n]
+	 \return v(x) by nn-interpolation
+*/
+double drawsample_nearest_neighbour( const double *v, int n, double x ){
+  int x1;
+  double r;
+
+  x1 = (int)round( x );
+
+  if( x1<0 || x1>=n ){
+	 errprintf( "(x=%f, x1=%i, n=%i)\n", x, x1, n );
+  }
+  r = v[x1];
+  if( isnan( r ) ){
+	 errprintf( "r=%f (x=%f, x1=%i,v[x1]=%f, n=%f)\n", r, x, x1,v[x1],n );
+  }
+  return r;
+}
+
+
+/** Resample a vector to match a new length (nn-interpolation).
+	 \param s,n the original vector
+	 \param newn the new length of the vector
+	 \param news caller-allocated memory of at least length newn (if NULL, 
+	             the function allocates own memory)
+	 \return resampled vector in news
+	 \see drawsample_nearest_neighbour()
+*/
+double* resample_nearest_neighbour( const double *s, int n, int newn, double *news ){
+  double step;
+  int i;
+
+  if( news==NULL ){
+	 news = (double*) malloc( newn*sizeof( double ) );
+  }
+
+  step = (double)n/(double)newn;
+  for( i=0; i<newn; i++ ){
+	 news[i] = drawsample_nearest_neighbour( s, n, i*step );
+  }
+ 
+  return news;
+}
+
+/** Resample a vector to match a new length (linear interpolation).
+	 \param s,n the original vector
+	 \param newn the new length of the vector
+	 \param news caller-allocated memory of at least length newn (if NULL, 
+	             the function allocates own memory)
+	 \return resampled vector in news
+	 \see drawsample_linear()
+*/
+double* resample_linear( const double *s, int n, int newn, double *news ){
+  double step;
+  int i;
+
+  if( news==NULL ){
+	 news = (double*) malloc( newn*sizeof( double ) );
+  }
+
+  step = (double)n/(double)newn;
+  for( i=0; i<newn; i++ ){
+	 news[i] = drawsample_linear( s, n, i*step );
+  }
+ 
+  return news;
+}
+
+double* flip_array( double *v, int n ){
+  int i;
+  double tmp;
+
+  for( i=0; i<n/2; i++){
+	 tmp = v[i];
+	 v[i] = v[n-i-1];
+	 v[n-i-1] = tmp;
+  }
+  return v;
+}

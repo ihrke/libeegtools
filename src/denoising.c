@@ -418,3 +418,20 @@ double* sigext_smooth(double *data, int ns, int n){
   data[n-1]=data[n-2];
   return dptr;
 }
+
+
+/** Extend data to length 2^j using sigextfct and denoise it.
+ * \see generic_denoising()
+ * \see extend_and_denoise()
+ * data is directly written into the eegdata-struct
+ */
+void eeg_wavelet_denoise(EEGdata *eeg, int L, 
+								double(*threshfct)(const double*, int), 
+								double(*etafct)(double,double), 
+								double*(*sigextfct)(double*, int, int)){
+  int c;
+  
+  for( c=0; c<eeg->nbchan; c++ ){
+	 extend_and_denoise( eeg->d[c], eeg->n, L, threshfct, etafct, sigextfct );
+  }
+}

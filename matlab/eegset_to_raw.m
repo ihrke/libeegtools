@@ -1,8 +1,8 @@
-function eegset_to_raw(EEG, num_markers, events, filename);
+function eegset_to_raw(EEG, num_markers, trials, filename);
 %  eegset_to_raw(EEG, num_markers, events, filename);
 % EEG - is an eeglab-set
 % num_markers - how many markers per trial?
-% events - is an array giving the indices from the
+% trials - is an array giving the indices from the
 %          EEG.epoch field to be used
 % filename - string giving name of output file
 %
@@ -22,16 +22,17 @@ function eegset_to_raw(EEG, num_markers, events, filename);
 %			  the 2nd and so on
   fid = fopen(filename, 'wb');
   fwrite(fid, EEG.nbchan, 'double');
-  fwrite(fid, max(size(events)), 'double');
+  fwrite(fid, max(size(trials)), 'double');
   fwrite(fid, EEG.pnts, 'double');
   fwrite(fid, num_markers, 'double');
   fwrite(fid, EEG.times, 'double');
   
   % markers
-  ms = EEG.epoch(events);
-  for i=1:max(size(events))
+  ms = EEG.epoch(trials);
+  for i=1:max(size(trials))
     for j=1:num_markers
-      t = ms(i).eventlatency(j);  
+      j
+      t = ms(i).eventlatency(j)
       t = closest(EEG.times, t{:})
       fwrite(fid, t, 'double');
     end;
@@ -39,7 +40,7 @@ function eegset_to_raw(EEG, num_markers, events, filename);
   
   % data
   for c=1:EEG.nbchan
-    for i=events
+    for i=trials
       fwrite(fid, EEG.data(c,:,i), 'double');
     end;
   end;

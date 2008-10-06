@@ -306,10 +306,11 @@ WarpPath* DTW_path_from_cumdistmatrix(const double **d, int J, int K, WarpPath *
   double left, down, downleft;
 
   if( path==NULL ){
-	 path = init_warppath(J, K);
+	 path = init_warppath(NULL, J, K);
   }
-
+  dprintf("path=%p,path->J=%i, path->K=%i\n",path, path->J, path->K);
   reset_warppath(path, J, K);
+
 
   /* Backtracking */
   j=J-1; k=K-1;
@@ -345,11 +346,13 @@ WarpPath* DTW_path_from_cumdistmatrix(const double **d, int J, int K, WarpPath *
 		}
 	 }
 
+
 	 path->upath[idx] = j;
 	 path->spath[idx] = k;
 	 idx++;
+	 /*dprintf("(j, k), idx = (%i,%i), %i\n", j, k, idx);*/
   }
-
+  dprintf("leaving\n");
   return path;
 }
 
@@ -459,6 +462,7 @@ WarpPath* DTW_get_warppath2(const double *u, int J, const double *s, int K,	doub
 }
 
 /** Warpaverage two signals together. Use method described in Picton.
+	 Data is resampled to have length (J+K)/2+1.
  * \param u,J - sig1
  * \param s,K - sig2
  * \param path - contains warppath
@@ -467,24 +471,24 @@ WarpPath* DTW_get_warppath2(const double *u, int J, const double *s, int K,	doub
  */
 double* ADTW_from_path(const double *u, int J, const double *s, int K, const WarpPath *P, double *avg){
 	double *tmp;
-	int i;
+	int i, idx;
+
 	tmp = (double*)calloc(K+J, sizeof(double));
 	if(avg==NULL){
 	  dprintf("Allocating own memory\n");
 	  avg = (double*)calloc((K+J)/2+1, sizeof(double));
 	}
 	
+	idx = 0;
 	for(i=0; i<J+K; i++){
-		tmp[i] = (u[P->upath[i]] + s[P->spath[i]])/2.0;
+	  if( P->upath[i]==0 && P->spath[i]==0 ){
+		 continue;
+	  }
+	  tmp[idx++] = (u[P->upath[i]] + s[P->spath[i]])/2.0;
 	}
-	
-	for(i=0; i<J+K; i+=2){
-		if(i+1<J+K)
-			avg[i/2]=(tmp[i]+tmp[i+1])/2.0;
-		else
-			avg[i/2]=tmp[i];
-	}
-	
+	dprintf("J=%i,K=%i, idx=%i\n", J, K, idx);	
+	avg = resample_linear( tmp, idx, (J+K)/2+1, avg );
+
 	free(tmp);
 	return avg;
 }
@@ -722,23 +726,29 @@ WarpPath* eeg_DTW_get_paths_by_markers( const EEGdata *s1, const EEGdata *s2, in
 
   N = s1->nmarkers;
   n = s1->n;
+  /* add trivial markers for convenience in the loop */
   mark1 = (unsigned long*) malloc( (N+2)*sizeof( unsigned long ) );
   mark2 = (unsigned long*) malloc( (N+2)*sizeof( unsigned long ) );
   mark1[0]   = 0;   mark2[0]   = 0;
   mark1[N+1] = n-1; mark2[N+1] = n-1;
-  memcpy( mark1, s1->markers, N*sizeof(unsigned long) );
-  memcpy( mark2, s2->markers, N*sizeof(unsigned long) );
+  memcpy( mark1+1, s1->markers, N*sizeof(unsigned long) );
+  memcpy( mark2+1, s2->markers, N*sizeof(unsigned long) );
   dist = matrix_init( n, n );
 
+  for( i=0; i<N+2; i++){
+	 //	 dprintf( "s1->markers[%i] = %i \t s2->markers[%i] = %i\n", i, s1->markers[i], i, s2->markers[i]);
+	 dprintf("nm1[%i] = %i | nm2[%i] = %i\n", i, mark1[i], i, mark2[i]);
+  }
   N += 2;
   for( i=1; i<N; i++ ){
 	 J = mark1[i] - mark1[i-1];
 	 K = mark2[i] - mark2[i-1];
-
-	 Pptr = &(P[i]);
+	 dprintf("i=%i: mark1[%i]=%i, mark1[%i]=%i,  J,K = (%i,%i)\n", i, i, mark1[i], i-1, mark1[i-1], J, K);
+	 Pptr = P+i;
 	 /* prepare warppath */
 	 if( P==NULL ){
-		Pptr = init_warppath( J, K );
+		warnprintf("Warning: memory allocated within function\n");
+		Pptr = init_warppath( NULL, J, K );
 	 } else {
 		reset_warppath( Pptr, J, K );
 	 }
@@ -752,7 +762,7 @@ WarpPath* eeg_DTW_get_paths_by_markers( const EEGdata *s1, const EEGdata *s2, in
   free(mark1); free(mark2);
   matrix_free(dist, n);
 
-  return Pptr;
+  return P;
 }
 
 EEGdata* eeg_ADTW_from_path(const EEGdata *s1, const EEGdata *s2, EEGdata *target, int channel, const WarpPath *P){
@@ -768,14 +778,171 @@ EEGdata* eeg_ADTW_from_path(const EEGdata *s1, const EEGdata *s2, EEGdata *targe
 }
 
 
-void eeg_ADTW_markers_channel(const EEGdata *s1, const EEGdata *s2, EEGdata *target, int channel){
-  WarpPath *P;
-  unsigned long **markers;
-  int i;
+/** compute the marker-based ADTW for one channel in s1,s2 and put it into target.
+	 \param s1,s2 sources
+	 \param target output
+	 \param theta restriction parameter (see \ref timewarping)
+ */
+void eeg_ADTW_markers_channel(const EEGdata *s1, const EEGdata *s2, EEGdata *target, int channel, double theta){
+  int nparts, part, i, N, J, K, n;
+  int pos_1, pos_2, pos_t;
+  WarpPath *Pptr;
+  unsigned long *mark1, *mark2, *markt; /* convenience, to include 0 and n */
+
+  if( eegdata_cmp_settings( s1, s2 ) ){
+	 errprintf("cannot ADTW the to EEGdata structs, because they are too different\n");
+	 return;
+  }
+
+  target->nmarkers = s1->nmarkers;
+  n = s1->n;
+  N = target->nmarkers;
+  nparts = target->nmarkers+1;
+
+  Pptr = (WarpPath*) malloc( nparts*sizeof( WarpPath ) );
+  for( part=0; part<nparts; part++ ){
+	 init_warppath( Pptr+part, n, n );
+  }
+
+  /* add trivial markers for convenience in the loop */
+  mark1 = (unsigned long*) malloc( (N+2)*sizeof( unsigned long ) );
+  mark2 = (unsigned long*) malloc( (N+2)*sizeof( unsigned long ) );
+  markt = (unsigned long*) malloc( (N+2)*sizeof( unsigned long ) );
+  mark1[0]   = 0;   mark2[0]   = 0;   markt[0]   = 0;
+  mark1[N+1] = n-1; mark2[N+1] = n-1; markt[N+1] = n-1;
+  memcpy( mark1+1, s1->markers, N*sizeof(unsigned long) );
+  memcpy( mark2+1, s2->markers, N*sizeof(unsigned long) );
+
+  /* set new markers as (J+K)/2+1 */
+  target->n = n;
+  for( i=1; i<N+1; i++ ){
+		target->markers[i-1] = ( ( (mark1[i]-mark1[i-1])+
+											(mark2[i]-mark2[i-1]) ) )/2 + 1;
+		markt[i] = target->markers[i-1];
+  }
+
+  /* DEBUG */
+  print_eegdata( stdout, target );
+
+  	/* we get all paths simultaneously */
+  Pptr = eeg_DTW_get_paths_by_markers( s1, s2, channel, theta, Pptr );
+
+  for( part=0; part<nparts-1; part++ ){
+	 J = mark1[part+1];
+	 K = mark2[part+1];
+	 pos_1 = mark1[part];
+	 pos_2 = mark2[part];
+	 pos_t = markt[part];
+	 ADTW_from_path( &(s1->d[channel][pos_1]), J, /* source 1 */
+						  &(s2->d[channel][pos_2]), K, /* source 2 */
+						  Pptr+part,              /* which path */
+						  &(target->d[channel][pos_t]));  /* write it to */
+  }
   
-  markers = (unsigned long**) malloc( 2*sizeof(unsigned long*) );
-  for( i=0; i<2; i++ ) 
-	 markers[i] = (unsigned long*) malloc( s1->nmarkers*sizeof(unsigned long) );
-  P = DTW_warppath_with_markers( s1->d[channel], s1->n, s2->d[channel], s2->n, 1, 1, markers, s1->nmarkers );
-  ADTW_from_path( s1->d[channel], s1->n, s2->d[channel], s2->n, P, target->d[channel]);
+  free( mark1 ); 
+  free( mark2 );
+  free( markt );
+  for( i=0; i<nparts; i++ ){
+	 free_warppath( &(Pptr[i]) );
+  }
+}
+
+/** compute the marker-based ADTW for all channels in s1,s2 and put it into target.
+	 \param s1,s2 sources
+	 \param target output
+	 \param theta restriction parameter (see \ref timewarping)
+ */
+void      eeg_ADTW_markers(const EEGdata *s1, const EEGdata *s2, EEGdata *target, double theta ){
+  int chan, nchan;
+
+  if( eegdata_cmp_settings( s1, s2 ) ){
+	 errprintf("cannot ADTW the to EEGdata structs, because they are too different\n");
+	 return;
+  }
+  nchan = s1->nbchan;
+
+  for( chan=0; chan<nchan; chan++ ){
+	 dprintf("ADTW_markers for Channel: %i\n", chan);
+	 eeg_ADTW_markers_channel( s1, s2, target, chan, theta );
+  }
+}
+
+/** compute the  ADTW for one channel in s1,s2 and put it into target. Ignore time-markers.
+	 \param s1,s2 sources
+	 \param target output
+	 \param channel index to use
+	 \param theta restriction parameter (see \ref timewarping)
+ */
+void eeg_ADTW_channel(const EEGdata *s1, const EEGdata *s2, EEGdata *target, int channel, double theta ){
+  double **dist;
+  WarpPath *P;
+
+  dist = matrix_init( s1->n, s2->n );
+
+  dist = DTW_build_restricted_cumdistmatrix( s1->d[channel], s1->n,  s2->d[channel], s2->n, theta, dist );
+  P = DTW_path_from_cumdistmatrix( dist, s1->n, s2->n, NULL );
+  target->d[channel] = ADTW_from_path( s1->d[channel], s1->n, s2->d[channel], s2->n, P, target->d[channel] );
+  
+  matrix_free( dist, s1->n );
+  free_warppath( P );
+}
+
+/** compute the ADTW for all channels in s1,s2 and put it into target. Ignore time-markers.
+	 \param s1,s2 sources
+	 \param target output
+	 \param theta restriction parameter (see \ref timewarping)
+ */
+void eeg_ADTW(const EEGdata *s1, const EEGdata *s2, EEGdata *target, int channel, double theta ){
+  int chan, nchan;
+
+  if( eegdata_cmp_settings( s1, s2 ) ){
+	 errprintf("cannot ADTW the to EEGdata structs, because they are too different\n");
+	 return;
+  }
+  nchan = s1->nbchan;
+
+  for( chan=0; chan<nchan; chan++ ){
+	 dprintf("eeg_ADTW_channel for Channel: %i\n", chan);
+	 eeg_ADTW_channel( s1, s2, target, chan, theta );
+  }
+}
+
+
+
+EEGdata* eegtrials_simple_average( EEGdata_trials *eeg, EEGdata *avg){
+  int c, nbchan, n;
+  
+  nbchan = eeg->data[0]->nbchan;
+  n = eeg->data[0]->n;
+  if( avg==NULL ){
+	 avg = init_eegdata( nbchan, n, 0 );
+  }
+  
+  for( c=0; c<nbchan; c++ ){
+	 eegtrials_simple_average_channel( eeg, c, avg->d[c] );
+  }
+
+  return avg;
+}
+
+double* eegtrials_simple_average_channel( EEGdata_trials *eeg, int channel, double *avg ){
+  int t, i,n, N;
+
+  n =  eeg->data[0]->n;
+  N = eeg->ntrials;
+
+  if( avg==NULL ){
+	 avg = (double*)malloc( n * sizeof(double) );
+  }
+
+  memset( avg, 0, n*sizeof(double) );
+
+  for( i=0; i<n; i++ ){
+	 for( t=0; t<N; t++ ){
+		avg[i] += eeg->data[t]->d[channel][i];
+	 }
+	 avg[i] = avg[i]/(double)N;
+  }
+
+  return avg;
 }

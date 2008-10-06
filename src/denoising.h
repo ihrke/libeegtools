@@ -72,25 +72,29 @@ double* moving_average(double *s, int n, int win);
  * \ingroup wavelet
  *\{
  */
-double eta_s(double d, double lambda);
-double eta_h(double d, double lambda);
-/** \} */
+  double eta_s(double d, double lambda);
+  double eta_h(double d, double lambda);
+  /** \} */
 
-/** \addtogroup select_thresh
- *\ingroup wavelet
- *\{
- */
-int generic_denoising(double *data, int n, int L, 
-		      double(*threshfct)(const double*, int), 
-		      double(*etafct)(double,double));
-int extend_and_denoise(double *data, int n, int L, 
-		       double(*threshfct)(const double*, int), 
-		       double(*etafct)(double,double), 
-		       double*(*sigextfct)(double*, int, int));
-double translation_invariant_thresholding(const double *data, int n);
-double conventional_thresholding(const double *data, int n);
-double sureshrink(const double *data, int n);
-double heuristic_sure(const double *data, int n);
+  /** \addtogroup select_thresh
+	*\ingroup wavelet
+	*\{
+	*/
+  int generic_denoising(double *data, int n, int L, 
+								double(*threshfct)(const double*, int), 
+								double(*etafct)(double,double));
+  int extend_and_denoise(double *data, int n, int L, 
+								 double(*threshfct)(const double*, int), 
+								 double(*etafct)(double,double), 
+								 double*(*sigextfct)(double*, int, int));
+  void eeg_wavelet_denoise(EEGdata *eeg, int L, 
+									double(*threshfct)(const double*, int), 
+									double(*etafct)(double,double), 
+									double*(*sigextfct)(double*, int, int));
+  double translation_invariant_thresholding(const double *data, int n);
+  double conventional_thresholding(const double *data, int n);
+  double sureshrink(const double *data, int n);
+  double heuristic_sure(const double *data, int n);
 /** \} */
 
 

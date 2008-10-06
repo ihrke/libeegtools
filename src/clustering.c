@@ -87,6 +87,7 @@ double clusterdist_euclidean_pointwise(EEGdata  *s1, EEGdata *s2, int channel){
   for(i=0; i<s1->n; i++){
 	 dist += SQR( s1->d[channel][i]-s2->d[channel][i] );
   }
+  dist = dist/(double)s1->n;
   return dist;
 }
 
@@ -401,3 +402,289 @@ double   gap_get_within_scatter(const double **d, int N, const Clusters *c){
   return W;
 }
 double*  gap_get_within_scatter_distribution(const double **d, int N, int k, const Clusters **c, double *Wk);
+
+
+/** Agglomerative clustering.
+	 \param d distance matrix for the N objects
+	 \param N number of objects
+	 \param dist function giving the between sub-cluster distance; 
+	             defined are dgram_dist_singlelinkage(), dgram_dist_completelinkage(),
+					 dgram_dist_averagelinkage()
+ */
+Dendrogram* agglomerative_clustering(const double **d, int N, 
+												  double(*dist)(double**,int,const Dendrogram*,const Dendrogram*)){
+  Dendrogram **nodes, *tmp; /* at the lowest level, we have N nodes */
+  double min_d, cur_d;
+  int min_i, min_j;
+  int num_nodes;
+  int i, j;
+ 
+  nodes = (Dendrogram**) malloc( N*sizeof( Dendrogram* ) );
+
+  for( i=0; i<N; i++ ){ /* initialize terminal nodes */
+	 nodes[i] = dgram_init( i, NULL, NULL );
+  }
+  num_nodes = N;
+
+  while( num_nodes > 1 ){
+	 dprintf("nmodes = %i\n", num_nodes );
+	 min_d = DBL_MAX;
+	 for( i=0; i<num_nodes-1; i++ ){
+		for( j=i+1; j<num_nodes; j++ ){ 
+		  cur_d = dist( d, N, nodes[i], nodes[j] );
+		  if( cur_d<=min_d ){
+			 min_d=cur_d;
+			 min_i=i;
+			 min_j=j;
+		  }
+		}
+	 }
+	 
+	 /* we know min_i and min_j, now */
+	 tmp = dgram_init( -1, nodes[min_i], nodes[min_j] ); /* link the two nodes */
+	 nodes[min_i] = tmp; /* remove min_i */
+	 tmp = nodes[num_nodes-1]; /* swap with last entry in current list */
+	 nodes[min_j] = tmp;
+	 num_nodes--;
+  }
+  tmp = nodes[0]; /* this is the root-node now */
+  free( nodes );
+  return tmp;
+}
+
+/** Allocate memory for a single Dendrogram Node and set its value to val.
+	 left and right can be set to NULL.
+*/
+Dendrogram* dgram_init(int val, Dendrogram *left, Dendrogram *right ){
+  Dendrogram *c;
+  c = (Dendrogram*) malloc( sizeof(Dendrogram) );
+  c->val = val;
+  c->height=0.0;
+  c->left = left;
+  c->right= right;
+  return c;
+}
+
+
+/** frees the complete Dendrogram referred to by t (all children)
+ */
+void dgram_free(Dendrogram *t){
+  if( t->right==NULL && t->left==NULL ){ /* base case */
+	 free( t );
+	 return;
+  } else { /* recurse into sub-trees */
+	 if( t->right!=NULL ){
+		dgram_free( t->right );
+	 } 
+	 if( t->left!=NULL ){
+		dgram_free( t->left );
+	 }
+  }
+}
+/** \cond PRIVATE */
+void _dgram_preorder_recursive( Dendrogram *t, int *vals, int *n ){
+  if( t->left==NULL && t->right==NULL ){
+	 if( t->val<0 ){
+		errprintf("t->val<0 (%i) even though it's a terminal node\n");
+		return;
+	 }
+	 vals[(*n)++] = t->val;
+	 return;
+  } 
+  if( t->left!=NULL ){
+	 //	 dprintf("walking  left subtree\n");
+	 _dgram_preorder_recursive( t->left, vals, n );
+  }
+  if( t->right!=NULL ){
+	 _dgram_preorder_recursive( t->right, vals, n );
+  }
+  return;
+}
+/** \endcond */
+
+/** preorder traversal of t. Store all non-negative elements in val and return 
+	 the number of these elements in n[0];
+	 \param t the tree
+	 \param vals output
+	 \param n output (number of elements in vals)
+*/
+void         dgram_preorder( Dendrogram *t, int *vals, int *n ){
+  int m,i;
+
+  m = 0;
+  //  dprintf(" starting recursive walk, m=%i\n", m);
+  //  dgram_print_node(t);
+  _dgram_preorder_recursive( t, vals, &m );
+
+  /* fprintf(stderr, "vals=["); */
+  /* for( i=0; i<m; i++ ){ */
+  /* 	 fprintf(stderr, "%i ", vals[i]); */
+  /* } */
+  /* fprintf(stderr, "]\n"); */
+  //  dprintf(" done with recursive walk, m=%i\n", m);
+  *n = m;
+
+  return;
+}
+/** single linkage clustering:
+	 \f[
+	 d_{SL}(G, H) = \min_{i\in G, j\in H} d_{ij}
+	 \f]
+ */
+double dgram_dist_singlelinkage  (double **d, int N, const Dendrogram *c1, const Dendrogram *c2){
+  double dist;
+  int *el1, *el2;
+  int n1, n2;
+  int i, j;
+
+  dist = DBL_MAX;
+  
+  el1 = (int*) malloc( N*sizeof( int ) ); /* N suffices */
+  el2 = (int*) malloc( N*sizeof( int ) ); 
+
+  dgram_preorder( c1, el1, &n1 );
+  dgram_preorder( c2, el2, &n2 );
+
+  for( i=0; i<n1; i++ ){
+	 for( j=0; j<n2; j++ ){
+		if( el1[i]<0 || el1[i]>=N || el2[j]<0 || el2[j]>=N ){
+		  errprintf("something's wrong, el[i] not in range 0-%i\n", N);
+		  return -1;
+		}
+		if( d[el1[i]][el2[j]]<dist ){
+		  dist = d[el1[i]][el2[j]];
+		}
+	 }
+  }
+  
+  //dprintf("SL-distance = %f\n", dist);
+
+  free(el1);
+  free(el2);
+}
+
+/** complete linkage clustering:
+	 \f[
+	 d_{CL}(G, H) = \max_{i\in G, j\in H} d_{ij}
+	 \f]
+ */
+double dgram_dist_completelinkage(double **d, int N, const Dendrogram *c1, const Dendrogram *c2){
+  double dist;
+  int *el1, *el2;
+  int n1, n2;
+  int i, j;
+
+  dist = DBL_MIN;
+  
+  el1 = (int*) malloc( N*sizeof( int ) ); /* N suffices */
+  el2 = (int*) malloc( N*sizeof( int ) ); 
+
+  dgram_preorder( c1, el1, &n1 );
+  dgram_preorder( c2, el2, &n2 );
+
+  for( i=0; i<n1; i++ ){
+	 for( j=0; j<n2; j++ ){
+		if( el1[i]<0 || el1[i]>=N || el2[j]<0 || el2[j]>=N ){
+		  errprintf("something's wrong, el[i] not in range 0-%i\n", N);
+		  return -1;
+		}
+		if( d[el1[i]][el2[j]]>dist ){
+		  dist = d[el1[i]][el2[j]];
+		}
+	 }
+  }
+  
+  //dprintf("SL-distance = %f\n", dist);
+
+  free(el1);
+  free(el2);
+}
+
+
+/** average linkage clustering:
+	 \f[
+	 d_{AL}(G, H) = \frac{1}{N_G N_H} \sum_{i\in G} \sum_{j\in H} d_{ij}
+	 \f]
+*/
+double dgram_dist_averagelinkage (double **d, int N, const Dendrogram *c1, const Dendrogram *c2){
+  errprintf(" NOT IMPLEMENTED YET!!\n");
+  return -1;
+}
+
+/** \cond PRIVATE */
+#define END_NODE 0
+#define INTERMEDIATE_NODE 1
+#define NULL_NODE 2
+int _dgram_get_deepest_recursive( Dendrogram *c, Dendrogram **candidate, int *depth, int curdepth ){
+  int status_left=NULL_NODE;
+  int status_right=NULL_NODE;
+
+  if( c->left==NULL && c->right==NULL ){
+	 return END_NODE;
+  }
+
+  if( c->left!=NULL ){
+	 status_left  = _dgram_get_deepest_recursive( c->left,  candidate, depth, curdepth+1 );  
+  }
+  if( c->right!=NULL ){
+	 status_right = _dgram_get_deepest_recursive( c->right, candidate, depth, curdepth+1 );  
+  }
+
+  if( status_left==END_NODE && status_right==END_NODE ){
+
+	 if( curdepth>=*depth ){
+		*candidate = c;
+		*depth = curdepth;
+	 }
+	 dprintf("END_NODE visited, cd=%i, d=%i, c=%p, candidate=%p\n", curdepth, *depth, c, candidate);
+  }
+
+  return INTERMEDIATE_NODE;
+}
+/** \endcond */
+
+/** \return a pointer to the deepest non-leaf node in the Dgram c 
+	 (left and right tree are non-NULL)
+ */
+Dendrogram* dgram_get_deepest( Dendrogram *c ){
+  Dendrogram **d, *tmp;
+  int depth;
+  d = (Dendrogram **) malloc( sizeof( Dendrogram* ) );
+
+  depth = 0;
+  _dgram_get_deepest_recursive( c, d, &depth, 0 );
+  dprintf("deepest=%p, depth=%i\n", *d, depth);
+  tmp = *d;
+  free(d);
+  return tmp;
+}
+
+
+/** \cond PRIVATE */
+void _dgram_print_recursive( Dendrogram *t, int level ){
+  int i;
+
+  fprintf( stdout, "'%p(%4i)' - ", t, t->val );
+  if( t->left ){ /* there is a left tree, print it */
+	 _dgram_print_recursive( t->left, level+1 );
+  }  
+  /* we need to add spaces */
+  fprintf( stdout, "\n" );
+  for( i=0; i<level; i++)
+	 fprintf( stdout, "           " );
+
+  if( t->right ){
+	 _dgram_print_recursive( t->right, level+1 );
+  }
+}
+/** \endcond */
+
+void         dgram_print( Dendrogram *t ){
+  _dgram_print_recursive( t, 0 );
+  fprintf( stdout, "\n");
+}
+
+
+void dgram_print_node( Dendrogram *t ){
+  fprintf( stdout, "t=%p, val=%i, height=%f, left=%p, right=%p\n", t, t->val, t->height, t->left, t->right );
+}

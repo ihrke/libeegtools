@@ -55,7 +55,7 @@
 
 
 /** debugging macros */
-//#define DEBUG
+/*#define DEBUG*/
 #ifdef DEBUG
 /*#define dprintf(...) fprintf(stderr, ## __VA_ARGS__)*/
 #define dprintf(...) do{																\
@@ -78,6 +78,12 @@
 
 #define errprintf(...) do{ fprintf(stderr, ESCAPE_FGRED_STR ESCAPE_BOLD_STR\
 											  ESCAPE_BGYELLOW_STR "ERROR: %s (%i), %s(): ", \
+											  __FILE__, __LINE__, __FUNCTION__);	\
+	 fprintf(stderr, ## __VA_ARGS__);												\
+	 fprintf(stderr, ESCAPE_RESET_STR); } while(0)
+
+#define warnprintf(...) do{ fprintf(stderr, ESCAPE_FGWHITE_STR ESCAPE_BOLD_STR\
+											  ESCAPE_BGBLUE_STR "WARNING: %s (%i), %s(): ", \
 											  __FILE__, __LINE__, __FUNCTION__);	\
 	 fprintf(stderr, ## __VA_ARGS__);												\
 	 fprintf(stderr, ESCAPE_RESET_STR); } while(0)
@@ -111,15 +117,15 @@ extern "C" {
   void    qsort_int_index( int *idx_idx, const int *idx, int n );
   int     compare_ints (const int *a, const int *b);
 
-  void    copy_modeldata(const ModelData *m1, ModelData *m2);
-
-
   /* constructors */
-  EEGdata* init_eegdata(int nbchan, int nsamples, int nmarkers);
+  EEGdata*        init_eegdata(int nbchan, int nsamples, int nmarkers);
   EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, int nbchan, int nbsamples);
-  WarpPath* init_warppath(int J, int K);
+  WarpPath*       init_warppath(WarpPath *path, int J, int K);
 
-  void      reset_warppath(WarpPath *P, int J, int K);
+  /* convenience functions for structs */
+  void      reset_warppath(WarpPath *P, int J, int K);  
+  void      copy_modeldata(const ModelData *m1, ModelData *m2);
+  int       eegdata_cmp_settings( EEGdata *s1, EEGdata *s2 );
 
   /* destructors */
   void    free_modeldata(ModelData *m);
@@ -132,6 +138,7 @@ extern "C" {
   void    print_denoisingparameters(FILE *out, const DenoisingParameters *p);
   void    print_timewarpparameters(FILE *out, const TimewarpParameters *p);
   void    print_eegdata_trials(FILE *out, const EEGdata_trials *eeg);
+  void    print_eegdata(FILE *out, const EEGdata *eeg);
 
   double** copy_double_ptrptr(const double **s, int N, int n);
 
@@ -142,6 +149,8 @@ extern "C" {
 /**\addtogroup helperplot
  *\ingroup helper
  *\{*/
+
+
 #ifdef HAVE_MATLAB
 Engine*  ml_init(void);
 int  ml_close(Engine *m);

@@ -97,9 +97,10 @@ void free_modeldata(ModelData *m){
 	free(m);
 }
 
-WarpPath* init_warppath(int J, int K){
-  WarpPath *path;
-  path = (WarpPath*)malloc(sizeof(WarpPath));
+WarpPath* init_warppath(WarpPath *path, int J, int K){
+  if(path==NULL){
+	 path = (WarpPath*)malloc(sizeof(WarpPath));
+  }
   path->J=J;
   path->K=K;
   path->upath = (int*)calloc(J+K, sizeof(int));
@@ -142,6 +143,12 @@ EEGdata_trials* init_eegdata_trials(int nbtrials, int nmarkers_per_trial, int nb
   
   return eeg;
 }
+void    print_eegdata(FILE *out, const EEGdata *eeg){
+  fprintf(out, "EEGdata:\n"	);
+	fprintf(out, "      nbchan  =%i\n", eeg->nbchan);
+	fprintf(out, "      n       =%i\n", eeg->n);
+	fprintf(out, "      nmarkers=%i\n", eeg->nmarkers);
+}
 
 void print_eegdata_trials(FILE *out, const EEGdata_trials *eeg){
   	fprintf(out, "EEGdata_trials:\n"	);
@@ -166,7 +173,7 @@ void free_eegdata(EEGdata *eeg){
 	 free(eeg->d[i]);
   }
   free(eeg->d);
-  free(eeg);
+  //  free(eeg);
 }
 
 int v_printf(int v, char *format, ...){
@@ -292,10 +299,22 @@ void   errormsg(int err_no, int fatal){
 }
 
 void      reset_warppath(WarpPath *P, int J, int K){
+  memset( P->upath, 0, P->J*sizeof(int) );
+  memset( P->spath, 0, P->K*sizeof(int) );
   P->J = J; P->K = K;
   memset( P->upath, 0, J*sizeof(int) );
   memset( P->spath, 0, K*sizeof(int) );
 }
+
+
+int       eegdata_cmp_settings( EEGdata *s1, EEGdata *s2 ){
+  if( s1->nbchan != s2->nbchan || s1->n != s2->n || s1->nmarkers != s2->nmarkers ){
+	 return 1;
+  } else {
+	 return 0;
+  }
+}
+
 
 /* ----------------------------------------------------------------------
 	MATLAB

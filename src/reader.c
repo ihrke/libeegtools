@@ -51,7 +51,8 @@ EEGdata* read_continuous_eeg_from_binfile(const char *file, int C, int n){
   return eeg;
 }
 
-/**  Reads EEG-data from binary file. The format is as follows (each segment
+/**  Reads EEG-data from binary file. See also \ref rawfileformat
+	  The format is as follows (each segment
 	  in the table is a 64 bits double):
 	  \code
 	  1) number of channels
@@ -96,6 +97,7 @@ EEGdata_trials* read_eegtrials_from_raw(const char *file){
   tmp = (double*) malloc( nmarkers * sizeof(double) );
   for( i=0; i<ntrials; i++ ){
 	 ffread(tmp, sizeof(double), nmarkers, f);
+	 dprintf("tmp[0]=%f, tmp[1]=%f\n", tmp[0], tmp[1]);
 	 for( j=0; j<nmarkers; j++){
 		eeg->markers[i][j] = (unsigned long)tmp[j];
 	 } 

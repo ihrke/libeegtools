@@ -79,7 +79,8 @@ extern "C" {
   double*   ADTW_from_path(const double *u, int J, const double *s, int K, 
 									const WarpPath *P, double *avg);
   void      eeg_ADTW_markers_channel(const EEGdata *s1, const EEGdata *s2, 
-												 EEGdata *target, int channel);
+												 EEGdata *target, int channel, double theta);
+  void      eeg_ADTW_markers(const EEGdata *s1, const EEGdata *s2, EEGdata *target, double theta);
   EEGdata*  eeg_ADTW_from_path(const EEGdata *s1, const EEGdata *s2, 
 										 EEGdata *target, int channel, const WarpPath *P);
   double*   PADTW(const double **s, int N, int n, int zero, int *sR, double *wa);
@@ -90,9 +91,13 @@ extern "C" {
  *\ingroup averaging
  *\{
  */
-double* simple_average_2v(const double *s1, const double *s2, int n, double *avg);
-double* simple_average_nv(const double **s, int N, int n, double *avg);
-double* alternate_average_nv(const double **s, int N, int n, double *avg);
+  double* simple_average_2v(const double *s1, const double *s2, int n, double *avg);
+  double* simple_average_nv(const double **s, int N, int n, double *avg);
+  double* alternate_average_nv(const double **s, int N, int n, double *avg);
+
+  EEGdata* eegtrials_simple_average( EEGdata_trials *eeg, EEGdata *avg);
+  double*  eegtrials_simple_average_channel( EEGdata_trials *eeg, int channel, double *avg );
+
 /** \} */
 #ifdef __cplusplus
 }

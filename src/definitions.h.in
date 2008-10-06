@@ -50,6 +50,11 @@ $ make -f Makefile.matlab
 \bf History:
 \code
  * $Log$
+ * Revision 1.1  2008/10/06 23:19:54  mihrke
+ * a lot of stuff...
+ * Seems we have 0.2b now :-)
+ * New versions of some functions are in t_padtw.c (with a functioname2()-suffix).
+ *
  * Revision 1.7  2008/07/31 20:07:53  mihrke
  * evidence for different warping :-)
  *
@@ -67,6 +72,10 @@ $ make -f Makefile.matlab
 
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
+
+/* replaced by autoconf */
+#define @DEF_DEBUG@
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -90,12 +99,6 @@ extern "C" {
 	 double *times; /** times array; data->n long */
   } EEGdata_trials;
 
-  /**\ingroup clustering */
-  typedef struct{
-	 int **clust; /** indices for the trials in the cluster (Kxn)*/
-	 int K;  /** number of clusters */
-	 int *n; /** number of trials in each of the K clusters */
-  } Clusters;
 
 
   /** \ingroup denoising */
@@ -116,7 +119,7 @@ extern "C" {
 	 int *spath;/** contains x-coordinate in the path through the JxK matrix */
 	 int J; /** length(u) (not length(upath)) */
 	 int K; /** length(s) (not length(spath)) */
-	 //	 int real_length; /** real length of the path (maximal K+J) */
+	 /*	 int real_length;*/ /** real length of the path (maximal K+J) */
   } WarpPath;
 	
 
