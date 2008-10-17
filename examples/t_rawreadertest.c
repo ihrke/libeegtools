@@ -1,4 +1,4 @@
-/** \file t_rawreader.c
+/** \example t_rawreader.c
  *
  * \brief Testing reader
  *

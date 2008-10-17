@@ -1,0 +1,49 @@
+/** \page importexport Howto import and export data
+
+\section Using libeegtools with EEGLab/Matlab
+
+ - What is \link http://www.mathworks.com/ MatLab\endlink ?
+ - What is \link http://sccn.ucsd.edu/eeglab/ EEGlab\endlink ?
+
+Suppose you imported your data from your recording software into
+EEGlab. You want to use libEEGTools functionality that is not well
+implemented in Matlab/EEGlab wrappers.
+
+Unfortunately, there is no reader for Matlab .mat files yet (the
+format is fairly complicated). It is therefore necessary to
+import/export data between libeegtools and matlab.
+
+You have 2 options: 
+  -# you implement a custom .mex-file (basically a c-file using the Matlab-API) that connects
+  EEGlab to libeegtools (see \ref mexfiles). Have a look at the ml_*.c files in
+  /libeegtools/matlab. These are examples for such wrappers.
+  -# you export the data you need to libeegtools and import it back to eeglab again (discussed here)
+
+\subsection letlab  EEGlab -> libeegtools
+
+libeegtools implements a reader/writer for a simple \link
+rawfileformat RAW-format \endlink that contains ERP-data for a number of
+trials and electrodes along with time-marker information. 
+To convert an EEG-struct to RAW, do the following:
+
+   -# First you need an epoched EEG-struct that contains the epochs for
+\em all \endem experimental conditions (run "Extract Epochs" with all
+stimulus-onset markers).
+   -# From this struct, extract the indices you want with \ref get_epoch_indices.
+   -# run \ref eegset_to_raw to write it to a RAW-file.
+
+\par Example
+
+To write trials from condition 1 and 2 with 2 time-markers
+(e.g. stimulus and response) to a file.
+
+\code
+matlab> idx = get_epoch_indices( EEG, ['stimulus_onset_condition1' 'stimulus_onset_cond2'] );
+matlab> eegset_to_raw( EEG, 2, idx, 'condition1and2.raw');
+\endcode
+\endpar
+
+\subsection lablet libeegtools -> EEGLab
+\todo write documentation for libeegtools -> EEGLab
+
+*/

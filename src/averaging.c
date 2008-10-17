@@ -356,7 +356,8 @@ WarpPath* DTW_path_from_cumdistmatrix(const double **d, int J, int K, WarpPath *
   return path;
 }
 
-/** insert markers into the distance matrix produced by \ref DTW_build_distmatrix()
+/** NOT WORKING
+	 insert markers into the distance matrix produced by \ref DTW_build_distmatrix()
 	 \param d,J,K - JxK matrix of pointwise distances -- is overwritten
 	 \param markers - (2xnmarkers) array of indices that are to be set to one;
                      markers[1][i] and markers[2][i] are corresponding points in the
@@ -372,7 +373,8 @@ void DTW_markers_to_distmatrix(double **d, int J, int K, const unsigned long **m
   }
 
 }
-/** get warppath applying marker-based DTW
+/** NOT WORKING
+	 get warppath applying marker-based DTW
 	 \param u,J 1st signal
 	 \param s,K 2nd signal
 	 \param theta1/theta2 - weights for metric
@@ -397,7 +399,8 @@ WarpPath* DTW_warppath_with_markers(const double *u, int J, const double *s, int
 
   return P;
 }
-/** get warppath applying marker-based DTW
+/** NOT WORKING
+	 get warppath applying marker-based DTW
 	 \param u,J 1st signal
 	 \param s,K 2nd signal
 	 \param theta1/theta2 - weights for metric
@@ -595,7 +598,9 @@ double* ADTW_signal(const double *s1, int sR1,
 }
 
 
-/** Warpaverage N signals (PADTW). Use method described in Ihrke Bachelor.
+/** NOT WORKING -- see t_padtw.c 
+
+	 Warpaverage N signals (PADTW). Use method described in Ihrke Bachelor.
  * \param s,N,n - N segments of EEG-data, each n sampling points
  * \param zero  - the zero marker (stimulus onset) in sampling units
  * \param sR    - N reaction times in sampling units for each trial

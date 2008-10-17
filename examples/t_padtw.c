@@ -1,4 +1,4 @@
-/** \file t_padtw.c
+/** \example t_padtw.c
  *
  * \brief Computing the PADTW of a raw-file.
  * 
@@ -36,9 +36,11 @@ double* ADTW_from_path2(const double *u, int J, const double *s, int K, const Wa
 
 /* ------------- Argument parsing ------------------------------ */
 error_t parse_opt (int key, char *arg, struct argp_state *state);
+
 static struct argp_option options[] = {
   {"output",   'o', "FILE", 0,
    "Output file (default: no output)" }, 
+  {"distmatrix", 'm', "FILE", 0, "file containing distance matrix"},
   {"theta",   't', "double [0,1]", 0,
    "restriction parameter (default=1)" },
 #ifdef HAVE_LIBPLOTTER
@@ -51,10 +53,11 @@ static struct argp_option options[] = {
 /* available cmd-line args */
 struct cmdargs {
   char *input;
+  char *distfile; /** filename for distmatrix */
   double theta;    /** restriction parameter */
   char  *output;   /** file to print the output to */
 };
-
+void args_free( struct cmdargs );
 const  char * argp_program_version = "t_dtw 0.1";
 const  char * argp_program_bug_address = "<mihrke@uni-goettingen.de>";
 static char   doc[] = "Testing DTW with restriction parameter and multiple electrodes.";
@@ -69,6 +72,7 @@ struct cmdargs     args; /* the globally available cmd-line args */
    ---------------------------------------------------------------------------- */
 int main(int argc, char **argv){ 
   FILE *out;
+  char buffer[255];
   EEGdata_trials *eeg;
   EEGdata *new, *avg, *savg;
   Dendrogram *T, *Tsub;
@@ -91,11 +95,13 @@ int main(int argc, char **argv){
   /* Parse the arguments */
   args.theta=1.0;
   args.output=NULL;
+  args.distfile=NULL;
   argp_parse (&argp, argc, argv, 0, 0, &args);
   
   fprintf( stderr, "reading file          : %s\n", args.input );
   fprintf( stderr, "restriction parameter : %f\n", args.theta );
   fprintf( stderr, "output to             : %p\n", args.output);
+  fprintf( stderr, "distfile              : %p\n", args.distfile);
   fprintf( stderr, "Plotting enabled      : %i\n", plotit);
 
   /* get data */
@@ -112,26 +118,33 @@ int main(int argc, char **argv){
   /* build a huge distance matrix over the average of the channels
 	  for all trials; build only if no distance-file is provided
   */
-  d    = matrix_init( N, N );
-  cumd = matrix_init( N, N );
-  for( chan=0; chan<num_chan; chan++ ){
-	 for( i=0; i<N-1; i++ ){
-		for( j=i+1; j<N; j++ ){
-		  //oprintf("Channel=%i, clusterdist( %i, %i ) of %i trials\n", chan, i, j, N);
-		  d[i][j] = clusterdist_euclidean_pointwise( eeg->data[i], eeg->data[j], chan /*channel*/ );
-		  //d[i][j] = clusterdist_tw_complete( eeg->data[i], eeg->data[j], chan /*channel*/ );
-		  d[j][i] = d[i][j];
+  if( !args.distfile ){ /* compute directly */
+	 d    = matrix_init( N, N );
+	 cumd = matrix_init( N, N );
+	 for( chan=0; chan<num_chan; chan++ ){
+		for( i=0; i<N-1; i++ ){
+		  for( j=i+1; j<N; j++ ){
+			 //oprintf("Channel=%i, clusterdist( %i, %i ) of %i trials\n", chan, i, j, N);
+			 d[i][j] = clusterdist_euclidean_pointwise( eeg->data[i], eeg->data[j], chan /*channel*/ );
+			 //d[i][j] = clusterdist_tw_complete( eeg->data[i], eeg->data[j], chan /*channel*/ );
+			 d[j][i] = d[i][j];
+		  }
 		}
+		matrix_add_matrix( cumd,  (const double**)d, N, N );
 	 }
-	 matrix_add_matrix( cumd,  (const double**)d, N, N );
+	 
+	 matrix_divide_scalar( cumd, N, N, (double)num_chan );
+	 //matrix_print(cumd, N, N);
+	 strcpy( buffer, (const char*)args.output );
+	 strcat( buffer, "_dist.txt" );
+	 write_double_matrix_ascii_file( buffer, cumd, N, N );
+  } else { /* read from file */
+	 cumd = read_double_matrix_ascii( args.distfile, N, N, NULL );
   }
 
-  matrix_divide_scalar( cumd, N, N, (double)num_chan );
-  //matrix_print(cumd, N, N);
-  write_double_matrix_ascii_file( "dist.txt", cumd, N, N );
 
   /* now build hierarchical dendrogram */
-  T = agglomerative_clustering( (const double**)d, N, dgram_dist_completelinkage );
+  T = agglomerative_clustering( (const double**)cumd, N, dgram_dist_completelinkage );
   //dgram_print( T );
 
   /* for comparison, get the simple avg */
@@ -204,6 +217,7 @@ int main(int argc, char **argv){
   dgram_free( T );
   matrix_free( d, N );
   matrix_free( cumd, N );
+  args_free( args );
 
   return 0;
 }
@@ -229,6 +243,11 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
   case 't':
     dprintf(" theta=%s\n", arg);
     arguments->theta = atof(arg);
+    break;
+  case 'm':
+	 dprintf(" using distmatrix-file '%s'\n", arg);
+	 arguments->distfile = (char*)malloc((strlen(arg)+1)*sizeof(char));
+	 arguments->distfile = strcpy(arguments->distfile, arg);
     break;
 #ifdef HAVE_LIBPLOTTER
   case 'p':
@@ -256,6 +275,15 @@ error_t parse_opt (int key, char *arg, struct argp_state *state){
     return ARGP_ERR_UNKNOWN;
   }
   return 0;
+}
+
+void args_free(  struct cmdargs arg){
+  if(arg.output){
+	 free(arg.output);
+  }
+  if( arg.distfile ){
+	 free(arg.distfile);
+  }
 }
 
 /* ----------------------------------------------------------------------

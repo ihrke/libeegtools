@@ -1,4 +1,4 @@
-/** \file t_readeeglab.c
+/** \example t_readeeglab.c
  *
  * \brief Testing EEGlab-reader
  *

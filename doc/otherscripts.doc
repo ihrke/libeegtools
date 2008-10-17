@@ -1,0 +1,15 @@
+/** \page otherscripts Other Scripts
+Convenience Scripts to help with some tasks.
+
+- \subpage paramscan - scan parameters
+*/
+
+/** \page paramscan paramscan.py
+
+Scanning all combinations of a list of parameters. You need to enter a
+list of the parameters to scan in the script itself (see the
+example). Adjust the variables 'param' and 'results' to match your
+needs. The program should output label=result for each of the labels in results.
+
+\include paramscan.py
+*/

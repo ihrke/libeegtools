@@ -1,6 +1,5 @@
-/** \file t_clustering.c
- *
- * \brief Testing clustering
+/** \example t_clustering.c
+ * Testing clustering
  *
  * Compilation:
  *\code

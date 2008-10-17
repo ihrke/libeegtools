@@ -1,4 +1,4 @@
-/** \file t_testfilter.c
+/** \example t_testfilter.c
  *
  * \brief Testing filter functions
  *

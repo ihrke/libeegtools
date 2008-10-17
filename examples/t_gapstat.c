@@ -1,4 +1,4 @@
-/** \file t_gapstat.c
+/** \example t_gapstat.c
  *
  * \brief Testing gap statistic
  *

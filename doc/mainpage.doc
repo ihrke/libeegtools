@@ -1,0 +1,89 @@
+/** \mainpage 
+ *
+ * This is libEEGTools. Please explore the functionality via the 
+ * Modules page (link above). 
+ *
+ * The official Homepage is http://pinguin.uni-psych.gwdg.de/~ihrke/wiki/index.php/LibEEGTools 
+ *
+ * \section synopsis Synopsis:
+\par Library
+ * - denoising.h, denoising.c - core functionality
+ * - averaging.h, averaging.c - averaging function
+ * - clustering.h clustering.c - clustering functions
+ * - reader.c, reader.h - get data
+ * - writer.c writer.h  - write data
+ * - helper.h, helper.c contain helper math, print, plot functions etc.
+ * - mathadd.h, mathadd.c - mathematical helper
+
+\par Matlab-Support
+   - \ref mexfiles
+   - \ref matlabscripts
+
+\par Other
+   - \ref otherscripts
+
+\section howto How do I ...
+ - import and export data? -> \ref importexport
+
+\note
+See the examples (follow the link on top).
+
+ * \section notes Notes
+ * - Functions starting with eeg_*() take an EEGdata - struct as argument 
+ *   and the algorithm is carried out independantly for each channel within
+ *   the struct.
+ * - Functions that start with eegtrials_*() take an EEGdata_trials - struct
+ *   as main argument and the algorithm is carried out independantly on the
+ *   trial segments (usually the corresponding eeg_*() function is called for
+ *   each trial-segment)
+ * - Some demo programs are provided in ./progs of the distribution. 
+ * - CAUTION: some of the functions are not well tested (alpha). 
+ *
+ * \section Compilation
+ * - You need the GNU Scientific Library >=1.09, available from http://www.gnu.org/software/gsl/
+ * - then compilation and installation according to GNU autotools:
+\code
+$ tar xvfz libeegtools-ver.tar.gz
+$ cd libeegtools-ver.tar.gz
+$ ./configure
+$ make
+$ make install
+\endcode
+ * 
+ * - to install the matlab-files as well, do
+\code
+$ cd matlab
+$ make -f Makefile.matlab
+\endcode
+ * this will compile the Matlab-Mex-files. You can then use all MATLAB-functions in 
+ * this directory from the MATLAB-command line.
+ * - after this, you can install the eeglab-plugin by copying all files from ./matlab and 
+ *   ./eeglab_plugin to a directory in your eeglab-plugin path.
+ *
+ * 
+\par History:
+\code
+ * $Log$
+ * Revision 1.1  2008/10/17 13:11:32  mihrke
+ * a lot of documentation
+ *
+ * Revision 1.1  2008/10/06 23:19:54  mihrke
+ * a lot of stuff...
+ * Seems we have 0.2b now :-)
+ * New versions of some functions are in t_padtw.c (with a functioname2()-suffix).
+ *
+ * Revision 1.7  2008/07/31 20:07:53  mihrke
+ * evidence for different warping :-)
+ *
+ * Revision 1.5  2008/05/30 19:53:09  mihrke
+ * version 0.2a
+ *
+ * Revision 1.4  2008/05/29 12:40:37  mihrke
+ * version 0.2
+ *
+ * Revision 1.3  2008/03/14 15:44:27  mihrke
+ * distribution 0.15
+ *
+\endcode
+ */
+

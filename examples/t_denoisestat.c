@@ -1,6 +1,6 @@
-/** \file t_denoisestat.c
+/** \example t_denoisestat.c
  *
- * \brief Single Trial estimation of ERP's using wavelet
+ *  Single Trial estimation of ERP's using wavelet
  * denoising. Returns statistics of multiple runs.
  *
  *  - using GSL

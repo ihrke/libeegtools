@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------
 ### preludes
 # ----------------------------------------------------------------------
-AC_INIT([libeegtools], [0.2a], [mihrke@gwdg.de])
+AC_INIT([libeegtools], [0.2b], [mihrke@gwdg.de])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 #AC_DISABLE_SHARED
 

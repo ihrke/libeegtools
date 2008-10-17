@@ -1,4 +1,4 @@
-/** \file t_test.c
+/** \example t_test.c
  *
  * \brief Testing ground
  *

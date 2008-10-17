@@ -1,0 +1,43 @@
+/** \page matlabscripts MatLab-Scripts
+
+There are a couple of Matlab-scripts for convenience. Scripts not listed here are for testing only.
+
+Here is a list:
+
+ - \subpage artificial_data
+ - \subpage eegset_to_raw
+    - \subpage get_epoch_indices
+ - \subpage write_art_data_raw
+*/
+
+/** \page artificial_data
+This creates the artificial data I use for my simulations. Generated according to
+\f[ s_i(t) = \alpha_i u(\phi^{-1}(t)) + \epsilon(t)\f]
+where \f$u\f$ is the original signal, \f$\phi\f$ a monotonous function.
+\include artificial_data.m
+*/
+
+/** \page eegset_to_raw 
+
+Use this to convert EEGlab-datasets to \link
+rawfileformat RAW\endlink file-format. See \ref importexport. The file
+should be used in conjunction with \link get_epoch_indices get_epoch_indices.m\endlink.
+
+\include eegset_to_raw.m 
+*/
+
+/** \page get_epoch_indices
+
+This script searches for epochs in a EEG-struct (from eeglab) that
+matches one from eventtype. 
+
+\include get_epoch_indices.m
+*/
+
+/** \page write_art_data_raw
+
+Creates artificial data using \link artificial_data \endlink and
+writes it in the \link rawfileformat RAW\endlink format.
+
+\include write_art_data_raw.m 
+*/

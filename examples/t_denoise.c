@@ -1,6 +1,6 @@
-/** \file t_denoise.c
+/** \example t_denoise.c
  *
- * \brief Single Trial estimation of ERP's using wavelet denoising.
+ * Single Trial estimation of ERP's using wavelet denoising.
  *
  *  - using GSL
  *  - MATLAB wrapper: wrap_wavelet.m

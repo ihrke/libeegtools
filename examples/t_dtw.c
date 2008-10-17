@@ -1,4 +1,4 @@
-/** \file t_dtw.c
+/** \example t_dtw.c
  *
  * \brief Testing DTW with restriction parameter and multiple electrodes.
  * 
