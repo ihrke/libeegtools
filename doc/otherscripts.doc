@@ -2,6 +2,10 @@
 Convenience Scripts to help with some tasks.
 
 - \subpage paramscan - scan parameters
+- \subpage rawls - print content of RAW-file
+\if plotter 
+- \subpage rawplot - plot content of a RAW-file 
+\endif
 */
 
 /** \page paramscan paramscan.py
@@ -13,3 +17,39 @@ needs. The program should output label=result for each of the labels in results.
 
 \include paramscan.py
 */
+
+/** \page rawls rawls.py
+Print content of \link rawfileformat RAW\endlink-file.
+
+\include rawls.py
+*/
+
+/** \cond plotter */
+
+/** \page rawplot rawplot.c
+Plot content of \link rawfileformat RAW\endlink-file.
+
+There are a couple of cmd-line arguments available, try 
+\code
+$ rawplot --help
+Usage: rawplot [OPTION...] <input-file>
+Plotting Contents of RAW-file.
+
+  -c, --channel=vector       plot channels in vector 'idx, idx2,...', default
+                             'all'
+  -t, --trials=vector        plot trials in vector, default 'all'
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+  -V, --version              Print program version
+
+Mandatory or optional arguments to long options are also mandatory or optional
+for any corresponding short options.
+
+Report bugs to <mihrke@uni-goettingen.de>.
+\endcode
+
+This is the code:
+\include rawplot.c
+*/
+
+/**\endcond */

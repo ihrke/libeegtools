@@ -170,7 +170,7 @@ SEPARATE_MEMBER_PAGES  = NO
 # The TAB_SIZE tag can be used to set the number of spaces in a tab. 
 # Doxygen uses this value to replace tabs by spaces in code fragments.
 
-TAB_SIZE               = 8
+TAB_SIZE               = 4
 
 # This tag can be used to specify a number of aliases that acts 
 # as commands in the documentation. An alias has the form "name=value". 
@@ -365,7 +365,7 @@ GENERATE_DEPRECATEDLIST= YES
 # The ENABLED_SECTIONS tag can be used to enable conditional 
 # documentation sections, marked by \if sectionname ... \endif.
 
-ENABLED_SECTIONS       = 
+ENABLED_SECTIONS       = plotter
 
 # The MAX_INITIALIZER_LINES tag determines the maximum number of lines 
 # the initial value of a variable or define consists of for it to appear in 
@@ -494,7 +494,7 @@ EXCLUDE_SYMLINKS       = NO
 # against the file with absolute path, so to exclude all test directories 
 # for example use the pattern */test/*
 
-EXCLUDE_PATTERNS       = argspec.* *.m ml_*.c *.R *.py
+EXCLUDE_PATTERNS       = argspec.* *.m ml_*.c *.R *.py rawplot.c
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or 
 # directories that contain example code fragments that are included (see 

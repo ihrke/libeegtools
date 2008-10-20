@@ -23,6 +23,26 @@ double** copy_double_ptrptr(const double **s, int N, int n){
   return r;
 }
 
+/** Deep-copy everything from source to dest. It is necessary, that
+	 all number-of-element fields of dest are the same as those in
+	 source, since no memory is reallocated. (comparison with
+	 eegdata_cmp_settings() )
+	 
+	 \params dest,source
+	 \return 0 success, failure else
+ */
+int      copy_similar_eegdata( EEGdata *dest, const EEGdata *source ){
+  int i;
+  if( eegdata_cmp_settings( dest, source ) ){
+	 return -1;
+  }
+  memcpy( dest->markers, source->markers, (dest->nmarkers)*sizeof(unsigned long) );
+  for( i=0; i<dest->nbchan; i++ ){
+	 memcpy( dest->d[i], source->d[i], (dest->n)*sizeof( double ) );
+  }
+  return 0;
+}
+
 /** shallow copy of ModelData struct
  */
 void    copy_modeldata(const ModelData *m1, ModelData *m2){
@@ -313,6 +333,19 @@ int       eegdata_cmp_settings( EEGdata *s1, EEGdata *s2 ){
   } else {
 	 return 0;
   }
+}
+
+/** count the number of occurences of c in s
+	 \param s - the string (\0 terminated)
+	 \param c - the character
+	 \return count( s==c )
+*/
+int strcount( const char *s, char c ){
+  int i, count=0;
+  for( i=0; i<strlen(s); i++ ){
+	 if( s[i]==c ) count++;
+  }
+  return count;
 }
 
 

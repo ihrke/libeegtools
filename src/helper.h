@@ -116,6 +116,8 @@ extern "C" {
 
   void    qsort_int_index( int *idx_idx, const int *idx, int n );
   int     compare_ints (const int *a, const int *b);
+  
+  int     strcount( const char *s, char c );
 
   /* constructors */
   EEGdata*        init_eegdata(int nbchan, int nsamples, int nmarkers);
@@ -126,6 +128,7 @@ extern "C" {
   void      reset_warppath(WarpPath *P, int J, int K);  
   void      copy_modeldata(const ModelData *m1, ModelData *m2);
   int       eegdata_cmp_settings( EEGdata *s1, EEGdata *s2 );
+  int       copy_similar_eegdata( EEGdata *dest, const EEGdata *source );
 
   /* destructors */
   void    free_modeldata(ModelData *m);

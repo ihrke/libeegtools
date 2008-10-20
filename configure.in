@@ -85,6 +85,20 @@ fi
 
 AC_SUBST(DEF_DEBUG)
 
+##------ PLOTTER SUPPORT -----#
+#AC_ARG_ENABLE(plotter,
+#  [  --enable-plotter             enable plotter support (default "no")],
+#  [with_plotter=$enableval],
+#  [with_plotter=no]
+#)
+
+#DEF_PLOTTER="NOPLOTTER"
+#if test "x${with_plotter}" = xyes; then
+#        DEF_PLOTTER="PLOTTER"       
+#fi
+
+#AC_SUBST(DEF_PLOTTER)
+
 # ----------------------------------------------------------------------
 ### check for headers
 # ----------------------------------------------------------------------
@@ -104,7 +118,7 @@ AC_HEADER_STDC # standard library headers, stdlib.h, stdarg.h, string.h, and flo
 ### config files
 # ----------------------------------------------------------------------
 AM_CONFIG_HEADER([config.h])
-AC_OUTPUT(Makefile src/Makefile progs/Makefile)
+AC_OUTPUT(Makefile src/Makefile misc/Makefile progs/Makefile)
 AC_OUTPUT(src/definitions.h)
 
 echo "
