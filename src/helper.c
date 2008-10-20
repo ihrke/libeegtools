@@ -129,11 +129,19 @@ WarpPath* init_warppath(WarpPath *path, int J, int K){
   return path;
 }
 
+
+/** initializes an eegdata-struct with values. 
+	 \param nbchan - num channels
+	 \param nsamples - num samples
+	 \param nmarkers - num_markers
+	 \return the pointer to the new eegdata-struct.
+*/
 EEGdata* init_eegdata(int nbchan, int nsamples, int nmarkers){
   int i;
   EEGdata *eeg;
 
   eeg = (EEGdata*) malloc( sizeof(EEGdata) );
+
   eeg->nbchan = nbchan;
   eeg->n = nsamples;
   eeg->d = (double**) malloc( nbchan * sizeof(double*) );
@@ -158,8 +166,9 @@ EEGdata_trials* init_eegdata_trials(int nbtrials, int nmarkers_per_trial, int nb
   }
   eeg->times = (double*)malloc( nbsamples*sizeof( double ) );
   eeg->data = (EEGdata**)malloc( nbtrials*sizeof( EEGdata* ) );
-  for(i=0; i<nbtrials; i++)
+  for(i=0; i<nbtrials; i++){
 	 eeg->data[i] = init_eegdata(nbchan, nbsamples, nmarkers_per_trial);
+  }
   
   return eeg;
 }
@@ -347,7 +356,7 @@ int strcount( const char *s, char c ){
   }
   return count;
 }
-
+	
 
 /* ----------------------------------------------------------------------
 	MATLAB

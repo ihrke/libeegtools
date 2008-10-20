@@ -4,7 +4,7 @@ plotit =1;
 
 [single_trials_noisy c1 range rts real_rt erp1] =  artificial_data(trials, ...
                                                   500, 0);
-
+rts
 %[single_trials_noisy c2 range rts real_rt erp2] =  artificial_data2(trials/2, ...
 %                                                  200, 0);
 
@@ -41,6 +41,7 @@ for t=1:trials
     fwrite(fid, closest(range, 0), 'double');
     % reaction
     fwrite(fid, closest(range, rts(t)), 'double');
+    closest(range, rts(t))
 end;
 
 % data

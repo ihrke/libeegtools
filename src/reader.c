@@ -89,7 +89,10 @@ EEGdata_trials* read_eegtrials_from_raw(const char *file){
 
   dprintf("(nbchan, ntrials, nsamples, nmarkers) = (%i,%i,%i,%i)\n", nbchan, ntrials, nsamples, nmarkers);
 
+  /* allocating all memory */
   eeg = init_eegdata_trials(ntrials, nmarkers, nbchan, nsamples);
+
+  /* read times-array */
   ffread(eeg->times, sizeof(double), nsamples, f);
   
   /* read markers */
@@ -97,7 +100,7 @@ EEGdata_trials* read_eegtrials_from_raw(const char *file){
   tmp = (double*) malloc( nmarkers * sizeof(double) );
   for( i=0; i<ntrials; i++ ){
 	 ffread(tmp, sizeof(double), nmarkers, f);
-	 dprintf("tmp[0]=%f, tmp[1]=%f\n", tmp[0], tmp[1]);
+	 /* dprintf("tmp[0]=%f, tmp[1]=%f\n", tmp[0], tmp[1]); */
 	 for( j=0; j<nmarkers; j++){
 		eeg->markers[i][j] = (unsigned long)tmp[j];
 	 } 
@@ -106,9 +109,12 @@ EEGdata_trials* read_eegtrials_from_raw(const char *file){
   free(tmp);
 
   /* read data */
-  for( c=0; c<nbchan; c++ )
-	 for( i=0; i<ntrials; i++ )
+  for( c=0; c<nbchan; c++ ){
+	 for( i=0; i<ntrials; i++ ){
+		/*		dprintf("eeg->data[%i]->n = %i\n", i, eeg->data[i]->n);*/
 		ffread( eeg->data[i]->d[c], sizeof( double ), nsamples, f );
+	 }
+  }
 
   return eeg;
 }

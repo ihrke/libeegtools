@@ -113,14 +113,18 @@ int maxeli(int *v, int n){
   return m;
 }
 
-int closest_index(double *v, int n, double c){
-  int i, index=0;
+/** return index in vector that is closest to a value
+ */	  
+int closest_index(const double *v, int n, double c){
+  int i, index=-1;
   double tmp=DBL_MAX;
-  for(i=0; i<n; i++)
+  /* dprintf( " v[%i] = %f, n=%i\n", i, v[i], n );	 */
+  for(i=0; i<n; i++){
     if(fabs(v[i]-c) < tmp){
       index=i;
       tmp = fabs(v[i]-c);
     }
+  }
   return index;
 }
 
@@ -223,7 +227,18 @@ double* loocv(const ModelData *m, double* err, double*(*model)(const ModelData*,
 	free(hatu);
 	return err;
 }	 
+/* ---------------------------------------------------------------------------- 
+   -- vector ops                                                             -- 
+   ---------------------------------------------------------------------------- */\
 
+/** remove a scalar from all values in a vector.
+ */
+void  vector_minus_scalar( double *v, int n, double val ){
+  int i;
+  for( i=0; i<n; i++ ){
+	 v[i] = v[i]-val;
+  }
+}
 
 /* ---------------------------------------------------------------------------- 
    -- Matrix ops                                                             -- 

@@ -51,7 +51,7 @@ extern "C" {
   int     sgn(int x);
   double  maxel(double *v, int n);
   int     maxeli(int *v, int n);
-  int     closest_index(double *v, int n, double c);
+  int     closest_index(const double *v, int n, double c);
   double* sampled_line(double *ntimes, int n, double start, double end);
   double* lininterp(const double *x1, const double *y1, int n1, 
 						  const double *x2,       double *y2, int n2);
@@ -59,6 +59,7 @@ extern "C" {
   double* loocv(const ModelData *m, double* err,
 					 double*(*model)(const ModelData*,double*));
   void    bresenham(int xstart,int ystart,int xend,int yend, int *points);
+
   void    swap2i(int *v1, int *v2);
   void    swap2d(double *v1, double *v2);
 
@@ -74,6 +75,11 @@ extern "C" {
 	  ---------------------------------------------------------------------------- */
   double rmse(const double *r, const double *d, int n);
   double snr (const double *r, const double *d, int n);
+
+  /* ---------------------------------------------------------------------------- 
+	  -- vector ops                                                             -- 
+	  ---------------------------------------------------------------------------- */
+  void  vector_minus_scalar( double *v, int n, double val );
 
   /* ---------------------------------------------------------------------------- 
 	  -- Matrix ops                                                             -- 
