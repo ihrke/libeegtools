@@ -7,6 +7,7 @@ Here is a list:
  - \subpage artificial_data
  - \subpage eegset_to_raw
     - \subpage get_epoch_indices
+ - \subpage raw_to_eegset
  - \subpage write_art_data_raw
 */
 
@@ -41,3 +42,23 @@ writes it in the \link rawfileformat RAW\endlink format.
 
 \include write_art_data_raw.m 
 */
+
+/** \page raw_to_eegset
+
+Use this to convert \link rawfileformat RAW\endlink file-format files to  EEGlab-datasets. 
+See \ref importexport. 
+
+\note
+ - The script does not add information about electrode locations as the raw-file does not know about this.
+ - The EEG-set is always epoched with markers from the raw-file.
+ - The EEG-set is not directly loaded in the GUI, you need to do
+\code
+matlab> EEG = raw_to_eegset( 'test.raw')
+matlab> [ALLEEG EEG CURRENTSET] = eeg_store(ALLEEG, EEG);
+matlab> eeglab redraw;
+\endcode
+  to achieve this
+
+\include raw_to_eegset.m 
+*/
+

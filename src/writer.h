@@ -35,6 +35,8 @@ extern "C" {
 /* -------------------------------------------------------------------- */
 /* functions */
 /* -------------------------------------------------------------------- */
+  void write_eegtrials_to_raw_file( const EEGdata_trials *eeg, const char *file );
+  void write_eegtrials_to_raw( const EEGdata_trials *eeg, FILE *out );
 
   void write_double_matrix_ascii(FILE *out, const double **d, int xdim, int ydim);
   void write_double_matrix_ascii_file(const char *fname, const double **d, int xdim, int ydim);

@@ -5,6 +5,8 @@
  *\{
  * \defgroup helpermath Helper Math functions
  * \defgroup helperorg Organizing Helper functions
+   \defgroup helperio I/O functions
+	\defgroup helperstruct struct handling
  * \defgroup helperplot Plotting Functions
  *\}
  */
@@ -99,16 +101,14 @@ extern "C" {
 #endif
 
   /* ---------------------------------------------------------------------------- 
-	  -- Helper functions                                                       -- 
+	  -- Helper functions (org)                                                       -- 
 	  ---------------------------------------------------------------------------- */
   /**\addtogroup helperorg
 	*\ingroup helper
 	*\{*/
 
-  int     v_printf(int v, char *format, ...);
-  int     vprint_vector(const char* name, double *v, int n);
+
   void    errormsg(int err_no, int fatal);
-  size_t  ffread(void *ptr, size_t size, size_t nmemb, FILE *stream);
 
   void    swap_bytes(void *ptr, int nmemb);
   void    wswap(void *ptr, int nmemb, int flag);
@@ -119,10 +119,42 @@ extern "C" {
   
   int     strcount( const char *s, char c );
 
+  double** copy_double_ptrptr(const double **s, int N, int n);
+
+
+  /**\}*/
+
+  /**\addtogroup helperio
+	*\ingroup helper
+	*\{*/
+  /* ---------------------------------------------------------------------------- 
+	  -- Helper functions (IO)                                                  -- 
+	  ---------------------------------------------------------------------------- */
+  int     v_printf(int v, char *format, ...);
+  int     vprint_vector(const char* name, double *v, int n); 
+
+  size_t  ffread(void *ptr, size_t size, size_t nmemb, FILE *stream);
+  size_t  ffwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
+
+  /**\}*/
+
+ /**\addtogroup helperstruct
+	*\ingroup helper
+	*\{*/
+  /* ---------------------------------------------------------------------------- 
+	  -- Helper functions (struct handling)                                     -- 
+	  ---------------------------------------------------------------------------- */
   /* constructors */
   EEGdata*        init_eegdata(int nbchan, int nsamples, int nmarkers);
   EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, int nbchan, int nbsamples);
   WarpPath*       init_warppath(WarpPath *path, int J, int K);
+
+  
+  /* destructors */
+  void    free_modeldata(ModelData *m);
+  void    free_warppath(WarpPath *p);
+  void    free_eegdata(EEGdata *eeg);
+  void    free_eegdata_trials(EEGdata_trials *eeg);
 
   /* convenience functions for structs */
   void      reset_warppath(WarpPath *P, int J, int K);  
@@ -130,46 +162,36 @@ extern "C" {
   int       eegdata_cmp_settings( EEGdata *s1, EEGdata *s2 );
   int       copy_similar_eegdata( EEGdata *dest, const EEGdata *source );
 
-  /* destructors */
-  void    free_modeldata(ModelData *m);
-  void    free_warppath(WarpPath *p);
-  void    free_eegdata(EEGdata *eeg);
-  void    free_eegdata_trials(EEGdata_trials *eeg);
-
   /* printing-functions */
   void    print_modeldata(FILE *out, const ModelData *m);
   void    print_denoisingparameters(FILE *out, const DenoisingParameters *p);
   void    print_timewarpparameters(FILE *out, const TimewarpParameters *p);
   void    print_eegdata_trials(FILE *out, const EEGdata_trials *eeg);
   void    print_eegdata(FILE *out, const EEGdata *eeg);
+  
+  /**\}*/
 
-  double** copy_double_ptrptr(const double **s, int N, int n);
-
-
-/**\}*/
-
-
-/**\addtogroup helperplot
- *\ingroup helper
- *\{*/
+  /**\addtogroup helperplot
+	*\ingroup helper
+	*\{*/
 
 
 #ifdef HAVE_MATLAB
-Engine*  ml_init(void);
-int  ml_close(Engine *m);
-void ml_plot(Engine *matlab, const double *r, const double *v, int n, const char* color, int new);
-void ml_plot_path(Engine *matlab, const int *path, int K);
-void ml_wait(Engine *matlab);
+  Engine*  ml_init(void);
+  int  ml_close(Engine *m);
+  void ml_plot(Engine *matlab, const double *r, const double *v, int n, const char* color, int new);
+  void ml_plot_path(Engine *matlab, const int *path, int K);
+  void ml_wait(Engine *matlab);
 #endif
 
-/**\}*/
+  /**\}*/
 
-/* ---------------------------------------------------------------------------- 
-   -- Gobals                                                                 -- 
-   ---------------------------------------------------------------------------- */
-int *verbosity; 
+  /* ---------------------------------------------------------------------------- 
+	  -- Gobals                                                                 -- 
+	  ---------------------------------------------------------------------------- */
+  int *verbosity; 
 #ifdef HAVE_MATLAB
-Engine *matlab;
+  Engine *matlab;
 #endif
 
 #ifdef __cplusplus

@@ -18,6 +18,7 @@
 \par Matlab-Support
    - \ref mexfiles
    - \ref matlabscripts
+   - \ref eeglabplugins
 
 \par Other
    - \ref otherscripts
@@ -64,6 +65,9 @@ $ make -f Makefile.matlab
 \par History:
 \code
  * $Log$
+ * Revision 1.2  2008/10/21 17:32:38  mihrke
+ * Import/Export
+ *
  * Revision 1.1  2008/10/17 13:11:32  mihrke
  * a lot of documentation
  *

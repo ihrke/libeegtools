@@ -459,7 +459,7 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                  = ./src ./doc ./matlab ./progs ./misc
+INPUT                  = ./src ./doc ./matlab ./progs ./misc ./eeglab_plugin
 
 # If the value of the INPUT tag contains directories, you can use the 
 # FILE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 
@@ -500,7 +500,7 @@ EXCLUDE_PATTERNS       = argspec.* *.m ml_*.c *.R *.py rawplot.c
 # directories that contain example code fragments that are included (see 
 # the \include command).
 
-EXAMPLE_PATH           = ./progs ./matlab ./misc
+EXAMPLE_PATH           = ./progs ./matlab ./misc ./eeglab_plugin
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the 
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 
