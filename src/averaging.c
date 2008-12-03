@@ -108,10 +108,10 @@ double** DTW_build_restricted_cumdistmatrix(const double *u, int J,
     
  
   if( R>1 ){
-	 dprintf("Restriction R=%f too large, using 1.0\n");
+	 dprintf("Restriction R=%f too large, using 1.0\n", R);
 	 R = 1.0;
   } else if( R<0 ){
-	 dprintf("Restriction R=%f < 0, aborting\n");
+	 dprintf("Restriction R=%f < 0, aborting\n", R);
 	 return d;
   }
 
@@ -138,7 +138,7 @@ double** DTW_build_restricted_cumdistmatrix(const double *u, int J,
   int lower_corridor, upper_corridor;
 
   /* computing d_jk */
-  for( j=0; j<MAX( J, K ); j++ ){ // J>K
+  for( j=0; j<MAX( J, K ); j++ ){ /* J>K */
 	 lower_corridor = MAX( 0, bham[(2*j)+b]-theta );
 	 upper_corridor = MIN( bham[(2*j)+b]+theta, K );
 	 /* dprintf("b=%i, bham=(%i,%i), j=%i, corridor: (%i, %i)\n", */
@@ -228,7 +228,23 @@ double** DTW_build_cumdistmatrix(const double *u, int J, const double *s, int K,
   }
 
   return d;
+}  
+
+/** build the  pointwise (non-cumulated) dissimilarity matrix d using 
+	 DTW_build_distmatrix().
+	 \param s1 1st signal
+	 \param s2 2nd signal
+	 \param theta1/theta2 - weights for metric
+	 \param d -- if NULL, function allocates the memory
+	 \return pointer to JxK matrix d
+ */
+double**  eeg_DTW_build_distmatrix_channel(const EEGdata *s1, const EEGdata *s2, 
+														 int channel, double theta1, 
+														 double theta2, double **d){
+  DTW_build_distmatrix( s1->d[channel], s1->n, s2->d[channel], s2->n, theta1, theta2, d);
+  return d;
 }
+
 /** build the  pointwise (non-cumulated) dissimilarity matrix d
 	 \param u,J 1st signal
 	 \param s,K 2nd signal

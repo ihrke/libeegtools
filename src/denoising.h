@@ -10,7 +10,6 @@
  *    \{
  *       \defgroup thresholding Thresholding Functions
  *       \defgroup select_thresh Threshold selection Functions
- *       \defgroup sigext Signal Extension Functions
  *    \}
  *    \defgroup robust_filtering Robust-Filtering
  *    \defgroup other_filtering Other Filtering
@@ -97,34 +96,6 @@ double* moving_average(double *s, int n, int win);
   double heuristic_sure(const double *data, int n);
 /** \} */
 
-
-/* ---------------------------------------------------------------------------- 
-   -- Signal extension routines                                              -- 
-   ---------------------------------------------------------------------------- */
-
-/** \addtogroup sigext
- * \ingroup wavelet
- * \{
- *
- * Signal extension schemes to extend signal of length n to length 2^j
- *    with 2^j being the closest power of 2 to n.
- * The extension functions return a pointer to the former data[0],
- * because this is where the unextended signal began;\n
- * Example:
- * \code
- * sigext([1 2 3 - - - -]) -> [0 0 1 2 3 0 0] 
- *                                 ^ ptr
- * \endcode
- *  Assumptions (not for full generality!):
- * -# ns <= n
- * -# n <= 2*ns
- *
- */
-double* sigext_zeros(double *data, int ns, int n);
-double* sigext_zerosr(double *data, int ns, int n);
-double* sigext_sym(double *data, int ns, int n);
-double* sigext_smooth(double *data, int ns, int n);
-/** \} */
 
 
 #ifdef __cplusplus

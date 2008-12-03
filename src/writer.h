@@ -35,6 +35,10 @@ extern "C" {
 /* -------------------------------------------------------------------- */
 /* functions */
 /* -------------------------------------------------------------------- */
+  void write_raw_header( FILE *f, int nbchan, int nbtrials, int nsamples, 
+								 int nmarkers );
+  void write_raw_markers( FILE *f, const EEGdata *eeg );
+
   void write_eegtrials_to_raw_file( const EEGdata_trials *eeg, const char *file );
   void write_eegtrials_to_raw( const EEGdata_trials *eeg, FILE *out );
 

@@ -27,6 +27,25 @@ double** read_double_matrix_ascii(const char *fname, int xdim, int ydim, double 
   return d;
 }
 
+/** read 1D vector frome file 
+ */
+double* read_double_vector_ascii( const char *fname, int N, double *v ){
+  FILE *f;
+  int i;
+
+  if((f=fopen(fname, "r"))==NULL)
+	 errormsg(ERR_IO, 1);
+
+  if(v==NULL){
+	 v = vector_init( NULL, N, 0.0 );
+  }
+  for( i=0; i<N; i++ ){
+	 fscanf(f, " %lf ", &(v[i]));
+  }
+  fclose( f );
+  return v;
+}
+
 /** Reads EEG-data from binary file. Format is Cxn doubles.
  * \param C - number of channels
  * \param n - number of samples per channel
@@ -234,6 +253,7 @@ double matfile_get_single_value(FILE *f, int swapflag){
   } else {
 	 errormsg(ERR_PARSEMAT, ERR_NOFATAL);
   }
+  return 0.0;
 }
 
 /** parse .mat file pointed to by f and fill EEGdata_trials-struct eeg.
@@ -320,17 +340,17 @@ void parse_eeg_struct_from_matfile(FILE *f, EEGdata_trials *eeg, int swapflag){
   }	
   
   for(i=0; i<6; i++){
-	 dprintf("idx[%i]=%i, byteidx=%i (%#x), idx_idx[%i]=%i\n", i, idx[i], byte_idx[i],byte_idx[i], i, idx_idx[i]);
+	 //	 dprintf("idx[%i]=%i, byteidx=%i (%#x), idx_idx[%i]=%i\n", i, idx[i], byte_idx[i],byte_idx[i], i, idx_idx[i]);
   }
 
  /* get nbchans */ 
   fseek( f, byte_idx[NBCHAN], SEEK_SET );
-  dprintf("at position=%#x\n", ftell( f ) );
+  //  dprintf("at position=%#x\n", ftell( f ) );
   nbchan = (int) matfile_get_single_value( f, swapflag );
 
   /* get trials */
   fseek( f, byte_idx[TRIALS], SEEK_SET );
-  dprintf("at position=%#x\n", ftell( f ) );
+  //  dprintf("at position=%#x\n", ftell( f ) );
   trials = (int) matfile_get_single_value( f, swapflag );
 
  

@@ -37,7 +37,10 @@
 #define SQR(a) ((a)*(a))
 /** \ingroup helpermath*/
 #define ABS(a) ( ((a)<0) ? (-1*(a)) : (a) )
+/** \ingroup helpermath*/
+#define ISODD(x)        ((((x)%2)==0)? (0) : (1))
 
+# define PI           3.14159265358979323846  /* pi */
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -56,8 +59,6 @@ extern "C" {
   double* lininterp(const double *x1, const double *y1, int n1, 
 						  const double *x2,       double *y2, int n2);
   int*    linspace(int first, int last);
-  double* loocv(const ModelData *m, double* err,
-					 double*(*model)(const ModelData*,double*));
   void    bresenham(int xstart,int ystart,int xend,int yend, int *points);
 
   void    swap2i(int *v1, int *v2);
@@ -65,6 +66,44 @@ extern "C" {
 
   double* flip_array( double *v, int n );
 
+  int     next_pow2( int n );
+  int     iremainder( double x, double y);
+/* ---------------------------------------------------------------------------- 
+	-- Fourier methods
+	---------------------------------------------------------------------------- */
+  void fft(double *data,  unsigned long nn, int isign);
+  
+
+/* ---------------------------------------------------------------------------- 
+   -- Signal extension routines                                              -- 
+   ---------------------------------------------------------------------------- */
+  /** \defgroup sigext Signal Extension Functions 
+	\{
+  */
+  /**
+	* Signal extension schemes to extend signal of length n to length 2^j
+	*    with 2^j being the closest power of 2 to n.
+	* The extension functions return a pointer to the former data[0],
+	* because this is where the unextended signal began;\n
+	* Example:
+	* \code
+	* sigext([1 2 3 - - - -]) -> [0 0 1 2 3 0 0] 
+	*                                 ^ ptr
+	* \endcode
+	*  Assumptions (not for full generality!):
+	* -# ns <= n
+	* -# n <= 2*ns
+	*
+	*/
+  double* sigext_zeros(double *data, int ns, int n);
+  double* sigext_zerosr(double *data, int ns, int n);
+  double* sigext_sym(double *data, int ns, int n);
+  double* sigext_smooth(double *data, int ns, int n);
+  /** \} */
+
+  /* ---------------------------------------------------------------------------- 
+	  -- Interpolation
+	  ---------------------------------------------------------------------------- */
   double  drawsample_linear( const double *v, int n, double x );
   double* resample_linear( const double *s, int n, int newn, double *news );
   double  drawsample_nearest_neighbour( const double *v, int n, double x );
@@ -78,8 +117,13 @@ extern "C" {
 
   /* ---------------------------------------------------------------------------- 
 	  -- vector ops                                                             -- 
-	  ---------------------------------------------------------------------------- */
-  void  vector_minus_scalar( double *v, int n, double val );
+	  ---------------------------------------------------------------------------- */  
+  /** \defgroup vectorops Vector Operations
+		\{
+  */
+  double* vector_init( double *v, int n,  double val );
+  void    vector_minus_scalar( double *v, int n, double val );
+  /** \} */
 
   /* ---------------------------------------------------------------------------- 
 	  -- Matrix ops                                                             -- 

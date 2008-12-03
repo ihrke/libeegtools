@@ -1,33 +1,56 @@
 #include "writer.h"
 
-
-
-void write_eegtrials_to_raw( const EEGdata_trials *eeg, FILE *f ){
+/** writes header of raw-file.
+	 \param f file pointer
+	 \param nbchan number of channels
+	 \param nbtrials number of trials
+	 \param nsamples number of samples
+	 \param nmarkers number of markers per trial
+ */
+void write_raw_header( FILE *f, int nbchan, int nbtrials, int nsamples, 
+							  int nmarkers ){
   double nbchan_d, ntrials_d, nsamples_d, nmarkers_d;
-  int i,j;
-
-  nbchan_d   = (double)eeg->data[0]->nbchan;
-  ntrials_d  = (double)eeg->ntrials;
-  nsamples_d = (double)eeg->data[0]->n;
-  nmarkers_d = (double)eeg->nmarkers_per_trial;
+  
+  nbchan_d   = (double)nbchan;
+  ntrials_d  = (double)nbtrials;
+  nsamples_d = (double)nsamples;
+  nmarkers_d = (double)nmarkers;
 
   ffwrite( &nbchan_d,   sizeof(double), 1, f );  
   ffwrite( &ntrials_d,  sizeof(double), 1, f );
   ffwrite( &nsamples_d, sizeof(double), 1, f );
   ffwrite( &nmarkers_d, sizeof(double), 1, f );
+}
+
+/** writes markers from EEGdata to RAW-file.
+ */
+void write_raw_markers( FILE *f, const EEGdata *eeg ){
+  double *tmp;
+  int i;
+
+  tmp = (double*) malloc( eeg->nmarkers*sizeof(double) );
+  for( i=0; i<eeg->nmarkers;  i++ ){ /* typecast */
+	 tmp[i] = (double)eeg->markers[i];
+  }
+  ffwrite( tmp, sizeof(double), eeg->nmarkers, f );
+  free( tmp );
+}
+
+/** write a file in RAW-file format from an EEGdata_trials struct.
+ */
+void write_eegtrials_to_raw( const EEGdata_trials *eeg, FILE *f ){
+ 
+  int i,j, c, t;
+
+  write_raw_header( f, eeg->data[0]->nbchan, eeg->ntrials, 
+						  eeg->data[0]->n, eeg->nmarkers_per_trial );
 
   ffwrite( eeg->times, sizeof(double), eeg->data[0]->n, f );
   
   /* write markers */
-  double *tmp;
-  tmp = (double*) malloc( eeg->nmarkers_per_trial * sizeof(double) );
   for( i=0; i<eeg->ntrials; i++ ){
-	 for( j=0; j<eeg->nmarkers_per_trial;  j++ ){ /* typecast */
-		tmp[j] = (double)eeg->markers[i][j];
-	 }
-	 ffwrite( tmp, sizeof(double), eeg->nmarkers_per_trial, f );
+	 write_raw_markers( f, eeg->data[i] );
   }
-  free( tmp );
 			  
   for( c=0; c<eeg->data[0]->nbchan; c++ ){
 	 for( t=0; t<eeg->ntrials; t++ ){
@@ -35,10 +58,12 @@ void write_eegtrials_to_raw( const EEGdata_trials *eeg, FILE *f ){
 	 }
   }
 }
-
-void write_eegtrials_to_raw_file( const EEGdata_trials *eeg, const char *file ){
+/** write a file in RAW-file format from an EEGdata_trials struct.
+	 calls  write_eegtrials_to_raw()
+ */
+void write_eegtrials_to_raw_file( const EEGdata_trials *eeg, const char *fname ){
   FILE *out;
-  if((f=fopen(fname, "w"))==NULL)
+  if((out=fopen(fname, "w"))==NULL)
 	 errormsg(ERR_IO, 1);
 
   write_eegtrials_to_raw( eeg, out );

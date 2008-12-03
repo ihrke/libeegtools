@@ -25,6 +25,7 @@
 #ifndef READER_H
 # define READER_H
 #include "definitions.h"
+#include "mathadd.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -61,19 +62,20 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+  /** \defgroup reader Reader Function (Import)
+		\{ */
+  /* -------------------------------------------------------------------- */
+  /* functions */
+  /* -------------------------------------------------------------------- */
+  EEGdata*        read_continuous_eeg_from_binfile(const char *file, int C, int n);
+  double**        read_double_matrix_ascii(const char *fname, int xdim, int ydim, double **d);
+  EEGdata_trials* read_eegtrials_from_raw(const char *file);
+  double*         read_double_vector_ascii( const char *fname, int N, double *v );
 
-/* -------------------------------------------------------------------- */
-/* functions */
-/* -------------------------------------------------------------------- */
-EEGdata* read_continuous_eeg_from_binfile(const char *file, int C, int n);
-double** read_double_matrix_ascii(const char *fname, int xdim, int ydim, double **d);
-EEGdata_trials* read_eegtrials_from_raw(const char *file);
-
-/* matlab readers not functional, yet */
-EEGdata_trials* read_segmented_eeg_from_eeglabset(const char *file);
-int is_compressed_format(uint32_t first, int swapflag);
-
-
+  /* matlab readers not functional, yet */
+  EEGdata_trials* read_segmented_eeg_from_eeglabset(const char *file);
+  int is_compressed_format(uint32_t first, int swapflag);
+  /** \} */
 #ifdef __cplusplus
 }
 #endif

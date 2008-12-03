@@ -178,8 +178,8 @@ int main(int argc, char **argv){
 	 }
 
 	 /* remove the previous trials */
-	 //	 free_eegdata(eeg->data[idx1]);
-	 //	 free_eegdata(eeg->data[idx2]);
+	 free_eegdata(eeg->data[idx1]);
+	 free_eegdata(eeg->data[idx2]);
 	 eeg->data[idx1] = new; /* ADTW goes to idx1 */
 	 eeg->data[idx2] = NULL; /* do not touch this again */ 
 
@@ -208,8 +208,6 @@ int main(int argc, char **argv){
 	  plot_show(); 
 		);
  
-
-
 
   /* cleaning up */
   dprintf("Freeing Memory\n");

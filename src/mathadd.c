@@ -184,49 +184,7 @@ double* lininterp(const double *x1, const double *y1, int n1,
   }
   return y2;
 }
-/** Leave one out cross validation.
- * \param u reference signal
- * \param si the data
- * \param err the estimate for the external prediction error (curve); must be allocated by caller
- * \param N num trials (si)
- * \param n num data points in u and each si
- * \param model the function to estimate u from si. A model takes the si, an empty array with n positions to put the estimate, an integer array giving the indices in the si (to match them to the userdata, kappa), n and userdata.
- * \param userdata is simply passed to the model (could be a struct with everything needed)
- */
-double* loocv(const ModelData *m, double* err, double*(*model)(const ModelData*,double*)){
-	double **newsi, *newRi;
-	ModelData *mtmp;
-	double *hatu;
-	int i,j, k, n, N;
-	n = m->n;
-	N = m->N;
-	newsi = (double**)malloc(2*N*sizeof(double*));
-	hatu = (double*)malloc(n*sizeof(double));
-	newRi = (double*)malloc(2*N*sizeof(double));
-	mtmp = (ModelData*)malloc(sizeof(ModelData));
-	
-	dprintf("n1=%i\n", m->n);
-	for(i=0; i<n; i++) err[i]=0.0;
-	for(i=0; i<2*N; i++){
-		newsi[i]=m->si[i%N];
-		newRi[i]=m->Ri[i%N];
-	}
-	for(i=0; i<N; i++){
-		copy_modeldata( m, mtmp );
-		mtmp->N = N-1;
-		mtmp->Ri = &(newRi);
-		mtmp->si = &(newsi[i]);
-		hatu = (*model)(mtmp, hatu);
-		for(j=0; j<n; j++)
-			err[j] += SQR((m->u)[j]-hatu[j]);
-	}
-	for(i=0; i<n; i++) err[i]/=N;
-	
-	free(newsi);
-	free(newRi);
-	free(hatu);
-	return err;
-}	 
+
 /* ---------------------------------------------------------------------------- 
    -- vector ops                                                             -- 
    ---------------------------------------------------------------------------- */\
@@ -239,6 +197,24 @@ void  vector_minus_scalar( double *v, int n, double val ){
 	 v[i] = v[i]-val;
   }
 }
+
+/** \param v - if NULL, own memory is allocated
+	 \param n - length(v)
+	 \param val - set v[i]=val for all i=0,...,n-1
+	 \return v
+ */
+double* vector_init( double *v, int n, double val ){
+  int i;
+  if( v==NULL){
+	 v = (double*)malloc( n*sizeof(double) );
+  }
+  for(i=0; i<n; i++){
+	 v[i] = val;
+  }
+
+  return v;
+}
+
 
 /* ---------------------------------------------------------------------------- 
    -- Matrix ops                                                             -- 
@@ -511,7 +487,7 @@ double drawsample_nearest_neighbour( const double *v, int n, double x ){
   }
   r = v[x1];
   if( isnan( r ) ){
-	 errprintf( "r=%f (x=%f, x1=%i,v[x1]=%f, n=%f)\n", r, x, x1,v[x1],n );
+	 errprintf( "r=%f (x=%f, x1=%i,v[x1]=%f, n=%i)\n", r, x, x1,v[x1],n );
   }
   return r;
 }
@@ -575,4 +551,159 @@ double* flip_array( double *v, int n ){
 	 v[n-i-1] = tmp;
   }
   return v;
+}
+
+
+
+#define SWAP(a,b) tempr=(a);(a)=(b);(b)=tempr
+/** 1D Fourier transform (FFT). Taken from Numerical Recipes in C.
+	 \param data - array to be tranformed (input/output); for input, 
+	               is assumed to be complex, i.e. [ real, imag, real, imag, ... ]
+						data contains nn complex numbers and 2*nn entries.
+	 \param nn - must be a power of two, not checked for!; length(data)=2*nn
+	 \param isign - 1: forward; -1: ifft;
+	 \return data is now the FT in complex numbers
+ */
+void fft(double *data, unsigned long nn, int isign){
+  unsigned long n,mmax,m,j,istep,i;
+  double wtemp,wr,wpr,wpi,wi,theta;
+  float tempr,tempi;
+
+  dprintf( "nn=%li, isign=%i\n", nn, isign );
+
+  n=nn << 1;
+  j=1;
+  for (i=1;i<n;i+=2) {
+	 if (j > i) {
+		SWAP(data[j],data[i]);
+		SWAP(data[j+1],data[i+1]);
+	 }
+	 m=nn;
+	 while (m >= 2 && j > m) {
+		j -= m;
+		m >>= 1;
+	 }
+	 j += m;
+  }
+  mmax=2;
+  while (n > mmax) {
+	 istep=mmax << 1;
+	 theta=isign*(6.28318530717959/mmax);
+	 wtemp=sin(0.5*theta);
+	 wpr = -2.0*wtemp*wtemp;
+	 wpi=sin(theta);
+	 wr=1.0;
+	 wi=0.0;
+	 for (m=1;m<mmax;m+=2) {
+		for (i=m;i<=n;i+=istep) {
+		  j=i+mmax;
+		  tempr=wr*data[j]-wi*data[j+1];
+		  tempi=wr*data[j+1]+wi*data[j];
+		  data[j]=data[i]-tempr;
+		  data[j+1]=data[i+1]-tempi;
+		  data[i] += tempr;
+		  data[i+1] += tempi;
+		}
+		wr=(wtemp=wr)*wpr-wi*wpi+wr;
+		wi=wi*wpr+wtemp*wpi+wi;
+	 }
+	 mmax=istep;
+  }
+}
+#undef SWAP
+
+/* ---------------------------------------------------------------------------- 
+   -- Signal extension routines                                              -- 
+   ---------------------------------------------------------------------------- */
+/* the extension functions return a pointer to the former data[0],
+   because this is where the unextended signal began;
+   Example:
+      sigext([1 2 3 - - - -]) -> [0 0 1 2 3 0 0] 
+                                      ^ ptr
+   Assumptions (not for full generality!):
+      1) ns <= n
+      2) n <= 2*ns
+*/
+
+/** \code [1 2 3 - - -] -> [0 1 2 3 0 0] \endcode*/
+double* sigext_zeros(double *data, int ns, int n){
+  int offset, i=0; /* for signal */
+  double *dptr;
+  dprintf("Db: sigext_zeros\n");
+
+  offset = (n-ns)/2;
+  dptr = memmove(&(data[offset]), data, ns*sizeof(double));
+  for(i=1; i<=offset; i++){ /*( ((n-ns)%2==0) ? offset : offset-1); i++){*/
+    data[offset-i]=0.0; 
+    data[offset+ns+i-1]=0.0;
+  }
+  data[n-1]=0.0;
+  return dptr;
+}
+
+
+/** \code [1 2 3 - - -] -> [1 2 3 0 0 0] \endcode */
+double* sigext_zerosr(double *data, int ns, int n){
+  dprintf("Db: sigext_zerosr\n");
+  int i; /* for signal */
+  for(i=ns; i<n; i++) data[i]=0.0; 
+  return data;
+}
+
+/** \code [1 2 3 - - - - -] -> [2 1 1 2 3 3 2 1] \endcode*/
+double* sigext_sym(double *data, int ns, int n){
+  int offset, i=0; 
+  double *dptr;
+  dprintf("Db: sigext_sym\n");
+
+  offset = (n-ns)/2;
+  dptr = memmove(&(data[offset]), data, ns*sizeof(double));
+  for(i=1; i<=offset; i++){ /*( ((n-ns)%2==0) ? offset : offset-1); i++){*/
+    data[offset-i]=data[offset+i-1]; 
+    data[offset+ns+i-1]=data[offset+ns-i];
+  }
+  data[n-1]=((ns-n)%2==0 ? data[offset+(n-ns)/2] : data[offset+(n-ns)/2-1]);
+  return dptr;
+  
+}
+/** \code [1 2 3 - - - - -] -> [1 1 1 2 3 3 3 3] \endcode */
+double* sigext_smooth(double *data, int ns, int n){
+  int offset, i=0; /* for signal */
+  double *dptr;
+  dprintf("Db: sigext_smooth\n");
+
+  offset = (n-ns)/2;
+  dptr = memmove(&(data[offset]), data, ns*sizeof(double));
+  for(i=1; i<=offset; i++){ /*( ((n-ns)%2==0) ? offset : offset-1); i++){*/
+    data[offset-i]=data[offset]; 
+    data[offset+ns+i-1]=data[ns-1];
+  }
+  data[n-1]=data[n-2];
+  return dptr;
+}
+
+/** return min_k( 2^k | 2^k>n ).
+ */ 
+int next_pow2( int n ){
+  int p;
+  p = (int)round(glog((double)n, 2))+1;
+  return (int)pow(2, p);
+}
+
+/** computes remainder of x/y using
+	 \f$ 
+	 r(x,y) = \left\lfloor x - y\left\lfloor \frac{x}{y}\right\rfloor \right\rfloor
+	 \f$
+ */
+int iremainder( double x, double y){
+  int result;
+  
+  if (y != 0) {
+	 result =  x-y* (int)(x/y);
+  } else  {
+	 result = 0;
+	 errprintf("division by zero!\n");
+  }
+
+  return result;
 }

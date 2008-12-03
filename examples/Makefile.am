@@ -5,7 +5,7 @@ METASOURCES = AUTO
 
 bin_PROGRAMS = t_denoise t_denoisestat \
 	 t_readeeglab t_testfilter t_rawreadertest t_clustering t_gapstat \
-	t_dtw t_padtw
+	t_dtw t_padtw t_adtw_markers t_timefreq
 
 
 t_denoise_SOURCES = argspec.c argspec.h t_denoise.c
@@ -48,3 +48,13 @@ t_padtw_SOURCES = t_padtw.c
 t_padtw_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`
 t_padtw_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
 t_padtw_LDADD = $(top_builddir)/src/libeegtools.la
+
+t_adtw_markers_SOURCES = t_adtw_markers.c
+t_adtw_markers_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`
+t_adtw_markers_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
+t_adtw_markers_LDADD = $(top_builddir)/src/libeegtools.la
+
+t_timefreq_SOURCES = t_timefreq.c
+t_timefreq_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`
+t_timefreq_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
+t_timefreq_LDADD = $(top_builddir)/src/libeegtools.la

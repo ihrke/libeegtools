@@ -1,0 +1,19 @@
+/** \page eeglabplugins EEGlab-Plugins
+
+\todo There are (going to be) EEGlab-plugins for the following:
+ - importing RAW to EEGlab
+ - exporting set to RAW
+ - denoising (wavelet)
+ - PADTW and timewarping
+
+These can be found in /libeegtools/eeglab_plugin.
+
+Here is current list (not guaranteed to work):
+ - \subpage eegplugin_warpavg
+*/
+
+/** \page eegplugin_warpavg
+	 This provides warp-averaging and wavelet-denoising (not completely functional yet).
+
+	 \include eegplugin_warpavg.m
+*/

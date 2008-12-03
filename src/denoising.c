@@ -56,7 +56,7 @@ double* running_median(double *d, int n, int win){
   return d;
 }
 
-/** Simple Moving Average filter.
+/** Simple Moving Average filter in the time-domain.
  * s[i] = mean{ s[i-win], ..., s[i+win] }
  */
 double* moving_average(double *s, int n, int win){
@@ -266,26 +266,17 @@ int generic_denoising(double *data, int n, int L,
 
   gsl_wavelet_transform_forward(w, data, 1, n, work);
 
-/*   char tmpstring[255]; */
-/*   extern Engine *matlab;  */
-/*   ml_plot(matlab, NULL, data, n, "r", 1);  */
-  
   /* -- thresholding here -- */
   J = (int)round(glog((double)n, 2));
   for(j=L; j<J; j++){ /* loop through levels */
     offset = (int)pow(2, j);
     lambda = (*threshfct)(&(data[offset]), offset);
 
-/*     fprintf(stderr, " j=%i, range %f - %i\n", j, pow(2,(double)(j)),(int)pow(2,j+1)); */
-/*     sprintf(tmpstring, "hold on; plot(%i:%i, %f, 'g');",(int)pow(2,j),(int)pow(2,j+1), lambda); */
-/*     engEvalString(matlab, tmpstring); */
-
     for(k=offset; k<2*offset; k++){ /* loop through coefficients */
       /* soft or hard thresholding */
       data[k]=(*etafct)(data[k], lambda);
     }
   }
-/*   ml_wait(matlab); */
   /* -- thresholding end -- */
 
   gsl_wavelet_transform_inverse(w, data, 1, n, work);
@@ -346,77 +337,6 @@ double eta_h(double d, double lambda){
   if(fabs(d)<=lambda)
     d=0.0;
   return d;
-}
-
-/* ---------------------------------------------------------------------------- 
-   -- Signal extension routines                                              -- 
-   ---------------------------------------------------------------------------- */
-/* the extension functions return a pointer to the former data[0],
-   because this is where the unextended signal began;
-   Example:
-      sigext([1 2 3 - - - -]) -> [0 0 1 2 3 0 0] 
-                                      ^ ptr
-   Assumptions (not for full generality!):
-      1) ns <= n
-      2) n <= 2*ns
-*/
-
-/** \code [1 2 3 - - -] -> [0 1 2 3 0 0] \endcode*/
-double* sigext_zeros(double *data, int ns, int n){
-  int offset, i=0; /* for signal */
-  double *dptr;
-  dprintf("Db: sigext_zeros\n");
-
-  offset = (n-ns)/2;
-  dptr = memmove(&(data[offset]), data, ns*sizeof(double));
-  for(i=1; i<=offset; i++){ /*( ((n-ns)%2==0) ? offset : offset-1); i++){*/
-    data[offset-i]=0.0; 
-    data[offset+ns+i-1]=0.0;
-  }
-  data[n-1]=0.0;
-  return dptr;
-}
-
-
-/** \code [1 2 3 - - -] -> [1 2 3 0 0 0] \endcode */
-double* sigext_zerosr(double *data, int ns, int n){
-  dprintf("Db: sigext_zerosr\n");
-  int i; /* for signal */
-  for(i=ns; i<n; i++) data[i]=0.0; 
-  return data;
-}
-
-/** \code [1 2 3 - - - - -] -> [2 1 1 2 3 3 2 1] \endcode*/
-double* sigext_sym(double *data, int ns, int n){
-  int offset, i=0; 
-  double *dptr;
-  dprintf("Db: sigext_sym\n");
-
-  offset = (n-ns)/2;
-  dptr = memmove(&(data[offset]), data, ns*sizeof(double));
-  for(i=1; i<=offset; i++){ /*( ((n-ns)%2==0) ? offset : offset-1); i++){*/
-    data[offset-i]=data[offset+i-1]; 
-    data[offset+ns+i-1]=data[offset+ns-i];
-  }
-  data[n-1]=((ns-n)%2==0 ? data[offset+(n-ns)/2] : data[offset+(n-ns)/2-1]);
-  return dptr;
-  
-}
-
-double* sigext_smooth(double *data, int ns, int n){
-  /* [1 2 3 - - - - -] -> [1 1 1 2 3 3 3 3] */
-  int offset, i=0; /* for signal */
-  double *dptr;
-  dprintf("Db: sigext_smooth\n");
-
-  offset = (n-ns)/2;
-  dptr = memmove(&(data[offset]), data, ns*sizeof(double));
-  for(i=1; i<=offset; i++){ /*( ((n-ns)%2==0) ? offset : offset-1); i++){*/
-    data[offset-i]=data[offset]; 
-    data[offset+ns+i-1]=data[ns-1];
-  }
-  data[n-1]=data[n-2];
-  return dptr;
 }
 
 

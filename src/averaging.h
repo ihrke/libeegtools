@@ -57,6 +57,8 @@ extern "C" {
   void      DTW_cumulate_distmatrix(double **d, int J, int K);
   double**  DTW_build_distmatrix(const double *u, int J, const double *s, int K, 
 											double theta1, double theta2, double **d);
+  double**  eeg_DTW_build_distmatrix_channel(const EEGdata *s1, const EEGdata *s2, int channel, 
+												 double theta1, double theta2, double **d);
   void      DTW_markers_to_distmatrix(double **d, int J, int K, 
 												  const unsigned long **markers, 
 												  unsigned nmarkers);
