@@ -23,6 +23,21 @@ double** copy_double_ptrptr(const double **s, int N, int n){
   return r;
 }
 
+/** return number of occurences of c in f.
+	 f is rewound to current position 
+*/
+int stream_count_char( FILE* f, char c ){
+  long curpos;
+  int numchar=0;
+  curpos = ftell( f );
+  while( (c=fgetc( f ))!=EOF ){
+	 if( c=='\n' ) numchar++;
+  }
+
+  fseek( f, curpos, SEEK_SET );
+
+  return numchar;
+}
 /** Deep-copy everything from source to dest. It is necessary, that
 	 all number-of-element fields of dest are the same as those in
 	 source, since no memory is reallocated. (comparison with
@@ -64,6 +79,11 @@ void free_warppath(WarpPath *p){
 	free(p->upath);
 	free(p->spath);
 	free(p);
+}
+
+void print_channelinfo( FILE* out, const ChannelInfo *c ){
+  fprintf( out, "Channel No. %i/%i - '%s' at (%.2f, %.2f, %.2f)\n", 
+			  c->num, c->num_chans, c->label, c->x, c->y, c->z );
 }
 
 void print_modeldata(FILE *out, const ModelData *m){

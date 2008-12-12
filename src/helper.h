@@ -136,6 +136,8 @@ extern "C" {
   size_t  ffread(void *ptr, size_t size, size_t nmemb, FILE *stream);
   size_t  ffwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
 
+  int stream_count_char( FILE* f, char c );
+
   /**\}*/
 
  /**\addtogroup helperstruct
@@ -168,7 +170,7 @@ extern "C" {
   void    print_timewarpparameters(FILE *out, const TimewarpParameters *p);
   void    print_eegdata_trials(FILE *out, const EEGdata_trials *eeg);
   void    print_eegdata(FILE *out, const EEGdata *eeg);
-  
+  void    print_channelinfo( FILE *out, const ChannelInfo *c );
   /**\}*/
 
   /**\addtogroup helperplot

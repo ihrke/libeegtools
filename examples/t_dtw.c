@@ -27,6 +27,7 @@
 #include "helper.h"
 #include "definitions.h"
 #include "clustering.h"
+#include "chaninfo.h"
 
 #include "config.h"
 #ifdef HAVE_LIBPLOTTER

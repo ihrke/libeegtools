@@ -1,0 +1,28 @@
+/** \page chaninfo Channel Information (Location)
+For some algorithms, you need to know where, on the head, an EEG-channel is located.
+
+There 2 ways to do this in libEEGTools:
+ -# you edit the file chaninfo.h directly, adding a static struct-array of ChannelInfo -structs e.g.
+    \code
+	 
+  static ChannelInfo my_channelInfo[] = {
+	 {1, 5, "Fp1",80.8,26.1,-4},
+	 {2, 5, "Fp2",80.8,-26.1,-4},
+	 {3, 5, "F3",57.6,48.2,39.9},
+	 {4, 5, "F4",57.6,-48.1,39.9},
+	 {5, 5, "C3",3.87e-15,63.2,56.9}
+	 }
+	 \endcode
+ -# you have the information in the format of .ced files (tab-separated), e.g.
+    \code
+Number  labels  theta   radius  X       Y       Z       sph_theta       sph_phi sph_radius      type    urchan  
+1       Fp1     -17.9   0.515   80.8    26.1     -4     17.9    -2.7     85     1         1     
+2       Fp2     17.9    0.515   80.8    -26.1    -4     -17.9   -2.7     85     2         2     
+3       F3      -39.9   0.344   57.6    48.1    39.9    39.9     28      85     3         3     
+4       F4      39.9    0.344   57.6    -48.1   39.9    -39.9    28      85     4         4     
+5       C3      -90     0.267   3.87e-15        63.2    56.9     90      42      85     5         5     
+	 \endcode
+	 then you can use the function read_chaninfo_ced() which parses such a file
+	 - this function should be called with ALLOC_IN_FCT as second argument to allocate the correct amount
+	   of memory (free it yourself,afterwards)
+*/

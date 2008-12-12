@@ -1,6 +1,122 @@
 #include "reader.h"
 #include "helper.h"
 
+/** reads from FILE* until '\n' and puts it into line.
+	 '\0' is added to line.
+	 \param f
+	 \param line empty string (long enough), or NULL ->own memory
+	 \return NULL if error, else ptr to line
+ */
+char* read_line( FILE *f, char *line ){
+  long curpos;
+  int length=0;
+  char c;
+  int i;
+
+  if( line==NULL ){ /* find out how much memory is needed */
+	 curpos = ftell( f );
+	 while( (c=fgetc( f ))!='\n' ) 
+		length++;
+	 dprintf( "length=%i\n", length );
+	 fseek( f, curpos, SEEK_SET );
+	 line = (char*) malloc( (length+1)*sizeof(char) );
+  }
+  i = 0;
+  while( (c=fgetc( f ))!='\n' ){
+	 line[i++]=c;
+  }
+  line[i] = '\0';
+  return line;
+}
+
+/** reads ChannelInfo struct from .ced file (EEGlab).
+	 Format is: One line with labels (tab-sep), followed by lines of values (tab-sep).
+	 This function reads:
+	   - labels: "labels" "X", "Y", "Z"
+		- values: char*  double double double
+		\param fname filename
+		\param chans ChannelInfo struct (large enough) or NULL (memory allocated in function)
+		\return chaninfo read from file or NULL if error occured
+*/
+ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans ){
+  int num_chans=0;
+  FILE *f;
+  char buf[MAX_LINE_LENGTH];
+  int Label_idx=-1, 
+	 X_idx=-1, Y_idx=-1, Z_idx=-1;
+  char *strstart, *strend;
+  int idx, i;
+
+  if( (f=fopen( fname, "r" ))==NULL ){
+	 errprintf("couldn't open file '%s'\n", fname );
+	 return NULL;
+  }
+  
+  read_line( f, buf );
+  dprintf("labels='%s'\n", buf);
+
+  /* labels present ?*/
+  strstart=buf;
+  idx = 0;
+  while( (strend=strchr( strstart, '\t' ))!=NULL){
+	 *strend='\0';
+	 dprintf( "curlab='%s'\n", strstart );
+	 if( !strcasecmp( strstart, "labels" ) ){
+		Label_idx=idx;
+	 } else if( !strcasecmp( strstart, "X" ) ){
+		X_idx=idx;
+	 } else if( !strcasecmp( strstart, "Y" ) ){
+		Y_idx=idx;
+	 } else if( !strcasecmp( strstart, "Z" ) ){
+		Z_idx=idx;
+	 }
+	 strstart = strend+1;
+	 idx++;
+  }
+  dprintf(" l=%i, X=%i, Y=%i, Z=%i\n", Label_idx, X_idx, Y_idx, Z_idx );
+  if( X_idx<0 || Y_idx<0 || Z_idx<0 || Label_idx<0 ){
+	 errprintf( " ERROR: did not find one of the labels: X=%i, Y=%i, Z=%i, Labels=%i\n", 
+					X_idx, Y_idx, Z_idx, Label_idx );
+	 return NULL;
+  }
+
+  num_chans = stream_count_char( f, '\n' );
+  dprintf(" num_chans = %i\n", num_chans );
+
+  if( chans==ALLOC_IN_FCT ){
+	 chans = (ChannelInfo*) malloc( num_chans*sizeof(ChannelInfo) );
+  } else { /* num_chans from chans-struct */
+	 if( num_chans!=chans[0].num_chans ){
+		errprintf( " ERROR: not enough memory in chans-struct\n");
+		return NULL;
+	 }
+  }
+  
+  for( i=0; i<num_chans; i++ ){ /* for all channels */  
+	 read_line( f, buf );
+	 strstart=buf;
+	 idx = 0;
+	 chans[i].num_chans=num_chans;
+	 chans[i].num = i+1;
+	 while( (strend=strchr( strstart, '\t' ))!=NULL){
+		*strend='\0';
+		if( idx==Label_idx ){
+		  strcpy( chans[i].label, strstart );
+		} else if( idx==X_idx ){
+		  chans[i].x = atof( strstart );
+		} else if( idx==Y_idx ){
+		  chans[i].y = atof( strstart );
+		} else if( idx==Z_idx ){
+		  chans[i].z = atof( strstart );
+		}
+		strstart = strend+1;
+		idx++;
+	 }
+	 print_channelinfo( stderr, chans+i );
+  }
+
+  return chans;
+}
 
 /** read xdim x ydim matrix from ascii file with delimiter 'delim';
 	 if NULL is passed as d, the functin allocates memory.

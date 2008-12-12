@@ -29,8 +29,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <strings.h>
 
 /*typedef unsigned char uint8;*/
+
+#define MAX_LINE_LENGTH 500
 
 /** Matlab Defintions to read .mat files */
 #define miINT8    1 /* 8 bit, signed */
@@ -71,6 +74,9 @@ extern "C" {
   double**        read_double_matrix_ascii(const char *fname, int xdim, int ydim, double **d);
   EEGdata_trials* read_eegtrials_from_raw(const char *file);
   double*         read_double_vector_ascii( const char *fname, int N, double *v );
+
+  char* read_line( FILE *f, char *line );
+  ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans );
 
   /* matlab readers not functional, yet */
   EEGdata_trials* read_segmented_eeg_from_eeglabset(const char *file);

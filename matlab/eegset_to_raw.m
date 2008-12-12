@@ -3,7 +3,7 @@ function eegset_to_raw(EEG, num_markers, trials, filename);
 % EEG - is an eeglab-set
 % num_markers - how many markers per trial?
 % trials - is an array giving the indices from the
-%          EEG.epoch field to be used
+%          EEG.epoch field to be used; [] - all trials
 % filename - string giving name of output file
 %
 % Output file-format:
@@ -20,12 +20,18 @@ function eegset_to_raw(EEG, num_markers, trials, filename);
 %	      - channels x trial x samples
 %			- i.e. first all trials of the first channel one after the other, than
 %			  the 2nd and so on
+ 
+  if isempty(trials)
+    trials = 1:length(EEG.epoch);
+  end;
+  
   fid = fopen(filename, 'wb');
   fwrite(fid, EEG.nbchan, 'double');
   fwrite(fid, max(size(trials)), 'double');
   fwrite(fid, EEG.pnts, 'double');
   fwrite(fid, num_markers, 'double');
   fwrite(fid, EEG.times, 'double');
+ 
   
   % markers
   ms = EEG.epoch(trials);

@@ -16,13 +16,7 @@
 #include "helper.h"
 #include "clustering.h"
 
-#include "config.h"
-#ifdef HAVE_LIBPLOTTER
-#include <cplotter.h>
-#define PL(code) (code)
-#else
 #define PL(code)
-#endif
 
 void usage(const char *);
 
@@ -32,8 +26,8 @@ void dtwtest1(int argc, const char **argv);
    -- main routine                                                           -- 
    ---------------------------------------------------------------------------- */
 int main(int argc, char **argv){ 
-  dtwtest1(argc, argv);
-
+  /*dtwtest1(argc, argv);*/
+  read_chaninfo_ced( argv[1], ALLOC_IN_FCT );
   return 0;
 }
 

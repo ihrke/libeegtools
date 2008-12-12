@@ -28,6 +28,11 @@ WarpPath* eeg_DTW_get_paths_by_markers2( const EEGdata *s1, const EEGdata *s2, i
 void eeg_ADTW_channel2(const EEGdata *s1, const EEGdata *s2, EEGdata *target, int channel, double theta );
 double* ADTW_from_path2(const double *u, int J, const double *s, int K, const WarpPath *P, double *avg);
 
+
+double** test( const double *s1, int n1, const double *s2, int n2, double theta, double **d){
+  
+}
+
 /* ---------------------------------------------------------------------------- 
    -- main routine                                                           -- 
    ---------------------------------------------------------------------------- */
@@ -40,10 +45,11 @@ int main(int argc, char **argv){
   /* get data */				  
   eeg=read_eegtrials_from_raw( argv[1] );
   print_eegdata_trials(stderr, eeg);
-  new = init_eegdata( eeg->data[0]->nbchan, eeg->data[0]->n, eeg->nmarkers_per_trial );
+  /* new = init_eegdata( eeg->data[0]->nbchan, eeg->data[0]->n, eeg->nmarkers_per_trial ); */
 
   /* computation */  
-  eeg_ADTW_markers_channel3( eeg->data[0], eeg->data[1], new, 0, 0.5 );
+  /*  test(*/
+  /* eeg_ADTW_markers_channel3( eeg->data[0], eeg->data[1], new, 0, 0.5 ); */
 
 
   /* write */

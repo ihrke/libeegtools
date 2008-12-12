@@ -20,7 +20,7 @@
 
 /**\file tools.h
  * Other Tools.
- * \defgroup tools Some Tools
+ * \defgroup tools Some Other Tools
  *\{
  *\}
  */
@@ -36,7 +36,8 @@ extern "C" {
 /** \addtogroup tools
  *\{
  */
-
+    void eeg_remove_baseline( EEGdata *eeg, const double *times, double win_from, double win_to );
+    void eegtrials_remove_baseline( EEGdata_trials *eeg, double win_from, double win_to );
 /** \} */
 
 #ifdef __cplusplus
