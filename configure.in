@@ -119,7 +119,7 @@ AC_HEADER_STDC # standard library headers, stdlib.h, stdarg.h, string.h, and flo
 # ----------------------------------------------------------------------
 AM_CONFIG_HEADER([config.h])
 AC_OUTPUT(Makefile src/Makefile misc/Makefile progs/Makefile)
-AC_OUTPUT(src/definitions.h)
+AC_OUTPUT(src/definitions.h matlab/Makefile)
 
 echo "
 
