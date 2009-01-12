@@ -15,6 +15,9 @@
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 %
 % $Log$
+% Revision 1.4  2009/01/12 15:03:53  mihrke
+% gibbons eegplugin
+%
 % Revision 1.3  2009/01/12 11:50:07  mihrke
 % adsf
 %
@@ -28,12 +31,8 @@
 %
 %
 %
-function eegplugin_gibbons( fig, try_strings, catch_strings);
+function eegplugin_gibbons( fig, try_strings, catch_strings, varargin);
 
-%  path(path, './src')
-  
-% create menu
-toolsmenu = findobj(fig, 'tag', 'tools');
 
 % build command for menu callback
 gibbonscmd = [ 'EEG = pop_gibbons(EEG); [ALLEEG EEG CURRENTSET]=eeg_store(ALLEEG,EEG);'...
@@ -42,5 +41,25 @@ fgibbonscmd =  [ try_strings.no_check gibbonscmd ];
 fgibbonscmd = [fgibbonscmd  'LASTCOM = ''' gibbonscmd ''';' ];
 fgibbonscmd = [fgibbonscmd  catch_strings.store_and_hist ];
 
-submenu = uimenu( toolsmenu, 'label', 'Correction of Temporal Distortion');
-uimenu( submenu, 'Label', 'Gibbons Timewarp', 'CallBack', fgibbonscmd);
+
+% if called from super-plugin, put it under temporal distortion
+args = varargin;
+if ~isempty(args)
+   try, g = struct(args{:});
+   catch, disp('eegplugin_gibbons(): wrong syntax in function arguments'); return; end;
+else
+    g = [];
+end;
+try 
+  g.called_by_temporal_distortion;
+catch, 
+  g.called_by_temporal_distortion=0;
+end;
+
+if g.called_by_temporal_distortion
+    tempdistmenu = findobj(fig, 'tag', 'tempdist');
+    uimenu( tempdistmenu, 'Label', 'Gibbons Timewarp', 'CallBack', fgibbonscmd);
+else
+    toolsmenu = findobj(fig, 'tag', 'tools');
+    uimenu( toolsmenu, 'Label', 'Gibbons Timewarp', 'CallBack', fgibbonscmd);
+end;
