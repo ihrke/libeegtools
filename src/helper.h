@@ -148,7 +148,7 @@ extern "C" {
 	  ---------------------------------------------------------------------------- */
   /* constructors */
   EEGdata*        init_eegdata(int nbchan, int nsamples, int nmarkers);
-  EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, int nbchan, int nbsamples);
+  EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, int nbchan, int nbsamples, double *times);
   WarpPath*       init_warppath(WarpPath *path, int J, int K);
 
   
@@ -163,6 +163,7 @@ extern "C" {
   void      copy_modeldata(const ModelData *m1, ModelData *m2);
   int       eegdata_cmp_settings( EEGdata *s1, EEGdata *s2 );
   int       copy_similar_eegdata( EEGdata *dest, const EEGdata *source );
+  EEGdata_trials*      clone_eegdata_trials( const EEGdata_trials *source );
 
   /* printing-functions */
   void    print_modeldata(FILE *out, const ModelData *m);

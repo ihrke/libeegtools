@@ -254,6 +254,24 @@ double** matrix_init(int N, int M){
   
   return d;
 }
+/** return a 0-initialized integer matrix of dimension NxM
+ */
+int** matrix_init_int(int N, int M){
+  int i,j;
+  int **d;
+  /* dprintf("N,M=(%i,%i)\n", N, M); */
+  d = (int**) malloc( N*sizeof(int*) );
+  for( i=0; i<N; i++){
+ 	 /* dprintf(" i=%i\n", i ); */
+	 d[i] = (int*) malloc( M*sizeof(int) );
+	 for( j=0; j<M; j++ ){
+		d[i][j]=0;
+	 }
+  }
+  
+  return d;
+}
+
 
 /** Delete a column in a matrix. Memory remains allocated and everything is 
  *  moved (deleted column sits at index n). Index runs from 0,...,n-1
@@ -293,10 +311,41 @@ double matrix_min(const double **m, int N, int n, int *i1, int *i2){
 		  }
       }
     }
+  } 
+
+  if(i1 && i2){
+	 dprintf("matrix_min: m(%i,%i)=%f (%f)\n", *i1, *i2, m[*i1][*i2], minel);
+  } else {
+	 dprintf("matrix_min: m=%f\n",  minel);
   }
-  dprintf("matrix_min: m(%i,%i)=%f (%f)\n", *i1, *i2, m[*i1][*i2], minel);
   return minel;
 }
+/** Get maximum entry from matrix. Set indices accordingly.
+ * \param m, N, n - Nxn matrix
+ * \param i1,i2 - pointer to indices of max-element. If NULL, ignored.
+ */
+double matrix_max(const double **m, int N, int n, int *i1, int *i2){
+  int i,j;
+  double maxel=DBL_MIN;
+  for(i=0; i<N; i++){
+    for(j=0; j<n; j++){
+      if(m[i][j]>maxel){
+		  maxel = m[i][j];
+		  if(i1 && i2){
+			 *i1 = i;
+			 *i2 = j;
+		  }
+      }
+    }
+  }
+  if(i1 && i2){
+	 dprintf("matrix_max: m(%i,%i)=%f (%f)\n", *i1, *i2, m[*i1][*i2], maxel);
+  } else {
+	 dprintf("matrix_max: %f\n", maxel);
+  }
+  return maxel;
+}
+
 
 /** print a matrix.
  */
@@ -326,6 +375,33 @@ void matrix_add_matrix(double **m1, const double **m2, int N, int n){
   }
 }
 
+/** 
+	 MatLab's M1.*M2, which is M1[i][j] = M1[i][j]*M2[i][j];
+	 That is, m1 is overwritten with the result from the operation
+	 \param m1,m2
+	 \param N,M dimensions of m1 and m2 
+ */
+void     matrix_dottimes_matrix( double **m1, const double **m2, int N, int M ){
+  int i,j;
+
+  for( i=0; i<N; i++){
+	 for( j=0; j<M; j++ ){
+		m1[i][j] = m1[i][j]*m2[i][j];
+	 }
+  }
+}
+
+/** copy matrix src to dest with dimensions N,M
+ */
+void     matrix_copy( const double **src, double **dest, int N, int M ){
+  int i,j;
+
+  for( i=0; i<N; i++ ){
+	 for( j=0; j<M; j++ ){
+		dest[i][j] = src[i][j];
+	 }
+  }
+}
 /** divide all entries in m by s
  */
 void matrix_divide_scalar(double **m, int N, int n, double s){
@@ -356,6 +432,19 @@ int sgn(int x){
 }
 
 
+/** Compute how many points are in the discretized straight line computed
+	 by Bresenham's line-drawing algorithm. Can be used to determine how much
+	 memory needs to be allocated.
+ *  \param  int xstart, ystart        = Koordinaten des Startpunkts
+ *  \param  int xend, yend            = Koordinaten des Endpunkts
+ */
+int bresenham_howmany_points( int xstart,int ystart,int xend,int yend ){
+  int dx, dy;
+  dx = (xend - xstart);
+  dy = (yend - ystart);
+  return MAX( dx, dy );
+}
+
 /**
  * Bresenham-Algorithm (stolen but modified from Wikipedia)
  *
@@ -363,67 +452,76 @@ int sgn(int x){
  *  \param  int xend, yend            = Koordinaten des Endpunkts
  *  \param points -- output; saved in pairs (x,y) of the coordinates;
                      must contain enough allocated memory 2*(maximum of 
-							(yend-ystart) and (xend-xstart)
- */
-void bresenham(int xstart,int ystart,int xend,int yend, int *points){
+							(yend-ystart) and (xend-xstart); if NULL is passed, 
+							memory is alloced within the function
+*/
+int* bresenham(int xstart,int ystart,int xend,int yend, int *points){
   int x, y, t, dx, dy, incx, incy, pdx, pdy, ddx, ddy, es, el, err;
   int points_idx;
   points_idx = 0;
 
-/* Entfernung in beiden Dimensionen berechnen */
-   dx = xend - xstart;
-   dy = yend - ystart;
+  /* Entfernung in beiden Dimensionen berechnen */
+  dx = xend - xstart;
+  dy = yend - ystart;
  
-/* Vorzeichen des Inkrements bestimmen */
-   incx = sgn(dx);
-   incy = sgn(dy);
-   if(dx<0) dx = -dx;
-   if(dy<0) dy = -dy;
+  if( points==ALLOC_IN_FCT ){
+	 warnprintf( "allocating in bresenham!\n");
+	 points = (int*) malloc( bresenham_howmany_points( xstart, ystart, 
+																		xend, yend )*sizeof(int) );
+  }
+
+  /* Vorzeichen des Inkrements bestimmen */
+  incx = sgn(dx);
+  incy = sgn(dy);
+  if(dx<0) dx = -dx;
+  if(dy<0) dy = -dy;
  
-/* feststellen, welche Entfernung größer ist */
-   if (dx>dy)
-   {
+  /* feststellen, welche Entfernung größer ist */
+  if (dx>dy)
+	 {
       /* x ist schnelle Richtung */
       pdx=incx; pdy=0;    /* pd. ist Parallelschritt */
       ddx=incx; ddy=incy; /* dd. ist Diagonalschritt */
       es =dy;   el =dx;   /* Fehlerschritte schnell, langsam */
-   } else
-   {
+	 } else
+	 {
       /* y ist schnelle Richtung */
       pdx=0;    pdy=incy; /* pd. ist Parallelschritt */
       ddx=incx; ddy=incy; /* dd. ist Diagonalschritt */
       es =dx;   el =dy;   /* Fehlerschritte schnell, langsam */
-   }
+	 }
  
-/* Initialisierungen vor Schleifenbeginn */
-   x = xstart;
-   y = ystart;
-   err = el/2;
-	points[0]=x;
-	points[1]=y;	
+  /* Initialisierungen vor Schleifenbeginn */
+  x = xstart;
+  y = ystart;
+  err = el/2;
+  points[0]=x;
+  points[1]=y;	
  
-/* Pixel berechnen */
-   for(t=1; t<=el; t++) /* t zaehlt die Pixel, el ist auch Anzahl */
-   {
+  /* Pixel berechnen */
+  for(t=1; t<=el; t++) /* t zaehlt die Pixel, el ist auch Anzahl */
+	 {
       /* Aktualisierung Fehlerterm */
       err -= es; 
       if(err<0)
-      {
+		  {
           /* Fehlerterm wieder positiv (>=0) machen */
           err += el;
           /* Schritt in langsame Richtung, Diagonalschritt */
           x += ddx;
           y += ddy;
-      } else
-      {
+		  } else
+		  {
           /* Schritt in schnelle Richtung, Parallelschritt */
           x += pdx;
           y += pdy;
-      }
+		  }
 		points[( 2*t )+0]=x;
 		points[( 2*t )+1]=y;	
-   }
-	//	dprintf("t=%i, (x,y)=(%i,%i)\n", t,x,y);
+		/* dprintf(" 2*t+1=%i\n", 2*t+1); */
+	 }
+  //	dprintf("t=%i, (x,y)=(%i,%i)\n", t,x,y);
+  return points;
 } /* bresenham() */
 
 void    swap2i(int *v1, int *v2){
@@ -440,35 +538,6 @@ void    swap2d(double *v1, double *v2){
   *v2 = tmp;
 }
 
-
-/** Draw a sample from a discrete distribution.
-	 \param v,n the distribution as a funciton of [0,...,n]
-	 \param x a real value from the interval [0,...,n]
-	 \return v(x) by linear interpolation
-*/
-double drawsample_linear( const double *v, int n, double x ){
-  int x1, x2;
-  double r, m, intercept;
-  x1 = (int)floor( x );
-  x2 = (int)ceil ( x );
-  if( x1==x2 ){
-	 x2++;
-  }
-  if(x2>=n){
-	 x1--; x2--;
-  }
-  if( x1<0 || x1>=n || x2<0 || x2>=n || x1>=x2 ){
-	 errprintf( "(x=%f, x1=%i, x2=%i, n=%i)\n", x, x1, x2, n );
-  }
-  m = (v[x2]-v[x1])/(double)(x2-x1);
-  intercept = v[x2]-m*x1;
-  r = m*x + intercept;
-  if( isnan( r ) ){
-	 errprintf( "r=%f (x=%f, x1=%i, x2=%i, v[x1]=%f, v[x2]=%f, m=%f, n=%f)\n", r, x, x1, x2, v[x1], v[x2], m, intercept );
-  }
-  /*dprintf("(x1, x2, m, n, r) = (%i, %i, %.2f, %.2f, %.2f)\n", x1, x2, m, n, r);*/
-  return r;
-}
 
 
 /** Draw a sample from a discrete distribution (nearest neighbour).
@@ -493,7 +562,9 @@ double drawsample_nearest_neighbour( const double *v, int n, double x ){
 }
 
 
-/** Resample a vector to match a new length (nn-interpolation).
+/** Resample a vector to match a new length (NN-interpolation). 
+	 Assume that s is from [0,...,n] and resample, such that the new
+	 x is running from [0,...,newn] where y[newn]=y_old[n].
 	 \param s,n the original vector
 	 \param newn the new length of the vector
 	 \param news caller-allocated memory of at least length newn (if NULL, 
@@ -526,21 +597,58 @@ double* resample_nearest_neighbour( const double *s, int n, int newn, double *ne
 	 \see drawsample_linear()
 */
 double* resample_linear( const double *s, int n, int newn, double *news ){
+  return resample_gsl( s, n, newn, news, gsl_interp_linear );
+}
+
+/** Resample a vector to match a new length using GSL's interpolation
+	 options:
+	  -# gsl_interp_linear
+	  -# gsl_interp_polynomial
+	  -# gsl_interp_cspline
+	  -# gsl_interp_cspline_periodic
+	  -# gsl_interp_akima
+	  -# gsl_interp_akima_periodic
+
+	 Assume that s is from [0,...,n] and resample, such that the new
+	 x is running from [0,...,newn] where y[newn]=y_old[n].
+	 \param s,n the original vector
+	 \param newn the new length of the vector
+	 \param news caller-allocated memory of at least length newn (if NULL, 
+	             the function allocates own memory)
+    \param method one of GSL interpolation types (see above)
+	 \return resampled vector in news
+*/
+double* resample_gsl( const double *s, int n, int newn, double *news, gsl_interp_type *method ){
   double step;
   int i;
+  gsl_interp *interp;
+  double *x;
+
+  x = (double*)malloc( n*sizeof(double) );
+  for( i=0; i<n; i++ ){
+	 x[i] = (double)i;
+  }
+  gsl_interp_accel *acc = gsl_interp_accel_alloc ();
+  gsl_spline *spline = gsl_spline_alloc (method, n);
+  gsl_spline_init (spline, x, s, n);
 
   if( news==NULL ){
 	 news = (double*) malloc( newn*sizeof( double ) );
   }
 
+
   step = (double)n/(double)newn;
   for( i=0; i<newn; i++ ){
-	 news[i] = drawsample_linear( s, n, i*step );
+	 news[i] = gsl_spline_eval( spline, i*step, acc );
   }
- 
+
+  /* free */
+  gsl_spline_free (spline);
+  gsl_interp_accel_free (acc);
+  free(x);
+
   return news;
 }
-
 double* flip_array( double *v, int n ){
   int i;
   double tmp;
@@ -706,4 +814,155 @@ int iremainder( double x, double y){
   }
 
   return result;
+}
+
+double** disttransform_deadreckoning(int **I, int X, int Y, double **d){
+   int x, y;
+   double d1=1;
+   double d2=sqrt(2);
+   int **P1, **P2;
+
+	P1 = matrix_init_int( X, Y );
+	P2 = matrix_init_int( X, Y );
+
+   /* P1 = (int**) malloc(X*sizeof(int*)); */
+   /* P2 = (int**) malloc(X*sizeof(int*)); */
+	/* printf("fdas, %i, %i\n", X, Y); */
+   /* for(x=0; x<X; x++){ */
+	/*   printf("1, %i, %i\n", x, Y); */
+	/*   P1[x]=(int*)calloc(Y, sizeof(int)); */
+	/*   printf("2, %i, %i\n", x, Y); */
+	/*   P2[x]=(int*)calloc(Y, sizeof(int)); */
+   /* } */
+	/* printf("fdas\n"); */
+
+	if( d==NULL ){
+	  d = matrix_init( X, Y );
+	}
+  
+   for(y=0; y<Y; y++){
+	  for(x=0; x<X; x++){
+		 d[x][y] = DBL_MAX;
+		 P1[x][y]=-1;
+		 P2[x][y]=-1;
+		 if(x>0 && y>0 && y<Y-1 && x<X-1){
+			if( I[x-1][y  ]!=I[x][y] || I[x+1][y  ]!=I[x][y] ||
+				 I[x  ][y-1]!=I[x][y] || I[x  ][y+1]!=I[x][y]){
+			  d [x][y]=0;
+			  P1[x][y]=x;
+			  P2[x][y]=y;
+			}
+		 }            
+	  }
+   }
+   
+   /* first pass */
+   for(y=1; y<Y-1; y++){
+	  for(x=1; x<X-1; x++){
+		 if(d[x-1][y-1]+d2 < d[x][y]){
+			P1[x][y] = P1[x-1][y-1];
+			P2[x][y] = P2[x-1][y-1];
+			d [x][y] = sqrt( SQR( x-P1[x][y] ) + 
+								  SQR( y-P2[x][y] ) );
+		 }
+		 if(d[x  ][y-1]+d1 < d[x][y]) {
+			P1[x][y] = P1[x][y-1];
+			P2[x][y] = P2[x][y-1];
+			d[x][y]  = sqrt( SQR( x-P1[x][y] ) + 
+								  SQR( y-P2[x][y] ) );
+                
+		 }           
+		 if(d[x+1][y-1]+d2 < d[x][y]) {
+			P1[x][y] = P1[x+1][y-1];
+			P2[x][y] = P2[x+1][y-1];
+			d[x][y]  = sqrt( SQR( x-P1[x][y] ) + 
+								  SQR( y-P2[x][y] ) );
+                
+		 }
+		 if(d[x-1][y  ]+d1 < d[x][y]) {
+			P1[x][y] = P1[x-1][y];
+			P2[x][y] = P2[x-1][y];
+			d[x][y]  = sqrt( SQR( x-P1[x][y] ) + 
+								  SQR( y-P2[x][y] ) );
+                
+		 }
+	  }
+   }
+
+   /* final pass */
+   for(y=Y-2; y>0; y--){
+	  for(x=X-2; x>0; x--){
+		 if(d[x+1][y]+d1 < d[x][y]){
+			P1[x][y] = P1[x+1][y];
+			P2[x][y] = P2[x+1][y];
+			d[x][y]  = sqrt( SQR( x-P1[x][y] ) + 
+								  SQR( y-P2[x][y] ) );
+		 }
+		 if(d[x-1][y+1]+d2 < d[x][y]) {
+			P1[x][y] = P1[x-1][y+1];
+			P2[x][y] = P2[x-1][y+1];
+			d[x][y]  = sqrt( SQR( x-P1[x][y] ) + 
+								  SQR( y-P2[x][y] ) );
+                
+		 }           
+		 if(d[x][y+1]+d1 < d[x][y]) {
+			P1[x][y] = P1[x][y+1];
+			P2[x][y] = P2[x][y+1];
+			d[x][y]  = sqrt( SQR( x-P1[x][y] ) + 
+								  SQR( y-P2[x][y] ) );
+                
+		 }
+		 if(d[x+1][y+1]+d2 < d[x][y]) {
+			P1[x][y] = P1[x+1][y+1];
+			P2[x][y] = P2[x+1][y+1];
+			d[x][y]  = sqrt( SQR( x-P1[x][y] ) + 
+								  SQR( y-P2[x][y] ) );
+                
+		 }
+	  }
+   }
+    
+   for(x=0; x<X; x++){
+	  d[x][0  ] = d[x][1];
+	  d[x][X-1] = d[x][X-2];
+   }
+   for(y=0; y<Y; y++){
+	  d[0  ][y] = d[1  ][y];
+	  d[Y-1][y] = d[Y-2][y];
+   }
+   for(y=Y-2; y>0; y--)
+	  for(x=X-2; x>0; x--)
+		 if(I[x][y]>0) d[x][y] = -1*d[x][y];
+   
+
+   for(x=0; x<X; x++){
+	  free(P1[x]);
+	  free(P2[x]);
+   }
+   free(P1); free(P2);
+   
+	return d;
+}
+
+/** \f$
+	 G(x) = \frac{1}{\sigma\sqrt{2\pi}} \exp{\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)}
+	 \f$
+*/
+double gaussian( double x, double sigma, double mu ){
+  return  1/(sigma*sqrt(2*PI)) * exp( -1 * ( SQR( (x-mu) ) / 
+															(2*SQR( sigma )) ) );
+}
+
+
+/** Computes: m[i][j] = scalar-m[i][j]
+ */
+void scalar_minus_matrix( double scalar, double **m, int N, int M ){
+  int i,j;
+
+
+  for( i=0; i<N; i++ ){
+	 for( j=0; j<M; j++ ){
+		m[i][j] = scalar-m[i][j];
+	 }
+  }
 }

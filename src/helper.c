@@ -49,6 +49,7 @@ int stream_count_char( FILE* f, char c ){
 int      copy_similar_eegdata( EEGdata *dest, const EEGdata *source ){
   int i;
   if( eegdata_cmp_settings( dest, source ) ){
+	 errprintf("dest and source not similar enough! Aborting!\n");
 	 return -1;
   }
   memcpy( dest->markers, source->markers, (dest->nmarkers)*sizeof(unsigned long) );
@@ -56,6 +57,31 @@ int      copy_similar_eegdata( EEGdata *dest, const EEGdata *source ){
 	 memcpy( dest->d[i], source->d[i], (dest->n)*sizeof( double ) );
   }
   return 0;
+}
+
+
+/** Deep-copy everything from source to a freshly allocated struct;
+	 
+	 \params source
+	 \return dest
+ */
+EEGdata_trials*      clone_eegdata_trials( const EEGdata_trials *source ){
+  int i;
+  int nchan;
+  int nsamples;
+  EEGdata_trials *dest;
+  
+  if( source->ntrials<1 ){
+	 errprintf(" empty eegdata_trials\n");
+  }
+  nchan = source->data[0]->nbchan;
+  nsamples = source->data[0]->n;
+  dest = init_eegdata_trials( source->ntrials, source->nmarkers_per_trial, nchan, nsamples, source->times);
+  for( i=0; i<source->ntrials; i++ ){
+	 copy_similar_eegdata( dest->data[i], source->data[i] );
+  }
+
+  return dest;
 }
 
 /** shallow copy of ModelData struct
@@ -165,15 +191,21 @@ EEGdata* init_eegdata(int nbchan, int nsamples, int nmarkers){
   eeg->nbchan = nbchan;
   eeg->n = nsamples;
   eeg->d = (double**) malloc( nbchan * sizeof(double*) );
-  for(i=0; i<nbchan; i++)
+  for(i=0; i<nbchan; i++){
 	 eeg->d[i] = (double*) malloc( nsamples*sizeof(double) );
+  }
   eeg->markers = (unsigned long*)malloc( nmarkers*sizeof(unsigned long) );
   eeg->nmarkers=nmarkers;
 
   return eeg;
 }
 
-EEGdata_trials* init_eegdata_trials(int nbtrials, int nmarkers_per_trial, int nbchan, int nbsamples){
+/** allocate new EEGdata_trials struct
+	 \param times is NULL (no information) or a nbsamples long double array containing the times-entries
+	              for the eeg-data
+	 \return the struct
+*/
+EEGdata_trials* init_eegdata_trials(int nbtrials, int nmarkers_per_trial, int nbchan, int nbsamples, double *times){
   EEGdata_trials *eeg;
   int i;
 
@@ -184,7 +216,11 @@ EEGdata_trials* init_eegdata_trials(int nbtrials, int nmarkers_per_trial, int nb
   for(i=0; i<nbtrials; i++){
 	 eeg->markers[i] = (unsigned long*) malloc( nmarkers_per_trial * sizeof( unsigned long ) );
   }
+  eeg->nsamples = nbsamples;
   eeg->times = (double*)malloc( nbsamples*sizeof( double ) );
+  if( times!=NULL ){
+	 memcpy( eeg->times, times, nbsamples*sizeof( double ) );
+  }
   eeg->data = (EEGdata**)malloc( nbtrials*sizeof( EEGdata* ) );
   for(i=0; i<nbtrials; i++){
 	 eeg->data[i] = init_eegdata(nbchan, nbsamples, nmarkers_per_trial);
@@ -222,7 +258,7 @@ void free_eegdata(EEGdata *eeg){
 	 free(eeg->d[i]);
   }
   free(eeg->d);
-  //  free(eeg);
+  free(eeg);
 }
 
 int v_printf(int v, char *format, ...){

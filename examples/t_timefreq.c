@@ -19,8 +19,9 @@
 #include "averaging.h"
 #include "mathadd.h"
 #include "time_frequency.h"
+#include "warping.h"
 
-#include <cplotter.h>
+#include <libplotter/cplotter.h>
 
 /* ---------------------------------------------------------------------------- 
    -- main routine                                                           -- 
@@ -32,14 +33,15 @@ int main(int argc, char **argv){
   Spectrogram *spectgram;
   double *win;
   double *data;
-  int N=2000;
+  int N,i;
   int win_length=2049;
 
-  /* get data */				  
-  /*eeg=read_eegtrials_from_raw( argv[1] );
+  /* get data */
+  eeg=read_eegtrials_from_raw( argv[1] );
   print_eegdata_trials(stderr, eeg);
-  */
-  data = read_double_vector_ascii( argv[1], N, NULL );
+  
+  data = eeg->data[0]->d[0]; /*read_double_vector_ascii( argv[1], N, NULL );*/
+  N = eeg->data[0]->n;
 
   /* win = window_gaussian( NULL, win_length, 0.3 ); */
   win = window_hamming( NULL, win_length );
@@ -48,10 +50,11 @@ int main(int argc, char **argv){
   /* 										  win, win_length,  */
   /* 										  100, 100, NULL ); */
   spectgram = spectrogram_stft( data, N, 500,
-										  win, win_length, 
-										  500, 7, NULL );
+  										  win, win_length,
+  										  500, 7, NULL );
 
   spectrogram_compute_powerspectrum( spectgram );
+
 
   plot_format( NULL, win, win_length, "r" );
   plot_switch( plot_add() );
@@ -63,10 +66,10 @@ int main(int argc, char **argv){
 
 
   /* cleaning up */
-  //free_eegdata_trials( eeg );
+  free_eegdata_trials( eeg );
   free_spectrogram( spectgram );
   free( win );
-  free( data );
+  /*  free( data );*/
 
   return 0;
 }

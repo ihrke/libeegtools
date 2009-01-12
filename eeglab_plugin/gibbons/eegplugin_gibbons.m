@@ -1,4 +1,4 @@
-% Copyright (C) 2007  Matthias Ihrke <mihrke@uni-goettingen.de>
+% Copyright (C) 2008  Matthias Ihrke <mihrke@uni-goettingen.de>
 %
 % This program is free software; you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
@@ -15,12 +15,14 @@
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 %
 % $Log$
-% Revision 1.1  2008/03/14 13:57:45  mihrke
-% Initial revision
+% Revision 1.1  2009/01/12 11:34:20  mihrke
+% documentation,
+% rearrangements,
+% eeglab
 %
 %
 %
-function eegplugin_warpavg( fig, try_strings, catch_strings);
+function eegplugin_gibbons( fig, try_strings, catch_strings);
 
 %  path(path, './src')
   
@@ -28,18 +30,11 @@ function eegplugin_warpavg( fig, try_strings, catch_strings);
 toolsmenu = findobj(fig, 'tag', 'tools');
 
 % build command for menu callback
-wavedencmd = [ 'EEG = pop_waveden(EEG); [ALLEEG EEG CURRENTSET]=eeg_store(ALLEEG,EEG);'...
-        'eeglab redraw;'];
-finalcmd = [ try_strings.no_check wavedencmd ];
-finalcmd = [ finalcmd 'LASTCOM = ''' wavedencmd ''';' ];
-finalcmd = [ finalcmd catch_strings.store_and_hist ];
-
-warpavgcmd= [ 'EEG = pop_warpavg(EEG); [ALLEEG EEG CURRENTSET]=eeg_store(ALLEEG,EEG);'...
-        'eeglab redraw;'];
-fwarpavgcmd =  [ try_strings.no_check warpavgcmd ];
-fwarpavgcmd = [ fwarpavgcmd 'LASTCOM = ''' warpavgcmd ''';' ];
-fwarpavgcmd = [ fwarpavgcmd catch_strings.store_and_hist ];
+gibbonscmd = [ 'EEG = pop_gibbons(EEG); [ALLEEG EEG CURRENTSET]=eeg_store(ALLEEG,EEG);'...
+               'eeglab redraw;'];
+fgibbonscmd =  [ try_strings.no_check gibbonscmd ];
+fgibbonscmd = [fgibbonscmd  'LASTCOM = ''' gibbonscmd ''';' ];
+fgibbonscmd = [fgibbonscmd  catch_strings.store_and_hist ];
 
 submenu = uimenu( toolsmenu, 'label', 'Correction of Temporal Distortion');
-uimenu( submenu, 'Label', 'Wavelet-Denoising', 'CallBack', finalcmd);
-uimenu( submenu, 'Label', 'WarpAvg', 'CallBack', fwarpavgcmd);
+uimenu( submenu, 'Label', 'Gibbons Timewarp', 'CallBack', fgibbonscmd);

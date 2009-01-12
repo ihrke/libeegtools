@@ -26,6 +26,7 @@
 #include <float.h>
 #include <math.h>
 #include <string.h>
+#include <gsl/gsl_spline.h>
 #include "helper.h"
 #include "definitions.h"
 
@@ -41,6 +42,7 @@
 #define ISODD(x)        ((((x)%2)==0)? (0) : (1))
 
 # define PI           3.14159265358979323846  /* pi */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -59,12 +61,18 @@ extern "C" {
   double* lininterp(const double *x1, const double *y1, int n1, 
 						  const double *x2,       double *y2, int n2);
   int*    linspace(int first, int last);
-  void    bresenham(int xstart,int ystart,int xend,int yend, int *points);
+
+  int     bresenham_howmany_points( int xstart,int ystart,int xend,int yend );
+  int*    bresenham(int xstart,int ystart,int xend,int yend, int *points);
 
   void    swap2i(int *v1, int *v2);
   void    swap2d(double *v1, double *v2);
 
   double* flip_array( double *v, int n );
+
+  double  gaussian( double x, double sigma, double mu );
+
+  double** disttransform_deadreckoning(int **I, int X, int Y, double **d);
 
   int     next_pow2( int n );
   int     iremainder( double x, double y);
@@ -103,11 +111,15 @@ extern "C" {
 
   /* ---------------------------------------------------------------------------- 
 	  -- Interpolation
-	  ---------------------------------------------------------------------------- */
-  double  drawsample_linear( const double *v, int n, double x );
-  double* resample_linear( const double *s, int n, int newn, double *news );
+	  ---------------------------------------------------------------------------- */ 
+  /** \defgroup interp Interpolation and resampling
+	\{
+  */
   double  drawsample_nearest_neighbour( const double *v, int n, double x );
+  double* resample_linear( const double *s, int n, int newn, double *news );
   double* resample_nearest_neighbour( const double *s, int n, int newn, double *news );
+  double* resample_gsl( const double *s, int n, int newn, double *news, gsl_interp_type *method );
+  /** \} */
 
   /* ---------------------------------------------------------------------------- 
 	  -- Merit Measures                                                         -- 
@@ -127,17 +139,25 @@ extern "C" {
 
   /* ---------------------------------------------------------------------------- 
 	  -- Matrix ops                                                             -- 
-	  ---------------------------------------------------------------------------- */
+	  ---------------------------------------------------------------------------- */ 
+  /** \defgroup matrixops Matrix operations
+		\{
+  */
   double** matrix_delrow(double **m, int N, int n, int row);
   double** matrix_delcol(double **m, int N, int n, int col);
   double   matrix_min(const double **m, int N, int n, int *i1, int *i2);
+  double   matrix_max(const double **m, int N, int n, int *i1, int *i2);
   void     matrix_print(double **m, int N, int n);
   double** matrix_init(int N, int M);
+  int**    matrix_init_int(int N, int M);
   void     matrix_divide_scalar(double **m, int N, int n, double s);
   void     matrix_add_matrix(double **m1, const double **m2, int N, int n);
+  void     matrix_dottimes_matrix( double **m1, const double **m2, int N, int M );
+  void     matrix_copy( const double **src, double **dest, int N, int M );
+  void     scalar_minus_matrix( double scalar, double **m, int N, int M );
   void     matrix_free(double **m, int N);
   /**\}*/
-
+  /**\}*/
 #ifdef __cplusplus
 }
 #endif

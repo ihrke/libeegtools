@@ -18,11 +18,20 @@ range_start = struct.unpack( 'd', f.read( 1*sdouble ))[0];
 step = abs(range_start-struct.unpack( 'd', f.read( 1*sdouble ))[0]);
 f.read( int((numsamples-3)*sdouble) );
 range_end = struct.unpack( 'd', f.read( 1*sdouble ))[0];
-markers = struct.unpack( 'ddddd', f.read( 5*sdouble ));
-f.read( int( (nmarkers*numtrials-5)*sdouble ) );
+if nmarkers*numtrials >= 5:
+    markers = struct.unpack( 'ddddd', f.read( 5*sdouble ));
+    f.read( int( (nmarkers*numtrials-5)*sdouble ) );
+else:
+    markers = [-1,-1,-1,-1,-1];
+    f.read( int( (nmarkers*numtrials)*sdouble ) );
+
 eeg = struct.unpack( 'ddddd', f.read( 5*sdouble ));
 f.close();
-
+if step!=0:
+    srate = (1.0/float(step)*1000);
+else:
+    srate = -1;
+    
 print "Contents of %s: "%(raw)
 print "---------------------------"
 print "Number of channels            : %i"%numchan
@@ -30,7 +39,7 @@ print "Number of Trials              : %i"%numtrials
 print "Number of Samples (per trial) : %i"%numsamples
 print "Number of markers (per trial) : %i"%nmarkers
 print "Times Array                   : %.2f ... %.2f (step=%.2f)"%(range_start, range_end, step)
-print "Sampling Rate                 : %.2f Hz"%(1.0/float(step)*1000)
+print "Sampling Rate                 : %.2f Hz"%(srate)
 print "First 5 entries in markers    : %i, %i, %i, %i,%i ..."%(markers[0], markers[1], markers[2],\
                                                         markers[3], markers[4])
 print "First 5 entries in EEG-data   : %.2f, %.2f, %.2f, %.2f, %.2f ..."%(eeg[0], eeg[1],\

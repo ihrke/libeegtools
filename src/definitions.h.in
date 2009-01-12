@@ -4,7 +4,6 @@
 /* replaced by autoconf */
 #define @DEF_DEBUG@
 
-
 #define ALLOC_IN_FCT NULL
 #define MAX_LABEL_LENGTH 40
 
@@ -27,6 +26,7 @@ extern "C" {
 	 unsigned int nmarkers_per_trial;
 	 unsigned long **markers; /** stimulus onset, response, etc
 											in sampling points; dims are ntrials x nmarkers */
+	 unsigned int nsamples; /** number of samples in each data */
 	 double *times; /** times array; data->n long */
   } EEGdata_trials;
 

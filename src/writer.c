@@ -77,7 +77,7 @@ void write_double_matrix_ascii_file(const char *fname, const double **d, int xdi
 
   if((f=fopen(fname, "w"))==NULL)
 	 errormsg(ERR_IO, 1);
-
+  
   write_double_matrix_ascii(f, d, xdim, ydim);
 
   fclose(f);

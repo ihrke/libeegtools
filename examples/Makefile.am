@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I$(top_srcdir)/src `@GSL_CONFIG@ --cflags` # -I/home/ihrke/local/include
+AM_CPPFLAGS = -I$(top_srcdir)/src `@GSL_CONFIG@ --cflags`
 AM_LDFLAGS = `@GSL_CONFIG@ --libs`
 
 METASOURCES = AUTO
@@ -10,6 +10,7 @@ bin_PROGRAMS = t_denoise t_denoisestat \
 
 t_denoise_SOURCES = argspec.c argspec.h t_denoise.c
 t_denoise_LDADD = $(top_builddir)/src/libeegtools.la 
+
 t_denoisestat_SOURCES = argspec.c argspec.h t_denoisestat.c
 t_denoisestat_LDADD = $(top_builddir)/src/libeegtools.la 
 
@@ -60,4 +61,6 @@ t_timefreq_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
 t_timefreq_LDADD = $(top_builddir)/src/libeegtools.la
 
 t_test_SOURCES = t_test.c
+t_test_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`
+t_test_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
 t_test_LDADD = $(top_builddir)/src/libeegtools.la

@@ -17,7 +17,7 @@
 
 #include "config.h"
 #ifdef HAVE_LIBPLOTTER
-#include <cplotter.h>
+#include <libplotter/cplotter.h>
 #define PL(code) (code)
 #else
 #define PL(code)
@@ -55,7 +55,7 @@ int main(int argc, char **argv){
   print_eegdata_trials(stderr, eeg);
 
   /* get distances */
-  dist = eegtrials_diffmatrix_channel( eeg, distmetric, chan );
+  dist = eegtrials_diffmatrix_channel( eeg, distmetric, chan, ALLOC_IN_FCT );
   f = fopen(filename, "w");
   for(i=0; i<eeg->ntrials; i++){
 	 for(j=0; j<eeg->ntrials; j++){

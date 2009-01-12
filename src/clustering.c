@@ -96,69 +96,28 @@ double clusterdist_euclidean_pointwise(EEGdata  *s1, EEGdata *s2, int channel){
 	 \param eeg 
 	 \param dist - the distance function
 	 \param channel - which electrode-channel? (index)
+	 \param dm - enough memory to hold matrix, or ALLOC_IN_FCT
 */
 double** eegtrials_diffmatrix_channel(EEGdata_trials *eeg, 
 												  double(*dist)(EEGdata*,EEGdata*,int), 
-												  int channel){
-  double **dm;
+												  int channel, double **dm){
   int i,j;
 
-  dm = (double**) malloc( eeg->ntrials*sizeof( double* ) );
-  for( i=0; i<eeg->ntrials; i++ ){
-	 dm[i] = (double*) malloc( eeg->ntrials*sizeof( double ) );
-	 dm[i][i] = 0;
+  if( dm==ALLOC_IN_FCT ){
+	 warnprintf(" allocating matrix in fct\n");
+	 dm = matrix_init( eeg->ntrials, eeg->ntrials );
   }
   
   for( i=0; i<eeg->ntrials; i++ ){
 	 for( j=i+1; j<eeg->ntrials; j++ ){
-		dprintf("getting distance %i x %i\n", i,j);
 		dm[i][j] = dist( eeg->data[i], eeg->data[j], channel );
+		/* dprintf("getting distance (%i x %i)=%f\n", i,j,dm[i][j]); */
 		dm[j][i] = dm[i][j];
 	 }
   }
   return dm;
 }
 
-/** Generate a NxN matrix of differences between single-trial data in m.
- * \param m the data
- * \param dm the difference-matrix allocated by the caller
- * \return a pointer to dm
- */
-double** diffmatrix(ModelData *m, double **dm){
-	int i, j;
-	double **ui;
-	int *dummy;
-	
-	print_modeldata(stderr, m);
-	
-	dummy = (int*)malloc(m->n*sizeof(int));
-	/* deep copy, because we have to clean them */
-	ui   = (double**)malloc(m->N*sizeof(double*));
-	for(i=0; i<m->N; i++) {
-		ui[i]=(double*)malloc(m->n*sizeof(double));
-		for(j=0; j<m->n; j++){
-			ui[i][j]=m->si[i][j];
-		}
-	}
-	/* ------- Denoise everything ---------- */
-//	for(i=0; i<m->N; i++){
-	//	extend_and_denoise(ui[i], m->n, m->den_params->L, m->den_params->cleanfct,
-		//						 m->den_params->eta, m->den_params->sigextfct);		
-	//}
-	
-	for(i=0; i<m->N; i++){
-		for(j=i; j<m->N; j++){
-			dm[i][j]=DTW_get_warppath( ui[i], m->n, ui[j], m->n, 
-									 m->tw_params->theta1, m->tw_params->theta2, dummy);
-			dm[j][i]= dm[i][j];
-		}
-	}
-	for(i=0; i<m->N; i++)
-		free(ui[i]);
-	free(ui);
-	free(dummy);
-	return dm;
-}
 
 /** do K-Medoids clustering on the distance-matrix.
 	 \param dist

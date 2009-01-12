@@ -28,7 +28,7 @@
 	 \defgroup dendrogram Dendrogram (Hierarchical Clustering)
  \}
  */
-#ifndef CUSTERING_H
+#ifndef CLUSTERING_H
 # define CLUSTERING_H
 #include <time.h>
 #include "mathadd.h"
@@ -65,10 +65,9 @@ extern "C" {
   };
   typedef struct dgram Dendrogram;
 
-  double** diffmatrix(ModelData *m, double **dm);
   double** eegtrials_diffmatrix_channel(EEGdata_trials *eeg, 
 													 double(*dist)(EEGdata*,EEGdata*,int), 
-													 int channel);
+													 int channel, double **dm);
   void     diffmatrix_standardize(double **d, int N);
 
 
@@ -90,6 +89,7 @@ extern "C" {
   void         dgram_preorder( Dendrogram *t, int *vals, int *n );
   Dendrogram*  dgram_init(int val, Dendrogram *left, Dendrogram *right);
   void         dgram_free(Dendrogram *t);
+  Dendrogram*  dgram_get_deepest( Dendrogram *c );
   /** \} */
 
 
@@ -97,7 +97,7 @@ extern "C" {
   void      print_cluster(Clusters *c);
   Clusters* init_cluster(int K, int maxN);
   void      copy_cluster(Clusters *dest, const Clusters *src);
-
+  int       compare_clusters(const Clusters *c1, const Clusters *c2);
 
   /** \} */
 

@@ -225,7 +225,7 @@ EEGdata_trials* read_eegtrials_from_raw(const char *file){
   dprintf("(nbchan, ntrials, nsamples, nmarkers) = (%i,%i,%i,%i)\n", nbchan, ntrials, nsamples, nmarkers);
 
   /* allocating all memory */
-  eeg = init_eegdata_trials(ntrials, nmarkers, nbchan, nsamples);
+  eeg = init_eegdata_trials(ntrials, nmarkers, nbchan, nsamples, NULL);
 
   /* read times-array */
   ffread(eeg->times, sizeof(double), nsamples, f);

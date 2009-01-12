@@ -20,7 +20,7 @@
 #include "config.h"
 #define noPL(...)
 #ifdef HAVE_LIBPLOTTER
-#include <cplotter.h>
+#include <libplotter/cplotter.h>
 static int plotit=0;
 #define PL(...) if(plotit){ __VA_ARGS__ }
 void plot_eegdata( double *times, EEGdata *s, ChannelInfo *channelcoords, const char *format );

@@ -40,7 +40,7 @@ function eegset_to_raw(EEG, num_markers, trials, filename);
       j
       t = ms(i).eventlatency(j)
       t = closest(EEG.times, t{:})
-      fwrite(fid, t, 'double');
+      fwrite(fid, t-1, 'double');
     end;
   end;
   

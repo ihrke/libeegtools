@@ -17,7 +17,7 @@
 
 #include "config.h"
 #ifdef HAVE_LIBPLOTTER
-#include <cplotter.h>
+#include <libplotter/cplotter.h>
 #define PL(code) (code)
 #else
 #define PL(code)

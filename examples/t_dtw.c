@@ -31,7 +31,7 @@
 
 #include "config.h"
 #ifdef HAVE_LIBPLOTTER
-#include <cplotter.h>
+#include <libplotter/cplotter.h>
 static int plotit=0;
 #define PL(...) if(plotit){ __VA_ARGS__ }
 #else

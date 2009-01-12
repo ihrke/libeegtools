@@ -72,8 +72,13 @@
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 %
 % $Log$
-% Revision 1.1  2008/03/14 13:57:45  mihrke
-% Initial revision
+% Revision 1.1  2009/01/12 11:34:20  mihrke
+% documentation,
+% rearrangements,
+% eeglab
+%
+% Revision 1.1.1.1  2008/03/14 13:57:45  mihrke
+% Initial Import
 %
 %
 %
