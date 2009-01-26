@@ -125,8 +125,10 @@ double** read_double_matrix_ascii(const char *fname, int xdim, int ydim, double 
   FILE *f;
   int x,y;
 
-  if((f=fopen(fname, "r"))==NULL)
-	 errormsg(ERR_IO, 1);
+  if((f=fopen(fname, "r"))==NULL){
+	 errprintf("failed reading %s\n", fname );
+	 return NULL;
+  }
 
   if(d==NULL){
 	 d = (double**) malloc( ydim*sizeof(double*) );
@@ -229,7 +231,8 @@ EEGdata_trials* read_eegtrials_from_raw(const char *file){
 
   /* read times-array */
   ffread(eeg->times, sizeof(double), nsamples, f);
-  
+  eeg->sampling_rate=1000.0/(eeg->times[1]-eeg->times[0]);
+
   /* read markers */
   double *tmp;
   tmp = (double*) malloc( nmarkers * sizeof(double) );

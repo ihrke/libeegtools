@@ -31,7 +31,7 @@
 */
 void eeg_remove_baseline( EEGdata *eeg, const double *times, 
 								  double win_from, double win_to ){
-  int lim[2], chan, i;
+  int lim[2], chan;
   double mean;
 
   lim[0] = closest_index( times, eeg->n, win_from );
@@ -57,6 +57,7 @@ void eeg_remove_baseline( EEGdata *eeg, const double *times,
 void eegtrials_remove_baseline( EEGdata_trials *eeg, double win_from, double win_to ){
   int t;
   for( t=0; t<eeg->ntrials; t++ ){
+	 dprintf(" Baseline for trial %i\n", t );
 	 eeg_remove_baseline( eeg->data[t], eeg->times, win_from, win_to );
   }
 }

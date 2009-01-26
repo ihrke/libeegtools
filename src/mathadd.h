@@ -27,6 +27,7 @@
 #include <math.h>
 #include <string.h>
 #include <gsl/gsl_spline.h>
+#include <gsl/gsl_sf_bessel.h>
 #include "helper.h"
 #include "definitions.h"
 
@@ -46,7 +47,34 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  /* -------- Math ----------- */
+  /* -------- Math ----------- */  
+
+  /* ---------------------------------------------------------------------------- 
+	  -- Complex Arithmetic
+	  ---------------------------------------------------------------------------- */ 
+  /** \defgroup complex Complex Arithmetic
+		\{
+  */
+  typedef struct {
+	 double re;
+	 double im;
+  } Complex;
+  
+  Complex complex     ( double re, double im );
+  Complex complex_add ( Complex a, Complex b );
+  Complex complex_add_dbl ( Complex a, double b );  
+  Complex complex_sub ( Complex a, Complex b );
+  Complex complex_mul ( Complex a, Complex b );
+  Complex complex_mul_double( Complex a, double b );
+  double  complex_abs ( Complex a );
+  Complex complex_exp ( Complex a );
+  Complex complex_conj( Complex a );
+  Complex complex_neg ( Complex a );
+  Complex complex_div ( Complex a, Complex b);
+  Complex complex_sqrt( Complex x );
+  Complex complex_bilinear_transform(Complex pz);
+  /** \} */
+
   /**\addtogroup helpermath
 	*\{*/
   double  glog(double v, int b);  
@@ -76,7 +104,9 @@ extern "C" {
 
   int     next_pow2( int n );
   int     iremainder( double x, double y);
-/* ---------------------------------------------------------------------------- 
+  Complex* expand_polynomial_from_roots( const Complex *roots, int n, Complex *coeffs );
+
+  /* ---------------------------------------------------------------------------- 
 	-- Fourier methods
 	---------------------------------------------------------------------------- */
   void fft(double *data,  unsigned long nn, int isign);
@@ -118,7 +148,7 @@ extern "C" {
   double  drawsample_nearest_neighbour( const double *v, int n, double x );
   double* resample_linear( const double *s, int n, int newn, double *news );
   double* resample_nearest_neighbour( const double *s, int n, int newn, double *news );
-  double* resample_gsl( const double *s, int n, int newn, double *news, gsl_interp_type *method );
+  double* resample_gsl( const double *s, int n, int newn, double *news, const gsl_interp_type *method );
   /** \} */
 
   /* ---------------------------------------------------------------------------- 
@@ -135,6 +165,8 @@ extern "C" {
   */
   double* vector_init( double *v, int n,  double val );
   void    vector_minus_scalar( double *v, int n, double val );
+  double* vector_complex_to_real( const Complex *vc, double *vr, int n );
+  double  vector_euclidean_distance( const double *v1, const double *v2, int n );
   /** \} */
 
   /* ---------------------------------------------------------------------------- 

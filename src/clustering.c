@@ -85,9 +85,9 @@ double clusterdist_euclidean_pointwise(EEGdata  *s1, EEGdata *s2, int channel){
   massert( s1->n!=s2->n, "n1 != n2, aborting\n" );
   dist = 0.0;
   for(i=0; i<s1->n; i++){
-	 dist += SQR( s1->d[channel][i]-s2->d[channel][i] );
+	 dist += SQR( (s1->d[channel][i])-(s2->d[channel][i]) );
   }
-  dist = dist/(double)s1->n;
+  dist = sqrt(dist); ///(double)s1->n;
   return dist;
 }
 
@@ -130,7 +130,6 @@ Clusters* kmedoids(const double **dist, int N, int K){
   int *medoids;
   int i, j, k, r, minidx, num_not_changed;
   double sum, minsum, mindist, curdist;
-  int count=0; 
 
   /* memory alloc */
   medoids = (int*) malloc( K*sizeof(int) );
@@ -304,7 +303,7 @@ Clusters* init_cluster(int K, int maxN){
   return c;
 }
 
-void print_cluster(Clusters *c){
+void print_cluster(const Clusters *c){
   FILE *o;
   int i, j;
   o = stderr;
@@ -371,10 +370,10 @@ double*  gap_get_within_scatter_distribution(const double **d, int N, int k, con
 					 dgram_dist_averagelinkage()
  */
 Dendrogram* agglomerative_clustering(const double **d, int N, 
-												  double(*dist)(double**,int,const Dendrogram*,const Dendrogram*)){
+												  double(*dist)(const double**,int,const Dendrogram*,const Dendrogram*)){
   Dendrogram **nodes, *tmp; /* at the lowest level, we have N nodes */
   double min_d, cur_d;
-  int min_i, min_j;
+  int min_i=0, min_j=0;
   int num_nodes;
   int i, j;
  
@@ -405,6 +404,7 @@ Dendrogram* agglomerative_clustering(const double **d, int N,
 	 tmp = nodes[num_nodes-1]; /* swap with last entry in current list */
 	 nodes[min_j] = tmp;
 	 num_nodes--;
+	 dprintf("Linking (%i,%i)\n", min_i, min_j );
   }
   tmp = nodes[0]; /* this is the root-node now */
   free( nodes );
@@ -441,10 +441,10 @@ void dgram_free(Dendrogram *t){
   }
 }
 /** \cond PRIVATE */
-void _dgram_preorder_recursive( Dendrogram *t, int *vals, int *n ){
+void _dgram_preorder_recursive( const Dendrogram *t, int *vals, int *n ){
   if( t->left==NULL && t->right==NULL ){
 	 if( t->val<0 ){
-		errprintf("t->val<0 (%i) even though it's a terminal node\n");
+		errprintf("t->val<0 (%i) even though it's a terminal node\n", t->val);
 		return;
 	 }
 	 vals[(*n)++] = t->val;
@@ -467,8 +467,8 @@ void _dgram_preorder_recursive( Dendrogram *t, int *vals, int *n ){
 	 \param vals output
 	 \param n output (number of elements in vals)
 */
-void         dgram_preorder( Dendrogram *t, int *vals, int *n ){
-  int m,i;
+void         dgram_preorder( const Dendrogram *t, int *vals, int *n ){
+  int m;
 
   m = 0;
   //  dprintf(" starting recursive walk, m=%i\n", m);
@@ -490,7 +490,7 @@ void         dgram_preorder( Dendrogram *t, int *vals, int *n ){
 	 d_{SL}(G, H) = \min_{i\in G, j\in H} d_{ij}
 	 \f]
  */
-double dgram_dist_singlelinkage  (double **d, int N, const Dendrogram *c1, const Dendrogram *c2){
+double dgram_dist_singlelinkage  (const double **d, int N, const Dendrogram *c1, const Dendrogram *c2){
   double dist;
   int *el1, *el2;
   int n1, n2;
@@ -520,6 +520,7 @@ double dgram_dist_singlelinkage  (double **d, int N, const Dendrogram *c1, const
 
   free(el1);
   free(el2);
+  return dist;
 }
 
 /** complete linkage clustering:
@@ -527,7 +528,7 @@ double dgram_dist_singlelinkage  (double **d, int N, const Dendrogram *c1, const
 	 d_{CL}(G, H) = \max_{i\in G, j\in H} d_{ij}
 	 \f]
  */
-double dgram_dist_completelinkage(double **d, int N, const Dendrogram *c1, const Dendrogram *c2){
+double dgram_dist_completelinkage(const double **d, int N, const Dendrogram *c1, const Dendrogram *c2){
   double dist;
   int *el1, *el2;
   int n1, n2;
@@ -553,10 +554,11 @@ double dgram_dist_completelinkage(double **d, int N, const Dendrogram *c1, const
 	 }
   }
   
-  //dprintf("SL-distance = %f\n", dist);
+  dprintf("SL-distance = %f\n", dist);
 
   free(el1);
   free(el2);
+  return dist;
 }
 
 
@@ -565,7 +567,7 @@ double dgram_dist_completelinkage(double **d, int N, const Dendrogram *c1, const
 	 d_{AL}(G, H) = \frac{1}{N_G N_H} \sum_{i\in G} \sum_{j\in H} d_{ij}
 	 \f]
 */
-double dgram_dist_averagelinkage (double **d, int N, const Dendrogram *c1, const Dendrogram *c2){
+double dgram_dist_averagelinkage (const double **d, int N, const Dendrogram *c1, const Dendrogram *c2){
   errprintf(" NOT IMPLEMENTED YET!!\n");
   return -1;
 }
@@ -647,3 +649,6 @@ void         dgram_print( Dendrogram *t ){
 void dgram_print_node( Dendrogram *t ){
   fprintf( stdout, "t=%p, val=%i, height=%f, left=%p, right=%p\n", t, t->val, t->height, t->left, t->right );
 }
+#undef END_NODE 
+#undef INTERMEDIATE_NODE 
+#undef NULL_NODE

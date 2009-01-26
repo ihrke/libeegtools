@@ -215,6 +215,16 @@ double* vector_init( double *v, int n, double val ){
   return v;
 }
 
+/** calculate \f$ |\vec{v_1} - \vec{v_2}|^2 \f$ 
+ */
+double vector_euclidean_distance( const double *v1, const double *v2, int n ){
+  int i;
+  double r=0;
+  for( i=0; i<n; i++ ){
+	 r += SQR( v1[i]-v2[i] );
+  }
+  return sqrt(r);
+}
 
 /* ---------------------------------------------------------------------------- 
    -- Matrix ops                                                             -- 
@@ -419,6 +429,9 @@ void matrix_divide_scalar(double **m, int N, int n, double s){
  */
 void matrix_free(double **m, int N){
   int i;
+  if( !m ){
+	 return;
+  }
   for( i=0; i<N; i++){
 	 free(m[i]);
   }
@@ -618,10 +631,9 @@ double* resample_linear( const double *s, int n, int newn, double *news ){
     \param method one of GSL interpolation types (see above)
 	 \return resampled vector in news
 */
-double* resample_gsl( const double *s, int n, int newn, double *news, gsl_interp_type *method ){
+double* resample_gsl( const double *s, int n, int newn, double *news, const gsl_interp_type *method ){
   double step;
   int i;
-  gsl_interp *interp;
   double *x;
 
   x = (double*)malloc( n*sizeof(double) );
@@ -676,7 +688,7 @@ void fft(double *data, unsigned long nn, int isign){
   unsigned long n,mmax,m,j,istep,i;
   double wtemp,wr,wpr,wpi,wi,theta;
   float tempr,tempi;
-
+  data--; /* because num_rec assumes [1,...n] arrays */
   dprintf( "nn=%li, isign=%i\n", nn, isign );
 
   n=nn << 1;
@@ -965,4 +977,139 @@ void scalar_minus_matrix( double scalar, double **m, int N, int M ){
 		m[i][j] = scalar-m[i][j];
 	 }
   }
+}
+
+
+Complex complex( double re, double im ){
+  Complex a;
+  a.re = re;
+  a.im = im;
+  return a;
+}
+Complex complex_add( Complex a, Complex b ){
+  a.re += b.re;
+  a.im += b.im;
+  return a;
+}
+Complex complex_sub( Complex a, Complex b ){
+  a.re -= b.re;
+  a.im -= b.im;
+  return a;
+}
+Complex complex_mul( Complex a, Complex b ){
+  Complex r;
+  r.re = (a.re*b.re)-(a.im*b.im);
+  r.im = (a.im*b.re)+(a.re*b.im);
+  return r;
+}
+Complex complex_mul_double( Complex a, double b ){
+  a.re *= b;
+  a.im *= b;
+  return a;
+}
+double  complex_abs( Complex a ){
+  return sqrt( SQR( a.re ) + SQR( a.im ) );
+}
+
+/** this is
+	 \f[
+	 \exp( a+bi ) = \exp( a )\cdot (\cos b + i\sin b )
+	 \f]
+ */
+Complex complex_exp( Complex a ){
+  Complex r;
+  r = complex( cos( a.im ), sin( a.im ) );
+  r = complex_mul_double( r, exp( a.re ) );
+  return r;
+}
+Complex complex_conj( Complex a ){
+  a.im = -a.im;
+  return a;
+}
+
+Complex complex_neg ( Complex a ){
+  a.re = -a.re;
+  a.im = -a.im;
+  return a;
+}
+
+Complex complex_sqrt( Complex x ){
+  double r = complex_abs(x);
+  Complex z = complex(sqrt(0.5 * (r + x.re)),
+							 sqrt(0.5 * (r - x.re)));
+  if (x.im < 0.0) z.im = -z.im;
+  return z;
+}
+/** this is
+\f[ 
+\frac{(a + bi)}{(c + di)} = \left({ac + bd \over c^2 + d^2}\right) + \left( {bc - ad \over c^2 + d^2} \right)i
+\f]
+*/
+Complex complex_div( Complex a, Complex b){
+  Complex r;
+  r.re = (a.re*b.re + a.im*b.im)/( SQR( b.re )+SQR( b.im ) );
+  r.im = (a.im*b.re - a.re*b.im)/( SQR( b.re )+SQR( b.im ) );
+  return r;
+}
+
+Complex complex_bilinear_transform(Complex pz){
+  return complex_div( complex_add( complex(2.0,0.0), pz ), complex_sub( complex(2.0,0.0), pz ) );
+}
+
+/** expand a polynomial given in root-form
+	 \f[
+	 p(x) = x_0(x-x_1)(x-x_2)\cdots (x-x_n)
+	 \f]
+	 to find the coefficients a_0, ..., a_n of
+	 \f[
+	 p(x) = a_0 + a_1 x_1 + \cdots + a_n x_n
+	 \f]
+	\param roots x_0,...,x_n
+	\param coeffs n+1 numbers to hold the resulting coefficients or ALLOC_IN_FCT
+*/
+Complex* expand_polynomial_from_roots( const Complex *roots, int n, Complex *coeffs ){
+  int i, j;
+  Complex nw;
+
+  if( coeffs==ALLOC_IN_FCT ){
+	 coeffs = (Complex*) malloc( (n+1)*sizeof( Complex ) );
+  }
+
+  coeffs[0] = complex( 1.0, 0.0 );
+  for (i=0; i < n; i++){
+	 coeffs[i+1] = complex(0.0,0.0);
+  }
+  for (i=0; i < n; i++){
+	 nw = complex_mul_double( roots[i], -1.0 );
+	 for( j=n; j>=1; j-- ){
+		coeffs[j] = complex_mul( nw, coeffs[j] );
+		coeffs[j] = complex_add( coeffs[j], coeffs[j-1] );
+	 }
+	 coeffs[0] = complex_mul( nw, coeffs[0] );
+  }
+
+
+  return coeffs;
+}
+
+
+/** return the real part of the complex numbers in vc.
+	 If the imaginary part is nonzero, a warning is issued.
+	 \param vc complex vector
+	 \param vr real vector of size n, or ALLOC_IN_FCT
+*/
+double* vector_complex_to_real( const Complex *vc, double *vr, int n ){
+  int i;
+  dprintf("entering\n");
+  if( vr==ALLOC_IN_FCT ){
+	 warnprintf("allocating in fct\n");
+	 vr = vector_init( vr, n, 0.0 );
+  }
+  for( i=0; i<n; i++ ){
+	 vr[i] = vc[i].re;
+	 if( ABS(vc[i].im)>1e-10 ){
+		warnprintf("complex number with index '%i' has nonzero imaginary part\n", i);
+	 }
+  }
+  return vr;
 }

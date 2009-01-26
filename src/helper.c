@@ -84,23 +84,6 @@ EEGdata_trials*      clone_eegdata_trials( const EEGdata_trials *source ){
   return dest;
 }
 
-/** shallow copy of ModelData struct
- */
-void    copy_modeldata(const ModelData *m1, ModelData *m2){
-	m2->den_params=m1->den_params;
-	m2->tw_params=m1->tw_params;
-	m2->N=m1->N;
-	m2->n=m1->n;
-	m2->R=m1->R;
-	m2->Ri=m1->Ri;
-	m2->sRi=m1->sRi;
-	m2->times=m1->times;
-	m2->si=m1->si;
-	m2->u=m1->u;
-	m2->ui=m1->ui;
-	m2->additional=m1->additional;
-}
-
 void free_warppath(WarpPath *p){
 	free(p->upath);
 	free(p->spath);
@@ -110,57 +93,6 @@ void free_warppath(WarpPath *p){
 void print_channelinfo( FILE* out, const ChannelInfo *c ){
   fprintf( out, "Channel No. %i/%i - '%s' at (%.2f, %.2f, %.2f)\n", 
 			  c->num, c->num_chans, c->label, c->x, c->y, c->z );
-}
-
-void print_modeldata(FILE *out, const ModelData *m){
-	fprintf(out, "ModelData struct:\n");
-	fprintf(out, "  den_params=\n");
-	print_denoisingparameters(out, m->den_params);
-	fprintf(out, "  tw_params=\n");
-	print_timewarpparameters(out, m->tw_params);
-	fprintf(out, "  N=%i\n", m->N);
-	fprintf(out, "  n=%i\n", m->n);
-	fprintf(out, "  R=%i\n", m->R);
-	fprintf(out, "  Ri=%p\n", m->Ri);
-	fprintf(out, "  sRi=%p\n", m->sRi);
-	fprintf(out, "  times=%p\n", m->times);
-	fprintf(out, "  si=%p\n", m->si);
-	fprintf(out, "  u=%p\n", m->u);
-	fprintf(out, "  ui=%p\n", m->ui);
-	fprintf(out, "  additional=%p\n", m->additional);
-}
-void    print_denoisingparameters(FILE *out, const DenoisingParameters *p){
-	fprintf(out, "   DenoisingParameters struct:\n"	);
-	fprintf(out, "      L=%i\n", p->L);
-	fprintf(out, "      sigextfct=%p\n", p->sigextfct);
-	fprintf(out, "      cleanfct=%p\n", p->cleanfct);
-	fprintf(out, "      eta=%p\n", p->eta);
-}
-void    print_timewarpparameters(FILE *out, const TimewarpParameters *p){
-	fprintf(out, "   TimewarpParameters struct:\n"	);
-	fprintf(out, "      theta1=%i\n", p->theta1);
-	fprintf(out, "      theta1=%i\n", p->theta2);
-}
-
-		
-void free_modeldata(ModelData *m){
-	int i;
-	if(!(m->den_params==NULL))	free(m->den_params);
-	if(!(m->tw_params==NULL))	free(m->tw_params);
-	if(!(m->additional==NULL))	free(m->additional);
-	if(!(m->times==NULL)) free(m->times);
-	if(!(m->sRi==NULL)) free(m->sRi);
-	if(!(m->Ri==NULL)) free(m->Ri);
-	if(!(m->u==NULL)) free(m->u);
-	for(i=0; i<m->N; i++){
-		if(m->si!=NULL)
-			if(!(m->si[i]==NULL)) free(m->si[i]);
-		if(m->ui!=NULL)
-			if(!(m->ui[i]==NULL)) free(m->ui[i]);
-	}
-	if(m->si!=NULL) free(m->si);
-	if(m->ui!=NULL) free(m->ui);
-	free(m);
 }
 
 WarpPath* init_warppath(WarpPath *path, int J, int K){
@@ -226,6 +158,12 @@ EEGdata_trials* init_eegdata_trials(int nbtrials, int nmarkers_per_trial, int nb
 	 eeg->data[i] = init_eegdata(nbchan, nbsamples, nmarkers_per_trial);
   }
   
+  /* compute sampling rate from sampling interval times[1]-times[0] */
+  if( times!=NULL ){
+	 eeg->sampling_rate = 1000.0/(times[1]-times[0]);
+  } else {
+	 eeg->sampling_rate = 0;
+  }
   return eeg;
 }
 void    print_eegdata(FILE *out, const EEGdata *eeg){
@@ -239,6 +177,7 @@ void print_eegdata_trials(FILE *out, const EEGdata_trials *eeg){
   	fprintf(out, "EEGdata_trials:\n"	);
 	fprintf(out, "      ntrials=%i\n", eeg->ntrials);
 	fprintf(out, "      nmarkers_per_trial=%i\n", eeg->nmarkers_per_trial);
+	fprintf(out, "      sampling_rate=%f\n", eeg->sampling_rate);
 }
 
 void free_eegdata_trials(EEGdata_trials *eeg){
@@ -340,15 +279,23 @@ int is_little_endian(){
   long l=1; 
   void *ptr=&l; 
   uint8_t t =*(uint8_t*)ptr;
-  if(t==1) return 0;
-  else if(t==0) return 1;
-  else errormsg(ERR_ENDIAN, ERR_FATAL);
+  if(t==1){
+	 return 0;
+  } else if(t==0){ 
+	 return 1;
+  } else {
+	 errormsg(ERR_ENDIAN, ERR_FATAL);
+  }
+  return 0;
 }
 
-int compare_ints (const int *a, const int *b) {
-  if (*a > *b)
+int compare_ints (const void *a, const void *b) {
+  int *i1, *i2;
+  i1=(int*)a;
+  i2=(int*)b;
+  if (*i1 > *i2)
 	 return 1;
-  else if (*a < *b)
+  else if (*i1 < *i2)
 	 return -1;
   else
 	 return 0;
@@ -390,7 +337,7 @@ void   errormsg(int err_no, int fatal){
     errprintf("Unknown Error number\n");
   }
   if(fatal){
-    errprintf(0, "... Fatal\n");
+    errprintf("... Fatal\n");
     exit(err_no);
   } else errprintf("\n");
 }
@@ -404,7 +351,7 @@ void      reset_warppath(WarpPath *P, int J, int K){
 }
 
 
-int       eegdata_cmp_settings( EEGdata *s1, EEGdata *s2 ){
+int       eegdata_cmp_settings( const EEGdata *s1, const EEGdata *s2 ){
   if( s1->nbchan != s2->nbchan || s1->n != s2->n || s1->nmarkers != s2->nmarkers ){
 	 return 1;
   } else {

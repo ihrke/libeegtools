@@ -1,23 +1,16 @@
-function [realclust cs csnew map] = write_art_data_raw(filename);
-trials = 100;  
-plotit =1;  
+function [real_erp single_trials_nonoise] = write_art_data_raw(filename, trials);
+plotit =0;  
 
-[single_trials_noisy c1 range rts real_rt erp1] =  artificial_data(trials, ...
+[single_trials_noisy single_trials_nonoise range rts real_rt real_erp] =  artificial_data(trials, ...
                                                   500, 0);
 rts
-%[single_trials_noisy c2 range rts real_rt erp2] =  artificial_data2(trials/2, ...
-%                                                  200, 0);
 
-map = randperm(trials);
-cs = [c1];
+d = single_trials_nonoise;
 
-%alpha = 2*rand(trials, 1);
+alpha = (2*rand(trials, 1));
 for i=1:trials
-  cs(:,i)=cs(:,i);%*alpha(i);
+  d(:,i)=d(:,i)*alpha(i);
 end;
-
-csnew = cs(:,map);
-%realclust = (~(map<=trials/2))+1;
 
 % num channels
 fid = fopen(filename, 'wb');
@@ -27,7 +20,7 @@ fwrite(fid, 1, 'double');
 fwrite(fid, trials, 'double');
 
 % num samples per trial
-fwrite(fid, size(cs, 1) , 'double');
+fwrite(fid, size(d, 1) , 'double');
 
 % nummarkers/trial
 fwrite(fid, 2, 'double');
@@ -46,7 +39,7 @@ end;
 
 % data
 for i=1:trials
-  fwrite(fid, csnew(:,i), 'double');
+  fwrite(fid, d(:,i), 'double');
 end;
 fclose(fid);
 

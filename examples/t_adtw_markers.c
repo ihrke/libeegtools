@@ -29,7 +29,7 @@ int main(int argc, char **argv){
   char buffer[255];
   EEGdata_trials *eeg;
   EEGdata *new, *s1, *s2;
-  double **G, **d;
+  double **G, **d, **oldd;
   double maxdist;
   WarpPath *P;
   int n, i, channel;
@@ -38,21 +38,32 @@ int main(int argc, char **argv){
   oprintf("Reading from '%s'\n", argv[1]);
   eeg=read_eegtrials_from_raw( argv[1] );
   print_eegdata_trials(stderr, eeg);
- 
+  eegtrials_remove_baseline( eeg, -200.0, 0.0 );
+  
+
   n = eeg->data[0]->n;
   channel = 0;
-  s1 = eeg->data[0];
-  s2 = eeg->data[1];
+  s1 = eeg->data[10];
+  s2 = eeg->data[3];
 
   /* computation */  
   G = matrix_init(n,n);
   d = matrix_init(n,n);
+  oldd= matrix_init(n,n);
+
+  SettingsPADTW settings = init_PADTW( eeg );
+  settings.corner_freqs[1]=25.0;
+  settings.winlength=257;
+  settings.N_freq=1000;
+  settings.N_time=n;
 
   dprintf(" init d,G\n");
-  d = eeg_distmatrix_euclidean_derivative_channel(  s1, s2, 0, d, 1,1 );
+  /* d = eeg_distmatrix_euclidean_derivative_channel(  s1, s2, channel, d, 1,1 ); */
+  d = eeg_distmatrix_stft_channel( s1, s2, channel, d, (void*)&settings );
   dprintf(" d\n");
-  G = eeg_gaussian_regularization_bresenham_channel( s1, s2, 0, atof(argv[2]), G);
+  G = eeg_regularization_gaussian_line( s1, s2, atof(argv[2]), G);
 
+  matrix_copy( (const double**)d, oldd, n, n );
   dprintf(" computed d_ij and G_f\n");
   maxdist = matrix_max( (const double**)d, n, n, NULL, NULL );
   scalar_minus_matrix( maxdist, d, n, n );
@@ -61,7 +72,9 @@ int main(int argc, char **argv){
   
   P = DTW_path_from_square_distmatrix( d, n, ALLOC_IN_FCT );
   new = eeg_ADTW_from_path( s1, s2, ALLOC_IN_FCT, 0, P );
-
+  plot_image( oldd, n, n, "hot" ); 
+  
+  plot_switch( plot_add( ) ); 
   plot_image( d, n, n, "hot" ); 
   plot_format_int( P->upath, P->spath, P->J+P->K, "b-");
 
@@ -82,12 +95,9 @@ int main(int argc, char **argv){
   free_eegdata( new );
   free_warppath( P );
 
-  for( i=0; i<n; i++ ){
-	 free( d[i] );
-	 free( G[i] );
-  }
-  free( d );
-  free( G );
+  matrix_free( d, n );
+  matrix_free( oldd, n );
+  matrix_free( G, n );
   
   return 0; 
 }

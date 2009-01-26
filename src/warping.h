@@ -41,6 +41,7 @@
 #include "mathadd.h"
 #include "definitions.h"
 #include "clustering.h"
+#include "time_frequency.h"
  
 #ifdef __cplusplus
 extern "C" {
@@ -51,20 +52,20 @@ extern "C" {
 	*\ingroup warping
 	*\{
 	*/
-  double** eeg_distmatrix_euclidean_channel( EEGdata *s1, EEGdata *s2, 
-															int channel, double **d );
-  double** eeg_distmatrix_euclidean_derivative_channel( EEGdata *s1, EEGdata *s2, 
-																		  int channel, double **d, 
-																		  double theta1, double theta2 );
+  double** eeg_distmatrix_euclidean_channel( const EEGdata *s1, const EEGdata *s2, 
+															int channel, double **d, void* params );
+  double** eeg_distmatrix_euclidean_derivative_channel( const EEGdata *s1, const EEGdata *s2, 
+																		  int channel, double **d, void *params ); 
+  double** eeg_distmatrix_stft_channel( const EEGdata *s1,const  EEGdata *s2, 
+													 int channel, double **d, void *params );
   /** \} */
 
   /** \addtogroup regularization
 	*\ingroup warping
 	*\{
 	*/
-  double** eeg_gaussian_regularization_bresenham_channel( EEGdata *s1, EEGdata *s2, 
-																			 int channel, double sigma, 
-																			 double **d );
+  double** eeg_regularization_gaussian_line( const EEGdata *s1, const EEGdata *s2, 
+															double sigma, double **d );
   /** \} */
 
   /* ---------------------------------------------------------------------------- 
@@ -102,9 +103,21 @@ extern "C" {
   double*   ADTW (const double *s1, int n1, const double *s2, int n2, double *avg);
   double*   ADTW_from_path(const double *u, int J, const double *s, int K, 
 									const WarpPath *P, double *avg);
+  double*   DTW_add_signals_by_path(const double *s1, int n1,
+												const double *s2, int n2, const WarpPath *P, double *avg,
+												const double weights[2]);
+  EEGdata*  eeg_DTW_add_signals_by_path(const EEGdata *s1, const EEGdata *s2, EEGdata *target, 
+													 int channel, const WarpPath *P, const double weights[2]);
 
+  EEGdata* eegtrials_PADTW_S( EEGdata_trials *eeg_in, const double **distmatrix, 
+										int N,  EEGdata *out, SettingsPADTW settings );
   EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, 
-									 int N, int dont_touch_eeg, EEGdata *out );
+									 int N, double max_sigma, 
+									 int dont_touch_eeg, EEGdata *out );
+  EEGdata* eegtrials_PADTW_locfreq( EEGdata_trials *eeg_in, const double **distmatrix, int N, 
+												double max_sigma, double corner_freqs[2],
+												int dont_touch_eeg, EEGdata *out );
+  SettingsPADTW init_PADTW();
   /** \} */
 
   /** \addtogroup otherwarp

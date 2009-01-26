@@ -28,8 +28,8 @@ int interpolation_test(int argc, char **argv);
 
 int main(int argc, char **argv){ 
   dprintf("in t_test\n");
-  /* return padtw_test(argc, argv); */
-  return interpolation_test(argc, argv);
+  return padtw_test(argc, argv); 
+  /* return interpolation_test(argc, argv); */
 }
 
 int interpolation_test(int argc, char **argv){
@@ -71,12 +71,14 @@ int padtw_test(int argc, char **argv){
   N = eeg->ntrials;
 
   Delta = eegtrials_diffmatrix_channel( eeg, clusterdist_euclidean_pointwise, 0, ALLOC_IN_FCT);
+  matrix_print( Delta, N, N );
 
-  /* DO IT */
+  fprintf(stderr, "eeg->n=%i\n", eeg->nsamples );
+  SettingsPADTW settings = init_PADTW( eeg );
+  settings.corner_freqs[1]=25.0;
   new = init_eegdata( eeg->data[0]->nbchan, eeg->nsamples, eeg->nmarkers_per_trial );
-  eegtrials_PADTW( eeg, Delta, N, 1, new );
+  eegtrials_PADTW_S( eeg, Delta, N, new, settings );
   write_eegdata_ascii_file( "test.out", new );
-
 
   /* cleaning up */
   free_eegdata_trials( eeg );

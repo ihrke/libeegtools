@@ -11,66 +11,35 @@
 extern "C" {
 #endif
 
+  /*-----------------------------------------------------------
+	 - EEG-Data -
+	 ---------------------------------------------------------*/
+
   typedef struct{
-	 unsigned int nbchan; /** number of channels */
-	 unsigned int n; /** number of samples */
-	 double **d; /** data */
-	 unsigned long *markers; /** stimulus onset, response, etc
+	 unsigned int nbchan; /**< number of channels */
+	 unsigned int n; /**< number of samples */
+	 double **d; /**< data */
+	 unsigned long *markers; /**< stimulus onset, response, etc
 										  in sampling points; nmarkers long */
 	 unsigned int nmarkers;
   } EEGdata;
 
   typedef struct{
-	 EEGdata **data; /** EEG-data for all  trials (n EEGdata-struct-ptr) */
-	 unsigned int ntrials; /** number of trials = dim(eeg) */  
+	 EEGdata **data; /**< EEG-data for all  trials (n EEGdata-struct-ptr) */
+	 unsigned int ntrials; /**< number of trials = dim(eeg) */  
 	 unsigned int nmarkers_per_trial;
-	 unsigned long **markers; /** stimulus onset, response, etc
+	 unsigned long **markers; /**< stimulus onset, response, etc
 											in sampling points; dims are ntrials x nmarkers */
-	 unsigned int nsamples; /** number of samples in each data */
-	 double *times; /** times array; data->n long */
+	 unsigned int nsamples; /**< number of samples in each data */
+	 double *times; /**< times array; data->n long */
+	 double sampling_rate; /**< in Hz */
   } EEGdata_trials;
 
 
 
-  /** \ingroup denoising */
-  typedef struct{
-	 int L;
-	 double (*cleanfct)(const double*, int); /** cleaning function to use */
-	 double (*eta)(double, double); /** hard or soft thresholding */
-	 double* (*sigextfct)(double*, int, int); /** extension fct: 'sym', 'zeros' */
-  } DenoisingParameters;
-
-  typedef struct{
-	 double theta1;
-	 double theta2;
-  } TimewarpParameters;
-
-  typedef struct{
-	 int *upath; /** contains y-coordinate in the path through the JxK matrix, maximal length(upath)=K+J */
-	 int *spath;/** contains x-coordinate in the path through the JxK matrix */
-	 int J; /** length(u) (not length(upath)) */
-	 int K; /** length(s) (not length(spath)) */
-	 /*	 int real_length;*/ /** real length of the path (maximal K+J) */
-  } WarpPath;
-	
-
-  /** \ingroup denoising */
-  /** Filling the fields is optional */
-  typedef struct {
-	 DenoisingParameters *den_params;
-	 TimewarpParameters  *tw_params;
-	 int N; /** num trials */
-	 int n; /** num points in each trial */
-	 double R; /** mean reaction time */
-	 double *Ri; /** individual reaction times in real time */
-	 double **sRi; /** individual reaction times in sampling points */
-	 double *times; /** sampling points -> real time */
-	 double **si; /** data */
-	 double *u; /** real signal*/
-	 double **ui; /** cleaned signals */
-	 void *additional; /** user data */
-  } ModelData;
-
+  /*-----------------------------------------------------------
+	 - EEG-CHANNELS -
+	 ---------------------------------------------------------*/
 
   typedef struct{
 	 int    num;
@@ -80,6 +49,72 @@ extern "C" {
 	 double y;
 	 double z;
   } ChannelInfo;
+
+
+  
+  /*-----------------------------------------------------------
+	 - CLUSTERING -
+	 ---------------------------------------------------------*/
+
+  /**\ingroup clustering */
+  typedef struct{
+	 int **clust; /** indices for the trials in the cluster (Kxn)*/
+	 int K;  /** number of clusters */
+	 int *n; /** number of trials in each of the K clusters */
+  } Clusters;
+
+
+  /**\ingroup clustering
+	  This struct is the representation of a rooted binary tree to
+	  hold a dendrogram. 
+	  It is a terminal node if val>0 and left=right=NULL.
+	  Else it is an intermediate node that has at least one child!=NULL.
+	*/
+   struct dgram {
+	 int val; /** content representing object val; if val<0, its an intermediate node */
+	 double height; /** proportional to between sub-cluster distance */
+	 struct dgram *left;
+	 struct dgram *right;
+  };
+  typedef struct dgram Dendrogram;
+
+  /*-----------------------------------------------------------
+	 - WARPING -
+	 ---------------------------------------------------------*/
+
+  typedef struct{
+	 int *upath; /**< contains y-coordinate in the path through the JxK matrix, maximal length(upath)=K+J */
+	 int *spath;/**< contains x-coordinate in the path through the JxK matrix */
+	 int J; /**< length(u) (not length(upath)) */
+	 int K; /**< length(s) (not length(spath)) */
+	 /*	 int real_length;*/ /**< real length of the path (maximal K+J) */
+  } WarpPath;
+	
+
+  typedef struct {
+	 double** (*regularize)
+		(const EEGdata*,const EEGdata*,double,double**); /**< regularization function; 
+																			 at the moment only one double 
+																			 parameter is possible */
+	 double sigma; 				  /** for regularization; maximal sigma of gaussian corridor */
+	 double (*linkage)
+	 (const double**,int,const Dendrogram*,const Dendrogram*); /**< linkage function 
+																					  for clustering; one of 
+																					  dgram_dist_*() */
+	 int dont_touch_eeg;    /**< overwrite eeg_in or not? */
+	 double** (*trialdistance)( const EEGdata*,const EEGdata*,
+										 int,double**,void*); /**< distance function for between
+																		 trials; params receives the complete
+																		 SettingsPADTW struct */
+	 double theta1, theta2;			  /**< for derivative timewarping metric */
+	 double corner_freqs[2];	  /**< for local-frequency metric */
+	 double sampling_rate;	     /**< sampling frequency of the signal */
+	 double* (*winfct)(double*,int); /**< windowing function for STFT */
+	 int winlength;					  /**< length of window used for STFT */
+	 int N_freq;						  /**< frequency resolution of STFT */
+	 int N_time;						  /**< time resolution of STFT */
+  } SettingsPADTW;
+  
 
 #ifdef __cplusplus
 }

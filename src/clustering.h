@@ -34,6 +34,7 @@
 #include "mathadd.h"
 #include "definitions.h"
 #include "averaging.h"
+#include "warping.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,27 +44,6 @@ extern "C" {
 	*\{
 	*/ 
 
-  /**\ingroup clustering */
-  typedef struct{
-	 int **clust; /** indices for the trials in the cluster (Kxn)*/
-	 int K;  /** number of clusters */
-	 int *n; /** number of trials in each of the K clusters */
-  } Clusters;
-
-
-  /**\ingroup clustering
-	  This struct is the representation of a rooted binary tree to
-	  hold a dendrogram. 
-	  It is a terminal node if val>0 and left=right=NULL.
-	  Else it is an intermediate node that has at least one child!=NULL.
-	*/
-   struct dgram {
-	 int val; /** content representing object val; if val<0, its an intermediate node */
-	 double height; /** proportional to between sub-cluster distance */
-	 struct dgram *left;
-	 struct dgram *right;
-  };
-  typedef struct dgram Dendrogram;
 
   double** eegtrials_diffmatrix_channel(EEGdata_trials *eeg, 
 													 double(*dist)(EEGdata*,EEGdata*,int), 
@@ -79,14 +59,18 @@ extern "C" {
 	*/ 
 
   Dendrogram*  agglomerative_clustering(const double **d, int N, 
-													 double(*dist)(double**,int,const Dendrogram*,const Dendrogram*));
-  double dgram_dist_singlelinkage  (double **d, int N, const Dendrogram *c1, const Dendrogram *c2);
-  double dgram_dist_completelinkage(double **d, int N, const Dendrogram *c1 ,const Dendrogram *c2);
-  double dgram_dist_averagelinkage (double **d, int N, const Dendrogram *c1, const Dendrogram *c2);
+													 double(*dist)(const double**,int,
+																		const Dendrogram*,const Dendrogram*));
+  double dgram_dist_singlelinkage  (const double **d, int N, 
+												const Dendrogram *c1, const Dendrogram *c2);
+  double dgram_dist_completelinkage(const double **d, int N, 
+												const Dendrogram *c1 ,const Dendrogram *c2);
+  double dgram_dist_averagelinkage (const double **d, int N, 
+												const Dendrogram *c1, const Dendrogram *c2);
 
   void         dgram_print( Dendrogram *t );
   void         dgram_print_node( Dendrogram *t );
-  void         dgram_preorder( Dendrogram *t, int *vals, int *n );
+  void         dgram_preorder( const Dendrogram *t, int *vals, int *n );
   Dendrogram*  dgram_init(int val, Dendrogram *left, Dendrogram *right);
   void         dgram_free(Dendrogram *t);
   Dendrogram*  dgram_get_deepest( Dendrogram *c );
@@ -94,7 +78,7 @@ extern "C" {
 
 
   void      free_cluster(Clusters *c);
-  void      print_cluster(Clusters *c);
+  void      print_cluster(const Clusters *c);
   Clusters* init_cluster(int K, int maxN);
   void      copy_cluster(Clusters *dest, const Clusters *src);
   int       compare_clusters(const Clusters *c1, const Clusters *c2);

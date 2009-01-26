@@ -43,7 +43,7 @@ extern "C" {
   void write_eegtrials_to_raw( const EEGdata_trials *eeg, FILE *out );
 
   void write_double_matrix_ascii(FILE *out, const double **d, int xdim, int ydim);
-  void write_double_matrix_ascii_file(const char *fname, const double **d, int xdim, int ydim);
+  void  write_double_matrix_ascii_file(const char *fname, const double **d, int xdim, int ydim);
 
   void write_double_vector_ascii(FILE *out, const double *v, int n);
   void write_double_vector_ascii_file(const char *fname, const double *v, int n);

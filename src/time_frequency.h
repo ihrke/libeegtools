@@ -24,6 +24,7 @@
 #include "definitions.h"
 #include "mathadd.h"
 #include <math.h>
+#include <gsl/gsl_fft_complex.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,20 +33,23 @@ extern "C" {
   /** \defgroup spectgram Spectrogram (Time-Frequency Representations)
 		\{ */
   typedef struct _Spectrogram  {
-    int            N_freq;		 /** number of freq bins in the TFR matrix */
-    int            N_time;	/** number of time_bins in the TFR matrix */
-	 double         samplingrate; /** sampling rate with which the signal was sampled */
-    double        **real;	/** real part of the TFR, N_time x N_freq */
-    double        **imag;	/** imaginary part of the TFR, N_time x N_freq*/
+    int            N_freq;		 /**< number of freq bins in the TFR matrix */
+    int            N_time;	/**< number of time_bins in the TFR matrix */
+	 double         samplingrate; /**< sampling rate with which the signal was sampled */
+	 double         low_corner_freq; /**< lower corner frequency */
+	 double         up_corner_freq;	/**< upper corner frequency */
+	 Complex        **sgram; /**< the spectrogram data */
+    /* double        **real;	/\** real part of the TFR, N_time x N_freq *\/ */
+    /* double        **imag;	/\** imaginary part of the TFR, N_time x N_freq*\/ */
 	 double        **powerspect;
-	 int           has_power_spectrum; /** true if power spectrum is filled */
+	 int           has_power_spectrum; /**< true if power spectrum is filled */
   } Spectrogram;
   
   /** \defgroup spectspect Spectrogram Algorithms (TFR)
 		\{ */
-  Spectrogram* spectrogram_stft(const double* s, int n, double sample_freq,
+  Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
 										  const double *Window, int Window_Length,
-										  int N_freq, int N_time,
+										  int N_freq, int N_time, double corner_freqs[2],
 										  Spectrogram *spectgram);
   /** \} */
 
@@ -61,6 +65,8 @@ extern "C" {
   double* window_dirichlet( double *window, int n );
   double* window_gaussian ( double *window, int n, double sigma );
   double* window_hamming  ( double *window, int n );
+  double* window_hanning  ( double *window, int n );
+  double* window_kaiser   ( double *window, int n, double alpha );
   /** \} */
 
   /** \} */

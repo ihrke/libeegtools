@@ -115,7 +115,7 @@ extern "C" {
   int     is_little_endian();
 
   void    qsort_int_index( int *idx_idx, const int *idx, int n );
-  int     compare_ints (const int *a, const int *b);
+  int     compare_ints (const void *a, const void *b);
   
   int     strcount( const char *s, char c );
 
@@ -153,22 +153,17 @@ extern "C" {
 
   
   /* destructors */
-  void    free_modeldata(ModelData *m);
   void    free_warppath(WarpPath *p);
   void    free_eegdata(EEGdata *eeg);
   void    free_eegdata_trials(EEGdata_trials *eeg);
 
   /* convenience functions for structs */
   void      reset_warppath(WarpPath *P, int J, int K);  
-  void      copy_modeldata(const ModelData *m1, ModelData *m2);
-  int       eegdata_cmp_settings( EEGdata *s1, EEGdata *s2 );
+  int       eegdata_cmp_settings( const EEGdata *s1, const EEGdata *s2 );
   int       copy_similar_eegdata( EEGdata *dest, const EEGdata *source );
   EEGdata_trials*      clone_eegdata_trials( const EEGdata_trials *source );
 
   /* printing-functions */
-  void    print_modeldata(FILE *out, const ModelData *m);
-  void    print_denoisingparameters(FILE *out, const DenoisingParameters *p);
-  void    print_timewarpparameters(FILE *out, const TimewarpParameters *p);
   void    print_eegdata_trials(FILE *out, const EEGdata_trials *eeg);
   void    print_eegdata(FILE *out, const EEGdata *eeg);
   void    print_channelinfo( FILE *out, const ChannelInfo *c );

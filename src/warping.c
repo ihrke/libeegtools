@@ -26,10 +26,11 @@
 	 \f$
 	 \param s1,s2 
 	 \param d matrix or NULL (alloc'd in function)
+	 \param params is ignored
 	 \return d or NULL (error)
  */
-double** eeg_distmatrix_euclidean_channel( EEGdata *s1, EEGdata *s2, 
-														 int channel, double **d ){
+double** eeg_distmatrix_euclidean_channel( const EEGdata *s1, const EEGdata *s2, 
+														 int channel, double **d, void *params ){
   int i, j;
   
   if( d==ALLOC_IN_FCT ){
@@ -55,17 +56,25 @@ double** eeg_distmatrix_euclidean_channel( EEGdata *s1, EEGdata *s2,
 	 Derivatives are approximated with s'(t) = s(t)-s(t-1)
 	 \param s1,s2 
 	 \param d matrix or NULL (alloc'd in function)
-	 \param theta1,theta2 weights for distance
+	 \param params is a SettingsPADTW struct that should contain valid values for theta1,theta2 weights for distance
 	 \return d or NULL (error)
  */
-double** eeg_distmatrix_euclidean_derivative_channel( EEGdata *s1, EEGdata *s2, 
+double** eeg_distmatrix_euclidean_derivative_channel( const EEGdata *s1, const EEGdata *s2, 
 																		int channel, double **d, 
-																		double theta1, double theta2 ){
+																		void *params ){ 
   int i, j, k, n;
   double avg1, avg2,
 	 rms1=0, rms2=0;
   double norm1,norm2, /* normalized signal at time t */
 	 norm1p,norm2p;    /* normalized signal at time t-1 */
+  double theta1,theta2;
+
+  /* get params from void pointer */
+  SettingsPADTW *settings;
+  settings = (SettingsPADTW*)params;
+  theta1=settings->theta1;
+  theta2=settings->theta2;
+
 
   if( d==ALLOC_IN_FCT ){
 	 d=matrix_init( s1->n, s2->n );
@@ -97,6 +106,103 @@ double** eeg_distmatrix_euclidean_derivative_channel( EEGdata *s1, EEGdata *s2,
   return d;
 }
 
+/** 
+	 \todo at the moment, N_time is required to be n, the number of
+	       sampling points in s1 and s2. This needs to be fixed by interpolation
+
+	 calculate
+	 \f[  
+	 d_{{STFT}}(s_1(t_1), s_2(t_2)) := || STFT\{s_1(t_1)\} -
+	 \STFT\{s_2(t_2)\}||_{\circ}.
+	 \f]
+	 where 
+	 \f[
+	 STFT\{s(t)\}(\omega) = \int_{-\infty}^{+\infty} s(t)w(t-\tau)e^{-i\omega t} dt
+	 \f]
+	 \param s1,s2 
+	 \param d matrix or NULL (alloc'd in function)
+	 \param params is a settingsPADTW struct that should contain valid:
+	   - (sample_frequency of the signal),
+	   - (winfct which windowing function? one of window_*()),
+	   - (winlength lenght of window in samples),
+	   - (N_freq how many frequencies),
+	   - (N_time how many time-points),
+	   - (corner_freqs - corner frequencies (lower, upper) for the returned
+	     spectrum at each time-sample in Hz; maximal would be
+	     {0, srate/2}) 
+	 fields
+	 \return d or NULL (error)
+ */
+double** eeg_distmatrix_stft_channel( const EEGdata *s1, const EEGdata *s2, 
+												  int channel, double **d, void *params ){
+  int i, j;
+  Spectrogram *sp1, *sp2;
+  double *window;
+  double *d1, *d2,
+	 mean1, mean2;
+  
+  double sample_frequency;
+  double*(*winfct)(double*,int);
+  int winlength;
+  int N_freq;
+  int N_time;
+  double corner_freqs[2];
+  /* get params from void pointer */
+  SettingsPADTW *settings;
+  settings = (SettingsPADTW*)params;
+  sample_frequency=settings->sampling_rate;
+  winfct=settings->winfct;
+  winlength=settings->winlength;
+  N_freq=settings->N_freq;
+  N_time=settings->N_time;
+  corner_freqs[0]=settings->corner_freqs[0];
+  corner_freqs[1]=settings->corner_freqs[1];
+
+  if( d==ALLOC_IN_FCT ){
+	 warnprintf("allocating matrix in fct\n");
+	 d=matrix_init( s1->n, s2->n );
+  }
+
+  /* remove mean from the signals */
+  dprintf("Normalization\n");
+  d1 = vector_init( NULL, s1->n, 0.0 );
+  d2 = vector_init( NULL, s2->n, 0.0 );
+  mean1 = gsl_stats_mean( s1->d[channel], 1, s1->n );
+  mean2 = gsl_stats_mean( s2->d[channel], 1, s2->n );
+  for( i=0; i<s1->n; i++ ){	  /* s1->n and s2->n are equal */
+	 d1[i] = s1->d[channel][i]-mean1;
+	 d2[i] = s2->d[channel][i]-mean2;
+  }
+
+  window = winfct(ALLOC_IN_FCT, winlength);
+  sp1 = spectrogram_stft( d1, s1->n, sample_frequency,
+								  window, winlength, N_freq, N_time, 
+								  corner_freqs, ALLOC_IN_FCT );
+  sp2 = spectrogram_stft( d2, s2->n, sample_frequency,
+								  window, winlength, N_freq, N_time,
+								  corner_freqs, ALLOC_IN_FCT );
+  spectrogram_compute_powerspectrum( sp1 );
+  spectrogram_compute_powerspectrum( sp2 );
+
+  dprintf(" Compute distances (%i vectors)\n", sp1->N_freq);
+  for( i=0; i<N_time; i++ ){
+	 for( j=0; j<N_time; j++ ){
+		d[i][j] = vector_euclidean_distance( sp1->powerspect[i], sp2->powerspect[j], sp1->N_freq );
+	 }
+  }
+  dprintf("\nDone\n");
+
+  /* free */
+  free_spectrogram( sp1 );
+  free_spectrogram( sp2 );
+  free( d1 );
+  free( d2 );
+  free( window );
+
+  return d;
+}
+
+
 /** Calculate regularization function
 	 \f[
 	 G_f(x,y; \sigma) = \frac{1}{\sigma 2\pi} \exp{\left( -\frac{\min_{\xi}\sqrt{(\xi-x)^2+(y-f(\xi))^2}}{2\sigma^2} \right)}
@@ -108,9 +214,9 @@ double** eeg_distmatrix_euclidean_derivative_channel( EEGdata *s1, EEGdata *s2,
 	 \param d matrix or NULL (alloc'd in function)
 	 \return d or NULL (error)
  */
-double** eeg_gaussian_regularization_bresenham_channel( EEGdata *s1, EEGdata *s2, 
-																		  int channel, double maxsigma,
-																		  double **d ){
+double** eeg_regularization_gaussian_line( const EEGdata *s1, const EEGdata *s2, 
+														 double maxsigma,
+														 double **d ){
   int i, j, k;
   int *m1, /* markers for signal 1 */
 	 *m2;   /* markers for signal 2 */
@@ -236,7 +342,6 @@ WarpPath* DTW_path_from_square_distmatrix(const double **d, int n, WarpPath *pat
   int j,k;
   int idx;
   double left, down, downleft;
-  double maxdist;
   double **D;
 
   if( path==NULL ){
@@ -268,7 +373,7 @@ WarpPath* DTW_path_from_square_distmatrix(const double **d, int n, WarpPath *pat
   /* Backtracking */
   j=n-1; k=n-1;
 
-  idx = 1;
+  idx = (j+k);
   path->upath[0] = j;
   path->spath[0] = k;
   while( j>0 || k>0 ){
@@ -302,8 +407,8 @@ WarpPath* DTW_path_from_square_distmatrix(const double **d, int n, WarpPath *pat
 	 
 	 path->upath[idx] = j;
 	 path->spath[idx] = k;
-	 idx++;
-	 //dprintf("(j, k), idx = (%i,%i), %i\n", j, k, idx);
+	 idx--;
+	 /* dprintf("(j, k), idx = (%i,%i), %i\n", j, k, idx); */
   }
 
   /* free */
@@ -329,7 +434,7 @@ WarpPath* DTW_path_from_square_distmatrix(const double **d, int n, WarpPath *pat
 double** DTW_build_restricted_cumdistmatrix(const double *u, int J, 
 														  const double *s, int K, 
 														  double R, double **d){ 
-  int i,j,k;
+  int j,k;
   double avgu, avgs, rmsu=0.0, rmss=0.0;
   double snorm, snormp; /* variable for a point of the normalized
 									signal and the preceding point */
@@ -483,7 +588,7 @@ double** DTW_build_cumdistmatrix(const double *u, int J, const double *s, int K,
 	 \return WarpPath struct
 */
 WarpPath* DTW_path_from_cumdistmatrix(const double **d, int J, int K, WarpPath *path){
-  int i, j, k;
+  int j, k;
   int idx;
   double left, down, downleft;
 
@@ -566,7 +671,7 @@ double DTW_get_warpdistance(const double *u, int J, const double *s, int K,
 WarpPath* DTW_get_warppath2(const double *u, int J, const double *s, int K,	double theta1, double theta2, double *Djk){
 	WarpPath *path;
 	double **d;
-	int i,j,k;
+	int i;
   
 	d = DTW_build_cumdistmatrix( u,J,s,K,theta1,theta2,NULL );
 	path=DTW_path_from_cumdistmatrix( (const double**)d, J,K, NULL );
@@ -575,6 +680,37 @@ WarpPath* DTW_get_warppath2(const double *u, int J, const double *s, int K,	doub
 	free(d);
 
 	return path;
+}
+
+/** Add magnitude of signals according to warppath P.
+	 Data is resampled to have length (J+K)/2+1 using cspline interpolation.
+ * \param path - contains warppath
+ * \param weights - weights in average, for using it with hierarchical averaging
+ * \param avg - pointer to caller-allocated memory (length (K+J)/2+1); 
+ *              if NULL is given, memory is allocated by the function.
+ */
+double* DTW_add_signals_by_path(const double *s1, int n1, const double *s2, int n2, const WarpPath *P, double *avg, const double weights[2]){
+  double *tmp;
+	int i, idx;
+
+	tmp = (double*)calloc(n1+n2, sizeof(double));
+	if(avg==NULL){
+	  dprintf("Allocating own memory\n");
+	  avg = (double*)calloc((n1+n2)/2+1, sizeof(double));
+	}
+	
+	idx = 0;
+	for(i=0; i<n1+n2; i++){
+	  if( P->upath[i]==0 && P->spath[i]==0 ){
+		 continue;
+	  }
+	  tmp[idx++] = weights[0]*(s1[P->upath[i]]) + weights[1]*(s2[P->spath[i]]);
+	}
+	dprintf("J=%i,K=%i, idx=%i\n", n1, n2, idx);	
+	avg = resample_gsl( tmp, idx, (n1+n2)/2+1, avg, gsl_interp_cspline );
+
+	free(tmp);
+	return avg;
 }
 
 /** Warpaverage two signals together. Use method described in Picton.
@@ -625,26 +761,193 @@ double* ADTW(const double *s1, int n1, const double *s2, int n2, double *avg){
   return avg;
 }
 
-/** \param eeg_in 
+/* /\** \todo this function is pretty huge. Modularize? */
+
+/* 	 \param eeg_in  */
+/* 	 \param distmatrix Distance matrix between the trials in eeg_in */
+/* 	 \param N number of trials (columns/rows) in distmatrix */
+/* 	 \param max_sigma param for regularization */
+/* 	 \param corner_freqs for local-frequency metric; maximal {0, eeg_in->sampling_rate/2.0} */
+/* 	 \param dont_touch_eeg flag; if >0, duplicate complete eeg-struct within the function.  */
+/* 	                       Else, eeg is modified and cleared within the function. */
+/* 	 \param out memory for the final average or NULL (own memory is allocated) */
+/* 	 \return pointer to final average */
+/*  *\/   */
+/* EEGdata* eegtrials_PADTW_locfreq( EEGdata_trials *eeg_in, const double **distmatrix, int N,  */
+/* 											 double max_sigma, double corner_freqs[2], */
+/* 											 int dont_touch_eeg, EEGdata *out ){ */
+/*   Dendrogram *T, *Tsub;  */
+/*   EEGdata_trials *eeg; */
+/*   EEGdata *new, *s1, *s2; */
+/*   WarpPath *P; */
+/*   int num_chan, */
+/* 	 nsamples, nmarkers, n; */
+/*   int i, idx1, idx2, c, */
+/* 	 trials_left; */
+/*   double **G, **d; */
+/*   double maxdist; */
+/*   double srate; */
+/*   double weights[2]={1.0,1.0}; 			  /\* this is for recursive averaging *\/ */
+/*   int    *indices;				  /\* n-array containing number averagings for each trial *\/ */
+
+
+/*   if( N>eeg_in->ntrials ){ */
+/* 	 errprintf(" distance matrix contains more trials than eegdata. this is fatal\n"); */
+/* 	 return NULL; */
+/*   } */
+
+/*   /\* build hierarchical dendrogram *\/ */
+/*   T = agglomerative_clustering( (const double**)distmatrix, N, dgram_dist_completelinkage ); */
+/*   dgram_print( T ); */
+/*   if( dont_touch_eeg ){ */
+/* 	 dprintf("Cloning EEGData\n"); */
+/* 	 eeg = clone_eegdata_trials( eeg_in ); */
+/*   } else { */
+/* 	 dprintf("using eeg_in and deleting it!\n"); */
+/* 	 eeg = eeg_in; */
+/*   } */
+  
+/*   /\* prepare settings *\/ */
+/*   num_chan = eeg->data[0]->nbchan; */
+/*   nsamples = eeg->data[0]->n; */
+/*   nmarkers = eeg->nmarkers_per_trial; */
+/*   srate    = eeg->sampling_rate; */
+/*   n = nsamples; */
+/*   G = matrix_init( n, n ); */
+/*   d = matrix_init( n, n );   */
+/*   indices = (int*)malloc( N*sizeof(int) ); */
+/*   for( i=0; i<N; i++ ){ */
+/* 	 indices[i] = 1; */
+/*   } */
+/*   if( !out ){ */
+/* 	 warnprintf( "allocating eegdata within function \n"); */
+/* 	 out = init_eegdata( num_chan, nsamples, nmarkers ); */
+/*   } */
+/*   P = init_warppath( ALLOC_IN_FCT, n, n ); */
+
+/*   idx1=0;  */
+/*   idx2=0; */
+/*   /\* now walk the tree to find pairs of trials to match *\/ */
+/*   trials_left = N; */
+/*   while( trials_left >= 2 ){ */
+/* 	 Tsub = dgram_get_deepest( T ); */
+/* 	 idx1 = Tsub->left->val; */
+/* 	 idx2 = Tsub->right->val; */
+/* 	 dprintf("trials_left = %i, Tsub=%p\n", trials_left, Tsub); */
+/* 	 dprintf("Tsub=%p, val=%i, lval=%i, rval=%i, d[%i,%i]=%f\n", Tsub, Tsub->val, Tsub->left->val,  */
+/* 				Tsub->right->val,  idx1,  idx2, d[idx1][idx2]); */
+
+
+/* 	 weights[0] = indices[idx1]/(double)(indices[idx1]+indices[idx2]); */
+/* 	 weights[1] = indices[idx2]/(double)(indices[idx1]+indices[idx2]); */
+/* 	 dprintf("indices[%i,%i]=(%i,%i)\n", idx1, idx2, indices[idx1], indices[idx2]); */
+/* 	 dprintf("weights=(%f,%f)\n", weights[0], weights[1] ); */
+
+	 
+/* 	 if( eeg->data[idx1]==NULL || eeg->data[idx2]==NULL ){ */
+/* 		errprintf( "try to touch a NULL-node: eeg->data[idx1]=%p, eeg->data[idx2]=%p\n",  */
+/* 					  eeg->data[idx1], eeg->data[idx2] ); */
+/* 		return NULL; */
+/* 	 } */
+	 
+/* 	 /\* prepare average *\/ */
+/* 	 new = init_eegdata( num_chan, nsamples, nmarkers ); */
+/* 	 s1  = eeg->data[idx1]; */
+/* 	 s2  = eeg->data[idx2]; */
+
+/* 	 dprintf(" compute G\n"); */
+/* 	 G = eeg_gaussian_regularization_bresenham( s1, s2, max_sigma, G); /\* we need G only  */
+/* 																								 once for all channels *\/ */
+/* 	 /\* loop this for all channels ! *\/ */
+/* 	 for( c=0; c<num_chan; c++){ */
+/* 		oprintf("Trials (%i,%i): Channel=%i\n", idx1, idx2, c);  */
+/* 		dprintf(" compute d\n"); */
+/* 		/\* d = eeg_distmatrix_euclidean_derivative_channel(  s1, s2, c, d, 1, 1 ); *\/ */
+/* 		d = eeg_distmatrix_stft_channel( s1, s2, c, srate,  */
+/* 													window_hanning,  */
+/* 													MAX( SQR( next_pow2( n )-3 ), 4 ), /\* from EEGlab *\/ */
+/* 													1000, /\* frequency resolution *\/ */
+/* 													n,		/\* time-resolution *\/ */
+/* 													corner_freqs, /\* corner freqs *\/ */
+/* 													d ); */
+/* 		dprintf(" ...done\n");   */
+/* 		dprintf(" Regularize d\n"); */
+/* 		maxdist = matrix_max( (const double**)d, n, n, NULL, NULL ); */
+/* 		scalar_minus_matrix( maxdist, d, n, n ); */
+/* 		matrix_dottimes_matrix( d, (const double**)G, n, n ); */
+/* 		scalar_minus_matrix( maxdist, d, n, n );  */
+/* 		dprintf(" ...done\n");   */
+/* 		dprintf(" Compute path\n");   */
+/* 		P = DTW_path_from_square_distmatrix( (const double**)d, n, P ); */
+/* 		dprintf(" ...done\n");   */
+/* 		dprintf(" Warpavg\n");   */
+/* 		new = eeg_DTW_add_signals_by_path( s1, s2, new, c, P, weights ); */
+/* 		dprintf(" ...done\n");   */
+/* 		//eeg_ADTW_channel2( eeg->data[idx1], eeg->data[idx2], new, c, args.theta ); */
+/* 	 } */
+
+/* 	 /\* remove the previous trials *\/ */
+/* 	 free_eegdata(s1); */
+/* 	 free_eegdata(s2); */
+/* 	 eeg->data[idx1] = new; /\* ADTW goes to idx1 *\/ */
+/* 	 eeg->data[idx2] = NULL; /\* do not touch this again *\/  */
+
+/* 	 indices[idx1] += indices[idx2]; */
+/* 	 indices[idx2]=-1; 			  /\* never to be used again *\/ */
+
+/* 	 /\* replace node by leaf representing ADTW(idx1, idx2) *\/ */
+/* 	 Tsub->val = idx1; */
+/* 	 Tsub->left = NULL; */
+/* 	 Tsub->right = NULL; */
+
+/* 	 trials_left--; */
+/*   } */
+/*   for( i=0; i<N; i++ ){ */
+/* 	 dprintf("indices[%i]=%i\n", i, indices[i]); */
+/*   } */
+
+/*   copy_similar_eegdata( out, eeg->data[idx1] ); */
+  
+/*   /\* scale by number of trials *\/ */
+  
+
+/*   /\* cleaning up *\/ */
+/*   dprintf("Freeing Memory\n"); */
+/*   matrix_free( d, n ); */
+/*   matrix_free( G, n ); */
+/*   dgram_free( T ); */
+/*   free( indices ); */
+/*   free_warppath( P ); */
+
+/*   return out; */
+/* } */
+/** \todo this function is pretty huge. Modularize?
+
+	 \param eeg_in 
 	 \param distmatrix Distance matrix between the trials in eeg_in
 	 \param N number of trials (columns/rows) in distmatrix
+	 \param max_sigma param for regularization
+	 \param corner_freqs for local-frequency metric; maximal {0, eeg_in->sampling_rate/2.0}
 	 \param dont_touch_eeg flag; if >0, duplicate complete eeg-struct within the function. 
 	                       Else, eeg is modified and cleared within the function.
 	 \param out memory for the final average or NULL (own memory is allocated)
 	 \return pointer to final average
  */  
-EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, int N, int dont_touch_eeg, EEGdata *out ){
+EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, int N, 
+								  EEGdata *out, SettingsPADTW settings ){
   Dendrogram *T, *Tsub; 
   EEGdata_trials *eeg;
   EEGdata *new, *s1, *s2;
   WarpPath *P;
-  int num_chan, use_channel,
+  int num_chan,
 	 nsamples, nmarkers, n;
-  int i, j, idx1, idx2, c,
-	 trials_left,
-	 chan;
+  int i, idx1, idx2, c,
+	 trials_left;
   double **G, **d;
   double maxdist;
+  double srate;
+  double weights[2]={1.0,1.0}; 			  /* this is for recursive averaging */
+  int    *indices;				  /* n-array containing number averagings for each trial */
 
 
   if( N>eeg_in->ntrials ){
@@ -653,9 +956,9 @@ EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, int
   }
 
   /* build hierarchical dendrogram */
-  T = agglomerative_clustering( (const double**)distmatrix, N, dgram_dist_completelinkage );
-  
-  if( dont_touch_eeg ){
+  T = agglomerative_clustering( (const double**)distmatrix, N, settings.linkage );
+  dgram_print( T );
+  if( settings.dont_touch_eeg ){
 	 dprintf("Cloning EEGData\n");
 	 eeg = clone_eegdata_trials( eeg_in );
   } else {
@@ -667,31 +970,42 @@ EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, int
   num_chan = eeg->data[0]->nbchan;
   nsamples = eeg->data[0]->n;
   nmarkers = eeg->nmarkers_per_trial;
+  srate    = eeg->sampling_rate;
   n = nsamples;
   G = matrix_init( n, n );
   d = matrix_init( n, n );  
+  indices = (int*)malloc( N*sizeof(int) );
+  for( i=0; i<N; i++ ){
+	 indices[i] = 1;
+  }
   if( !out ){
 	 warnprintf( "allocating eegdata within function \n");
 	 out = init_eegdata( num_chan, nsamples, nmarkers );
   }
   P = init_warppath( ALLOC_IN_FCT, n, n );
 
-
+  idx1=0; 
+  idx2=0;
   /* now walk the tree to find pairs of trials to match */
   trials_left = N;
   while( trials_left >= 2 ){
 	 Tsub = dgram_get_deepest( T );
 	 idx1 = Tsub->left->val;
 	 idx2 = Tsub->right->val;
-	 
 	 dprintf("trials_left = %i, Tsub=%p\n", trials_left, Tsub);
 	 dprintf("Tsub=%p, val=%i, lval=%i, rval=%i, d[%i,%i]=%f\n", Tsub, Tsub->val, Tsub->left->val, 
 				Tsub->right->val,  idx1,  idx2, d[idx1][idx2]);
-	 
+
+
+	 weights[0] = indices[idx1]/(double)(indices[idx1]+indices[idx2]);
+	 weights[1] = indices[idx2]/(double)(indices[idx1]+indices[idx2]);
+	 dprintf("indices[%i,%i]=(%i,%i)\n", idx1, idx2, indices[idx1], indices[idx2]);
+	 dprintf("weights=(%f,%f)\n", weights[0], weights[1] );
+
 	 if( eeg->data[idx1]==NULL || eeg->data[idx2]==NULL ){
 		errprintf( "try to touch a NULL-node: eeg->data[idx1]=%p, eeg->data[idx2]=%p\n", 
 					  eeg->data[idx1], eeg->data[idx2] );
-		return;
+		return NULL;
 	 }
 	 
 	 /* prepare average */
@@ -699,12 +1013,15 @@ EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, int
 	 s1  = eeg->data[idx1];
 	 s2  = eeg->data[idx2];
 
+	 dprintf(" compute G\n");
+	 G = settings.regularize( s1, s2, settings.sigma, G); /* we need G only 
+																		 once for all channels */
 	 /* loop this for all channels ! */
 	 for( c=0; c<num_chan; c++){
 		oprintf("Trials (%i,%i): Channel=%i\n", idx1, idx2, c); 
-		dprintf(" compute d,G\n");
-		d = eeg_distmatrix_euclidean_derivative_channel(  s1, s2, 0, d, 1, 1 );
-		G = eeg_gaussian_regularization_bresenham_channel( s1, s2, 0, 0.2, G);
+		dprintf(" compute d\n");
+		/* d = eeg_distmatrix_euclidean_derivative_channel(  s1, s2, c, d, 1, 1 ); */
+		d = settings.trialdistance( s1, s2, c, d, (void*)(&settings) );
 		dprintf(" ...done\n");  
 		dprintf(" Regularize d\n");
 		maxdist = matrix_max( (const double**)d, n, n, NULL, NULL );
@@ -713,10 +1030,10 @@ EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, int
 		scalar_minus_matrix( maxdist, d, n, n ); 
 		dprintf(" ...done\n");  
 		dprintf(" Compute path\n");  
-		P = DTW_path_from_square_distmatrix( d, n, P );
+		P = DTW_path_from_square_distmatrix( (const double**)d, n, P );
 		dprintf(" ...done\n");  
 		dprintf(" Warpavg\n");  
-		new = eeg_ADTW_from_path( s1, s2, new, c, P );
+		new = eeg_DTW_add_signals_by_path( s1, s2, new, c, P, weights );
 		dprintf(" ...done\n");  
 		//eeg_ADTW_channel2( eeg->data[idx1], eeg->data[idx2], new, c, args.theta );
 	 }
@@ -727,6 +1044,9 @@ EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, int
 	 eeg->data[idx1] = new; /* ADTW goes to idx1 */
 	 eeg->data[idx2] = NULL; /* do not touch this again */ 
 
+	 indices[idx1] += indices[idx2];
+	 indices[idx2]=-1; 			  /* never to be used again */
+
 	 /* replace node by leaf representing ADTW(idx1, idx2) */
 	 Tsub->val = idx1;
 	 Tsub->left = NULL;
@@ -734,18 +1054,156 @@ EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, int
 
 	 trials_left--;
   }
+  for( i=0; i<N; i++ ){
+	 dprintf("indices[%i]=%i\n", i, indices[i]);
+  }
 
   copy_similar_eegdata( out, eeg->data[idx1] );
   
+  /* scale by number of trials */
+  
+
   /* cleaning up */
   dprintf("Freeing Memory\n");
   matrix_free( d, n );
   matrix_free( G, n );
   dgram_free( T );
+  free( indices );
   free_warppath( P );
 
   return out;
 }
+
+/* /\** \param eeg_in  */
+/* 	 \param distmatrix Distance matrix between the trials in eeg_in */
+/* 	 \param N number of trials (columns/rows) in distmatrix */
+/* 	 \param max_sigma param for regularization */
+/* 	 \param dont_touch_eeg flag; if >0, duplicate complete eeg-struct within the function.  */
+/* 	                       Else, eeg is modified and cleared within the function. */
+/* 	 \param out memory for the final average or NULL (own memory is allocated) */
+/* 	 \return pointer to final average */
+/*  *\/   */
+/* EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, int N,  */
+/* 								  double max_sigma,  */
+/* 								  int dont_touch_eeg, EEGdata *out ){ */
+/*   Dendrogram *T, *Tsub;  */
+/*   EEGdata_trials *eeg; */
+/*   EEGdata *new, *s1, *s2; */
+/*   WarpPath *P; */
+/*   int num_chan, use_channel, */
+/* 	 nsamples, nmarkers, n; */
+/*   int i, j, idx1, idx2, c, */
+/* 	 trials_left, */
+/* 	 chan; */
+/*   double **G, **d; */
+/*   double maxdist; */
+/*   double weights[2]={1.0,1.0}; */
+
+
+/*   if( N>eeg_in->ntrials ){ */
+/* 	 errprintf(" distance matrix contains more trials than eegdata. this is fatal\n"); */
+/* 	 return NULL; */
+/*   } */
+
+/*   /\* build hierarchical dendrogram *\/ */
+/*   T = agglomerative_clustering( (const double**)distmatrix, N, dgram_dist_completelinkage ); */
+  
+/*   if( dont_touch_eeg ){ */
+/* 	 dprintf("Cloning EEGData\n"); */
+/* 	 eeg = clone_eegdata_trials( eeg_in ); */
+/*   } else { */
+/* 	 dprintf("using eeg_in and deleting it!\n"); */
+/* 	 eeg = eeg_in; */
+/*   } */
+  
+/*   /\* prepare settings *\/ */
+/*   num_chan = eeg->data[0]->nbchan; */
+/*   nsamples = eeg->data[0]->n; */
+/*   nmarkers = eeg->nmarkers_per_trial; */
+/*   n = nsamples; */
+/*   G = matrix_init( n, n ); */
+/*   d = matrix_init( n, n );   */
+/*   if( !out ){ */
+/* 	 warnprintf( "allocating eegdata within function \n"); */
+/* 	 out = init_eegdata( num_chan, nsamples, nmarkers ); */
+/*   } */
+/*   P = init_warppath( ALLOC_IN_FCT, n, n ); */
+
+
+/*   /\* now walk the tree to find pairs of trials to match *\/ */
+/*   trials_left = N; */
+/*   idx1=0; */
+/*   idx2=0; */
+/*   while( trials_left >= 2 ){ */
+/* 	 Tsub = dgram_get_deepest( T ); */
+/* 	 idx1 = Tsub->left->val; */
+/* 	 idx2 = Tsub->right->val; */
+	 
+/* 	 dprintf("trials_left = %i, Tsub=%p\n", trials_left, Tsub); */
+/* 	 dprintf("Tsub=%p, val=%i, lval=%i, rval=%i, d[%i,%i]=%f\n", Tsub, Tsub->val, Tsub->left->val,  */
+/* 				Tsub->right->val,  idx1,  idx2, d[idx1][idx2]); */
+	 
+/* 	 if( eeg->data[idx1]==NULL || eeg->data[idx2]==NULL ){ */
+/* 		errprintf( "try to touch a NULL-node: eeg->data[idx1]=%p, eeg->data[idx2]=%p\n",  */
+/* 					  eeg->data[idx1], eeg->data[idx2] ); */
+/* 		return NULL; */
+/* 	 } */
+	 
+/* 	 /\* prepare average *\/ */
+/* 	 new = init_eegdata( num_chan, nsamples, nmarkers ); */
+/* 	 s1  = eeg->data[idx1]; */
+/* 	 s2  = eeg->data[idx2]; */
+
+/* 	 dprintf(" compute G\n"); */
+/* 	 G = eeg_gaussian_regularization_bresenham( s1, s2, max_sigma, G); /\* we need G only  */
+/* 																								 once for all channels *\/ */
+/* 	 /\* loop this for all channels ! *\/ */
+/* 	 for( c=0; c<num_chan; c++){ */
+/* 		oprintf("Trials (%i,%i): Channel=%i\n", idx1, idx2, c);  */
+/* 		dprintf(" compute d\n"); */
+/* 		d = eeg_distmatrix_euclidean_derivative_channel(  s1, s2, c, d, 1, 1 );  */
+/* 		dprintf(" ...done\n");   */
+/* 		dprintf(" Regularize d\n"); */
+/* 		maxdist = matrix_max( (const double**)d, n, n, NULL, NULL ); */
+/* 		scalar_minus_matrix( maxdist, d, n, n ); */
+/* 		matrix_dottimes_matrix( d, (const double**)G, n, n ); */
+/* 		scalar_minus_matrix( maxdist, d, n, n );  */
+/* 		dprintf(" ...done\n");   */
+/* 		dprintf(" Compute path\n");   */
+/* 		P = DTW_path_from_square_distmatrix( d, n, P ); */
+/* 		dprintf(" ...done\n");   */
+/* 		dprintf(" Warpavg\n");   */
+/* 		new = eeg_DTW_add_signals_by_path( s1, s2, new, c, P, weights ); */
+/* 		dprintf(" ...done\n");   */
+/* 		//eeg_ADTW_channel2( eeg->data[idx1], eeg->data[idx2], new, c, args.theta ); */
+/* 	 } */
+
+/* 	 /\* remove the previous trials *\/ */
+/* 	 free_eegdata(s1); */
+/* 	 free_eegdata(s2); */
+/* 	 eeg->data[idx1] = new; /\* ADTW goes to idx1 *\/ */
+/* 	 eeg->data[idx2] = NULL; /\* do not touch this again *\/  */
+
+/* 	 /\* replace node by leaf representing ADTW(idx1, idx2) *\/ */
+/* 	 Tsub->val = idx1; */
+/* 	 Tsub->left = NULL; */
+/* 	 Tsub->right = NULL; */
+
+/* 	 trials_left--; */
+/*   } */
+
+/*   copy_similar_eegdata( out, eeg->data[idx1] ); */
+  
+/*   /\* cleaning up *\/ */
+/*   dprintf("Freeing Memory\n"); */
+/*   matrix_free( d, n ); */
+/*   matrix_free( G, n ); */
+/*   dgram_free( T ); */
+/*   free_warppath( P ); */
+
+/*   return out; */
+/* } */
+
 
 double DTW_distance_between_paths(const WarpPath *P1, const WarpPath *P2){
   int i, J, K;
@@ -753,7 +1211,7 @@ double DTW_distance_between_paths(const WarpPath *P1, const WarpPath *P2){
 
 
   if(P1->J != P2->J || P1->K != P2->K){
-	 errprintf( "P1 and P2 not comparable (P1->J, P2->J, P1->K, P2->K)\n", P1->J, P2->J, P1->K, P2->K);
+	 errprintf( "P1 and P2 not comparable (P1->J, P2->J, P1->K, P2->K)=(%i,%i,%i,%i)\n", P1->J, P2->J, P1->K, P2->K);
   }
   J = P1->J;
   K = P1->K;
@@ -765,7 +1223,25 @@ double DTW_distance_between_paths(const WarpPath *P1, const WarpPath *P2){
 
   return dist;
 }
+EEGdata* eeg_DTW_add_signals_by_path(const EEGdata *s1, const EEGdata *s2, EEGdata *target, int channel, const WarpPath *P, const double weights[2]){
+  int i;
 
+  if(target==NULL){
+	 target = init_eegdata(s1->nbchan, (s1->n+s2->n)/2, 0);
+	 warnprintf("ALLOC: allocated memory in function!\n");
+  }
+  DTW_add_signals_by_path( s1->d[channel], s1->n,
+									s2->d[channel], s2->n,
+									P, target->d[channel], weights );
+  
+  /* set time-markers */
+  for( i=0; i<s1->nmarkers; i++ ){
+	 target->markers[i] = (s1->markers[i]+s2->markers[i])/2;
+	 dprintf( "New marker for target[%i]=%i\n", i, (int)target->markers[i] );
+  }
+
+  return target;
+}
 
 
 EEGdata* eeg_ADTW_from_path(const EEGdata *s1, const EEGdata *s2, EEGdata *target, int channel, const WarpPath *P){
@@ -782,7 +1258,7 @@ EEGdata* eeg_ADTW_from_path(const EEGdata *s1, const EEGdata *s2, EEGdata *targe
   /* set time-markers */
   for( i=0; i<s1->nmarkers; i++ ){
 	 target->markers[i] = (s1->markers[i]+s2->markers[i])/2;
-	 dprintf( "New marker for target[%i]=%i\n", i, target->markers[i] );
+	 dprintf( "New marker for target[%i]=%i\n", i, (int)target->markers[i] );
   }
 
   return target;
@@ -802,7 +1278,7 @@ void eeg_ADTW_channel(const EEGdata *s1, const EEGdata *s2, EEGdata *target, int
   dist = matrix_init( s1->n, s2->n );
 
   dist = DTW_build_restricted_cumdistmatrix( s1->d[channel], s1->n,  s2->d[channel], s2->n, theta, dist );
-  P = DTW_path_from_cumdistmatrix( dist, s1->n, s2->n, NULL );
+  P = DTW_path_from_cumdistmatrix( (const double**) dist, s1->n, s2->n, NULL );
   target->d[channel] = ADTW_from_path( s1->d[channel], s1->n, s2->d[channel], s2->n, P, target->d[channel] );
   
   matrix_free( dist, s1->n );
@@ -926,4 +1402,36 @@ EEGdata* eegtrials_gibbons( const EEGdata_trials *eeg, EEGdata *target,
   free( new_times );
 
   return target;
+}
+
+/** \cond PRIVATE */
+void _settings_guess_from_eegtrials( const EEGdata_trials *eeg, SettingsPADTW *settings ){
+  int n = eeg->nsamples;
+  settings->winlength = MAX( SQR( sqrt(next_pow2( n ))-3 ), 4 );
+  settings->N_time=n;
+  settings->N_freq=(settings->winlength)*2;
+  settings->sampling_rate=eeg->sampling_rate;
+  settings->corner_freqs[0]=0.0;
+  settings->corner_freqs[1]=settings->sampling_rate/2.0;
+}
+/** \endcond */
+
+SettingsPADTW init_PADTW( const EEGdata_trials *eeg ){	 
+  SettingsPADTW settings;
+  settings.regularize=eeg_regularization_gaussian_line;
+  settings.linkage=dgram_dist_completelinkage;
+  settings.dont_touch_eeg=1;
+  settings.trialdistance=eeg_distmatrix_stft_channel;
+  settings.theta1=1.0;
+  settings.theta2=1.0;
+  settings.corner_freqs[0]=-1;
+  settings.corner_freqs[1]=-1;
+  settings.winfct=window_hanning;
+  settings.winlength=-1;
+  settings.sampling_rate=-1;
+  settings.N_freq=-1;
+  settings.N_time=-1;
+  settings.sigma=0.2;
+  _settings_guess_from_eegtrials( eeg, &settings );
+  return settings;
 }

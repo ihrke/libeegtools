@@ -1,12 +1,11 @@
-AM_CPPFLAGS = -I$(top_srcdir)/src `@GSL_CONFIG@ --cflags`
+AM_CPPFLAGS = -I$(build_dir)/src -I$(top_srcdir)/src `@GSL_CONFIG@ --cflags`
 AM_LDFLAGS = `@GSL_CONFIG@ --libs`
 
 METASOURCES = AUTO
 
-bin_PROGRAMS = t_denoise t_denoisestat \
+noinst_PROGRAMS = t_denoise t_denoisestat \
 	 t_readeeglab t_testfilter t_rawreadertest t_clustering t_gapstat \
-	t_dtw t_padtw t_adtw_markers t_timefreq t_test
-
+	t_dtw t_padtw t_adtw_markers t_timefreq t_test t_filterdesign 
 
 t_denoise_SOURCES = argspec.c argspec.h t_denoise.c
 t_denoise_LDADD = $(top_builddir)/src/libeegtools.la 
@@ -38,6 +37,11 @@ t_testfilter_CFLAGS =  `@PLOTTER_CONFIG@ --with-capi --cflags`
 t_testfilter_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
 t_testfilter_LDADD = $(top_builddir)/src/libeegtools.la 
 
+
+t_filterdesign_SOURCES = t_filterdesign.c 
+t_filterdesign_CFLAGS =  `@PLOTTER_CONFIG@ --with-capi --cflags`
+t_filterdesign_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
+t_filterdesign_LDADD = $(top_builddir)/src/libeegtools.la 
 
 t_dtw_SOURCES = t_dtw.c
 t_dtw_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`

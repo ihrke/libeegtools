@@ -40,7 +40,7 @@ void write_raw_markers( FILE *f, const EEGdata *eeg ){
  */
 void write_eegtrials_to_raw( const EEGdata_trials *eeg, FILE *f ){
  
-  int i,j, c, t;
+  int i, c, t;
 
   write_raw_header( f, eeg->data[0]->nbchan, eeg->ntrials, 
 						  eeg->data[0]->n, eeg->nmarkers_per_trial );
@@ -73,7 +73,6 @@ void write_eegtrials_to_raw_file( const EEGdata_trials *eeg, const char *fname )
 
 void write_double_matrix_ascii_file(const char *fname, const double **d, int xdim, int ydim){
   FILE *f;
-  int x, y;
 
   if((f=fopen(fname, "w"))==NULL)
 	 errormsg(ERR_IO, 1);
