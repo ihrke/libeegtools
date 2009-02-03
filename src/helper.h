@@ -148,6 +148,7 @@ extern "C" {
 	  ---------------------------------------------------------------------------- */
   /* constructors */
   EEGdata*        init_eegdata(int nbchan, int nsamples, int nmarkers);
+  void            reset_eegdata( EEGdata* eeg );
   EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, int nbchan, int nbsamples, double *times);
   WarpPath*       init_warppath(WarpPath *path, int J, int K);
 

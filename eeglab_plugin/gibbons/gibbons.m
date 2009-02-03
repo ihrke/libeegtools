@@ -60,7 +60,7 @@ for i=1:trials
       (meanRT-trialRT(i));
   
   t(trialRT_idx:samples)=1;
-  t(trialRT_idx:samples)=linspace(meanRT, times(end),...
+  t(trialRT_idx:samples)=linspace(meanRT, times(end),... % rest is linear
       size(t(trialRT_idx:samples),2));
   for c=1:chans
       ceeg(c,1:samples,i) = interp1(t, eeg(c,:,i), times, 'linear');

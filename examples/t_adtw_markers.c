@@ -43,8 +43,8 @@ int main(int argc, char **argv){
 
   n = eeg->data[0]->n;
   channel = 0;
-  s1 = eeg->data[10];
-  s2 = eeg->data[3];
+  s1 = eeg->data[0];
+  s2 = eeg->data[1];
 
   /* computation */  
   G = matrix_init(n,n);
@@ -58,8 +58,8 @@ int main(int argc, char **argv){
   settings.N_time=n;
 
   dprintf(" init d,G\n");
-  /* d = eeg_distmatrix_euclidean_derivative_channel(  s1, s2, channel, d, 1,1 ); */
-  d = eeg_distmatrix_stft_channel( s1, s2, channel, d, (void*)&settings );
+  /* d = eeg_distmatrix_stft_channel( s1, s2, channel, d, (void*)&settings ); */
+  d = eeg_distmatrix_euclidean_derivative_channel(  s1, s2, channel, d, (void*)&settings );
   dprintf(" d\n");
   G = eeg_regularization_gaussian_line( s1, s2, atof(argv[2]), G);
 

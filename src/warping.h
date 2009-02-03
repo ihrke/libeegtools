@@ -109,14 +109,9 @@ extern "C" {
   EEGdata*  eeg_DTW_add_signals_by_path(const EEGdata *s1, const EEGdata *s2, EEGdata *target, 
 													 int channel, const WarpPath *P, const double weights[2]);
 
-  EEGdata* eegtrials_PADTW_S( EEGdata_trials *eeg_in, const double **distmatrix, 
-										int N,  EEGdata *out, SettingsPADTW settings );
   EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, 
-									 int N, double max_sigma, 
-									 int dont_touch_eeg, EEGdata *out );
-  EEGdata* eegtrials_PADTW_locfreq( EEGdata_trials *eeg_in, const double **distmatrix, int N, 
-												double max_sigma, double corner_freqs[2],
-												int dont_touch_eeg, EEGdata *out );
+									 int N,  EEGdata *out, SettingsPADTW settings );
+
   SettingsPADTW init_PADTW();
   /** \} */
 

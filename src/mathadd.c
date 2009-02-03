@@ -140,6 +140,27 @@ double* sampled_line(double *ntimes, int n, double start, double end){
 
   return ntimes;
 }
+/** same as first:step:last in matlab.
+ * A sequence first, first+step, first+(2*step), ... ,last
+   is computed. The length of this  sequence is 
+	\f$ n=\lfloor \frac{last-first}{step} \rfloor+1 \f$
+	\param v either enough free allocated space, or ALLOC_IN_FCT (NULL) 
+	         - data ist allocated in the function and needs to be freed  by the caller.
+	\param n - number of doubles in v (return value)
+ */
+double* linspace_dbl(double first, double last, double step, double *v, int *n){
+  int i;
+	massert(first>last, "first>last: %i>%i", first, last);
+	*n = (int) round(((last-first)/step)+1);
+	if( v==ALLOC_IN_FCT ){
+	  v=(double*)malloc((*n)*sizeof(double));
+	}
+	for( i=0; i<*n; i++ ){
+	  v[i] = first+i*step;
+	}
+
+	return v;
+}
 
 /** same as first:last in matlab.
  * Data ist allocated in the function and needs to be freed

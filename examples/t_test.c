@@ -62,7 +62,7 @@ int padtw_test(int argc, char **argv){
   EEGdata *new;
   double **Delta;
   int N;
-
+  int i, n;
  
   /* get data */				  
   oprintf("Reading from '%s'\n", argv[1]);
@@ -74,11 +74,21 @@ int padtw_test(int argc, char **argv){
   matrix_print( Delta, N, N );
 
   fprintf(stderr, "eeg->n=%i\n", eeg->nsamples );
+  n = eeg->nsamples;
   SettingsPADTW settings = init_PADTW( eeg );
   settings.corner_freqs[1]=25.0;
+  settings.sigma=atof(argv[1]);
+  settings.trialdistance=eeg_distmatrix_stft_channel;
   new = init_eegdata( eeg->data[0]->nbchan, eeg->nsamples, eeg->nmarkers_per_trial );
-  eegtrials_PADTW_S( eeg, Delta, N, new, settings );
+  eegtrials_PADTW( eeg, Delta, N, new, settings );
   write_eegdata_ascii_file( "test.out", new );
+
+  for( i=0; i<N; i++ ){
+	 plot_format( eeg->times, eeg->data[i]->d[0], n, "g");
+  }
+  plot_format( eeg->times, new->d[0], n, "r");
+
+  plot_show(); 
 
   /* cleaning up */
   free_eegdata_trials( eeg );

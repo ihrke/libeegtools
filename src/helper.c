@@ -107,6 +107,14 @@ WarpPath* init_warppath(WarpPath *path, int J, int K){
   return path;
 }
 
+/** set all data->d[][] to zero
+ */
+void reset_eegdata( EEGdata* eeg ){
+  int i;
+  for( i=0; i<eeg->nbchan; i++ ){
+	 memset( eeg->d[i], 0, eeg->n*sizeof(double) );
+  }
+}
 
 /** initializes an eegdata-struct with values. 
 	 \param nbchan - num channels
@@ -171,13 +179,37 @@ void    print_eegdata(FILE *out, const EEGdata *eeg){
 	fprintf(out, "      nbchan  =%i\n", eeg->nbchan);
 	fprintf(out, "      n       =%i\n", eeg->n);
 	fprintf(out, "      nmarkers=%i\n", eeg->nmarkers);
+	if( eeg->nmarkers>0 ){
+	  fprintf(out, "        markers[0]=%ld\n", eeg->markers[0]);
+	  fprintf(out, "        markers[nm-1]=%ld\n",eeg->markers[eeg->nmarkers-1]);
+	}
+	if( eeg->n>0 ){
+	  fprintf(out, "        d[0][0]=%f\n", eeg->d[0][0]);
+	  fprintf(out, "        d[0][n-1]=%f\n",eeg->d[0][eeg->n-1]);
+	}
 }
 
 void print_eegdata_trials(FILE *out, const EEGdata_trials *eeg){
   	fprintf(out, "EEGdata_trials:\n"	);
 	fprintf(out, "      ntrials=%i\n", eeg->ntrials);
 	fprintf(out, "      nmarkers_per_trial=%i\n", eeg->nmarkers_per_trial);
+	if( eeg->nmarkers_per_trial>0 ){
+	  fprintf(out, "        markers[0][0]=%ld\n", eeg->markers[0][0]);
+	  fprintf(out, "        markers[0][nm-1]=%ld\n",eeg->markers[0][eeg->nmarkers_per_trial-1]);
+	}
 	fprintf(out, "      sampling_rate=%f\n", eeg->sampling_rate);
+	if( eeg->times!=NULL ){
+	  fprintf(out, "      times[0]=%f\n", eeg->times[0]);
+	  fprintf(out, "      times[n-1]=%f\n", eeg->times[eeg->nsamples-1]);
+	} else {
+	  fprintf(out, "      times[0]=<NULL>\n");
+	}
+	if( eeg->data[0] && eeg->data[0]->d[0] && eeg->data[0]->d[0][0] ){
+	  fprintf(out, "      data[0]->d[0][0]=%f\n", eeg->data[0]->d[0][0] );
+	  fprintf(out, "      data[0]->d[0][n-1]=%f\n", eeg->data[0]->d[0][eeg->nsamples-1] );
+	} else {
+	  fprintf(out, "      data[0]->d[0][0]=<NULL>\n" );
+	}
 }
 
 void free_eegdata_trials(EEGdata_trials *eeg){
@@ -197,6 +229,7 @@ void free_eegdata(EEGdata *eeg){
 	 free(eeg->d[i]);
   }
   free(eeg->d);
+  free(eeg->markers);
   free(eeg);
 }
 

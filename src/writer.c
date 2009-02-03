@@ -157,3 +157,163 @@ void write_eegdata_ascii_file(const char *fname, const EEGdata *eeg ){
   write_eegdata_ascii(f, eeg );
   fclose(f);
 }
+
+
+int _eegtrials_to_double_getn( EEGdata_trials *eeg ){
+  int n=0;
+  
+  n += 4; 							  /* fix fields in struct */
+  n += eeg->nmarkers_per_trial*eeg->ntrials; /* markers */
+  n += eeg->nsamples;								/* times */
+  n += 1;												/* nbchan */
+  n += (eeg->data[0]->nbchan)*(eeg->nsamples)*(eeg->ntrials); /* data */
+
+  return n;
+}
+
+/** pack a complete EEGdata_trials struct (with all sub-structs) 
+	 into a single double-array. Can be used, e.g. for MPISend().
+	 \param eeg
+	 \param n - output (number values in return vector)
+	 \return vector-representation of eeg
+*/
+double* eegtrials_to_double( EEGdata_trials *eeg, int *n ){
+  int i, j, c;
+  double *v;
+  int idx = 0;
+
+  *n = _eegtrials_to_double_getn( eeg );
+  v = (double*) malloc( (*n)*sizeof(double) );
+
+  /* fix values */
+  v[idx++] = (double) eeg->ntrials;
+  v[idx++] = (double) eeg->nsamples;
+  v[idx++] = (double) eeg->nmarkers_per_trial;
+  v[idx++] = (double) eeg->data[0]->nbchan;
+  v[idx++] = eeg->sampling_rate;
+
+  /* times */
+  for( i=0; i<eeg->nsamples; i++ ){
+	 v[idx++] = eeg->times[i];
+  }
+
+  /* markers */
+  for( i=0; i<eeg->ntrials; i++ ){
+	 for( j=0; j<eeg->nmarkers_per_trial; j++ ){
+		v[idx++] = (double) eeg->markers[i][j];
+	 }
+  }
+
+  /* EEG-data */
+  for( i=0; i<eeg->ntrials; i++ ){
+	 for( c=0; c<eeg->data[0]->nbchan; c++ ){
+		for( j=0; j<eeg->nsamples; j++ ){
+		  v[idx++] = eeg->data[i]->d[c][j];
+		}
+	 }
+  }
+
+  return v;
+}
+
+/** reverse the process from eegtrials_to_double() (that is, 
+	 construct a struct out of a stream of doubles).
+	 Can be used, e.g. for MPIRecv().
+*/
+EEGdata_trials* eegtrials_from_double( double *stream, int n ){
+  EEGdata_trials *eeg;
+  int i,j,c;
+  unsigned int nbtrials, nmarkers, nbchan, nbsamples;
+  int idx;
+
+  nbtrials = (unsigned int) stream[0];
+  nbsamples= (unsigned int) stream[1];
+  nmarkers = (unsigned int) stream[2];
+  nbchan   = (unsigned int) stream[3];
+  eeg = init_eegdata_trials( nbtrials, nmarkers, nbchan, nbsamples, stream+5 );
+  
+  /* copy markers */
+  idx = 5+nbsamples;				  /* after times array */
+  for( i=0; i<nbtrials; i++ ){
+	 for( j=0; j<nmarkers; j++ ){
+		eeg->markers[i][j] = (unsigned long)stream[idx++];
+	 }
+	 memcpy( eeg->data[i]->markers, eeg->markers[i], nmarkers*sizeof(unsigned long) );
+  }
+
+  /* copy data */
+  for( i=0; i<nbtrials; i++ ){
+	 for( c=0; c<nbchan; c++ ){
+		for( j=0; j<nbsamples; j++ ){
+		  eeg->data[i]->d[c][j]=stream[idx++]; 
+		}
+	 }
+  }
+  
+  return eeg;
+}
+
+/** pack a complete EEGdata struct
+	 into a single double-array. Can be used, e.g. for MPISend().
+	 \param eeg
+	 \param n - output (number values in return vector)
+	 \return vector-representation of eeg
+*/
+double* eegdata_to_double( EEGdata *eeg, int *n ){
+  double *v;
+  int i,c;
+  int idx=0;
+  
+  *n = (3+eeg->nmarkers+(eeg->nbchan*eeg->n));
+  v = (double*) malloc( (*n)*sizeof(double) );
+
+  v[idx++]=(double)eeg->nbchan;
+  v[idx++]=(double)eeg->n;
+  v[idx++]=(double)eeg->nmarkers;
+
+  /* markers */
+  for( i=0; i<eeg->nmarkers; i++ ){
+	 v[idx++]=(double)eeg->markers[i];
+  }
+
+  /* data */
+  for( c=0; c<eeg->nbchan; c++ ){
+	 for( i=0; i<eeg->n; i++ ){
+		v[idx++]=eeg->d[c][i];
+	 }
+  }
+
+  return v;
+}
+
+/** reverse the process from eegdata_to_double() (that is, 
+	 construct a struct out of a stream of doubles).
+	 Can be used, e.g. for MPIRecv().
+*/
+EEGdata* eegdata_from_double( double *stream, int n ){
+  EEGdata *eeg;
+  int i,c;
+  int nmarkers, nbchan, nbsamples;
+  int idx;
+
+  nbchan   = (int) stream[0];
+  nbsamples= (int) stream[1];
+  nmarkers = (int) stream[2];
+
+  eeg = init_eegdata( nbchan, nbsamples, nmarkers );
+  
+  /* copy markers */
+  idx=3;
+  for( i=0; i<nmarkers; i++ ){
+	 eeg->markers[i] = (unsigned long)stream[idx++];
+  }
+
+  /* copy data */
+  for( c=0; c<nbchan; c++ ){
+	 for( i=0; i<nbsamples; i++ ){
+		eeg->d[c][i]=stream[idx++]; 
+	 }
+  }
+
+  return eeg;
+}

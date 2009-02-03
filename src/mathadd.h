@@ -89,6 +89,7 @@ extern "C" {
   double* lininterp(const double *x1, const double *y1, int n1, 
 						  const double *x2,       double *y2, int n2);
   int*    linspace(int first, int last);
+  double* linspace_dbl(double first, double last, double step, double *v, int *n);
 
   int     bresenham_howmany_points( int xstart,int ystart,int xend,int yend );
   int*    bresenham(int xstart,int ystart,int xend,int yend, int *points);

@@ -53,6 +53,13 @@ extern "C" {
 
   void write_eegdata_ascii(FILE *out, const EEGdata *eeg );
   void write_eegdata_ascii_file(const char *fname, const EEGdata *eeg );
+
+  double* eegdata_to_double( EEGdata *eeg, int *n );
+  EEGdata* eegdata_from_double( double *stream, int n );
+
+  double* eegtrials_to_double( EEGdata_trials *eeg, int *n );
+  EEGdata_trials* eegtrials_from_double( double *stream, int n );
+
 #ifdef __cplusplus
 }
 #endif
