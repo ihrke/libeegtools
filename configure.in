@@ -26,6 +26,12 @@ fi
 #AC_SUBST(VARIABLE, [VALUE])
 ## Define $(VARIABLE) as VALUE in Makefiles
 
+uname=`uname`
+
+if test x$uname == xDarwin ; then
+	CC=gcc
+	CXX=$CC
+fi
 
 # ----------------------------------------------------------------------
 ### check for libraries

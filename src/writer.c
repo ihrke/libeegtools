@@ -87,7 +87,7 @@ void write_double_matrix_ascii(FILE *out, const double **d, int xdim, int ydim){
 
   for( y=0; y<ydim; y++ ){
 	 for( x=0; x<xdim; x++ ){
-		fprintf(out, "%f ", d[y][x]);
+		fprintf(out, "%f ", d[x][y]);
 	 }
 	 fprintf(out, "\n");
   }

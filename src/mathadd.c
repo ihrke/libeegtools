@@ -172,7 +172,7 @@ int* linspace(int first, int last){
 	massert(first>last, "first>last: %i>%i", first, last);
 	s=(int*)malloc((last-first+1)*sizeof(int));
 	int j=0;
-	for(i=first; i<last; i++){
+	for(i=first; i<=last; i++){
 		s[j]=i;
 		j++;
 	}
@@ -208,7 +208,21 @@ double* lininterp(const double *x1, const double *y1, int n1,
 
 /* ---------------------------------------------------------------------------- 
    -- vector ops                                                             -- 
-   ---------------------------------------------------------------------------- */\
+   ---------------------------------------------------------------------------- */
+
+/** create a random permutation of the elements in permut.
+	 This is crude and simple, the function graps n pairs of indices and swaps them.
+ */
+void vector_shuffle_int( int *permut, int n ){
+  int i1,i2, i;
+
+  for( i=0; i<n; i++){
+	 i1 = (random() / (RAND_MAX / n+1));
+	 i2 = (random() / (RAND_MAX / n+1));
+	 swap2i( &(permut[i1]), &(permut[i2]));
+  }
+}
+
 
 /** remove a scalar from all values in a vector.
  */
@@ -279,7 +293,7 @@ double** matrix_init(int N, int M){
   for( i=0; i<N; i++){
 	 d[i] = (double*) malloc( M*sizeof(double) );
 	 for( j=0; j<M; j++ ){
-		d[i][j]=0;
+		d[i][j]=0.0;
 	 }
   }
   

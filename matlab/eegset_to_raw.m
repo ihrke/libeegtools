@@ -53,3 +53,9 @@ function eegset_to_raw(EEG, num_markers, trials, filename);
   
   fclose(fid);
   
+  fid=fopen([filename(1:length(filename)-3) 'info'], 'w');
+  fwrite(fid, sprintf('Generated from EEGlab-set:\n  %s\n', EEG.setname));
+  fwrite(fid, sprintf('File: %s\n', EEG.filename));   
+  fwrite(fid, sprintf('Path: %s\n', EEG.filepath));
+  fwrite(fid, sprintf('Comments: %s\n', char(EEG.comments)));
+  

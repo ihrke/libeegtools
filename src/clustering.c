@@ -20,108 +20,106 @@
 
 #include "clustering.h"
 
-
-/** standardize matrix d (NxN) by computing
-	 \f$
-	 \hat{d}_{jk} = \frac{1}{\max d_{jk}} d_{jk}
-	 \f$
-*/
-void diffmatrix_standardize(double **d, int N){
-  double maxv;
-  int i,j;
-
-  maxv = -DBL_MAX;
-  for( i=0; i<N; i++ ){
-	 for( j=0; j<N; j++ ){
-		if(d[i][j]>maxv)
-		  maxv = d[i][j];
-	 }
-  }
-  for( i=0; i<N; i++ ){
-	 for( j=0; j<N; j++ ){
-		d[i][j] /= maxv;
-	 }
-  }
-    
-}
-
-/** return the distance of two ERPs from timewarping the complete ERP 
-	 (no time-marker-based warping).
-	 \param s1,s2 ERP-signals
-	 \param channel channel in the EEGdata-struct to be used
-	 \return a number given the distance of the two ERPs
+/** build a distance matrix D from data X which consists of n observations with
+	 p features each. 
+	 Observations are compared using f.
+	 \param f distance function
+	 \param X data (nxp)
+	 \param D output matrix or NULL -> own memory allocation
  */
-double clusterdist_tw_complete(EEGdata *s1, EEGdata *s2, int channel){
-  double Djk;
-  Djk = DTW_get_warpdistance( s1->d[channel], s1->n, s2->d[channel], s2->n, 1.0, 1.0);
+double** distmatrix( double(*(f))(double*,double*,int,void*), const double **X, int n, int p, double **D, void *userdata ){
+  int i,j;
   
-  return Djk;
-}
-
-/** return the distance of two ERPs from timewarping the  ERP 
-	 based on the time-markers
-	 \param s1,s2 ERP-signals
-	 \param channel channel in the EEGdata-struct to be used
-	 \return a number given the distance of the two ERPs
- */
-double clusterdist_tw_markers(EEGdata *s1, EEGdata *s2, int channel){
-  double Djk;
-  Djk = DTW_get_warpdistance( s1->d[channel], s1->n, s2->d[channel], s2->n, 1.0, 1.0);
-
-  return Djk;
-}
-/** return the distance of two ERPs from euclidean distances.
-	 \f$
-	 \Delta(s_i, s_j) = ||s_i-s_j||^2 = \sum_t d_t(s_i(t), s_j(t))
-	 \f$
-	 \param s1,s2 ERP-signals
-	 \param channel channel in the EEGdata-struct to be used
-	 \return a number given the distance of the two ERPs
- */
-double clusterdist_euclidean_pointwise(EEGdata  *s1, EEGdata *s2, int channel){
-  int i;
-  double dist;
-
-  massert( s1->n!=s2->n, "n1 != n2, aborting\n" );
-  dist = 0.0;
-  for(i=0; i<s1->n; i++){
-	 dist += SQR( (s1->d[channel][i])-(s2->d[channel][i]) );
-  }
-  dist = sqrt(dist); ///(double)s1->n;
-  return dist;
-}
-
-/** Return a matrix of the differences between trials in 
-	 the EEGdata_trials struct (NxN) for a given channel.
-	 \param eeg 
-	 \param dist - the distance function
-	 \param channel - which electrode-channel? (index)
-	 \param dm - enough memory to hold matrix, or ALLOC_IN_FCT
-*/
-double** eegtrials_diffmatrix_channel(EEGdata_trials *eeg, 
-												  double(*dist)(EEGdata*,EEGdata*,int), 
-												  int channel, double **dm){
-  int i,j;
-
-  if( dm==ALLOC_IN_FCT ){
+  if( D==ALLOC_IN_FCT ){
 	 warnprintf(" allocating matrix in fct\n");
-	 dm = matrix_init( eeg->ntrials, eeg->ntrials );
+	 D = matrix_init( n, n );
   }
   
-  for( i=0; i<eeg->ntrials; i++ ){
-	 for( j=i+1; j<eeg->ntrials; j++ ){
-		dm[i][j] = dist( eeg->data[i], eeg->data[j], channel );
-		/* dprintf("getting distance (%i x %i)=%f\n", i,j,dm[i][j]); */
-		dm[j][i] = dm[i][j];
+  for( i=0; i<n; i++ ){
+	 for( j=i+1; j<n; j++ ){
+		D[i][j] = f( (double*)X[i], (double*)X[j], p, userdata );
+		D[j][i] = D[i][j];
+		if( isnan( D[j][i] ) ){
+		  errprintf("D[%i][%i] is nan\n", j, i);
+		}
 	 }
   }
-  return dm;
+
+  return D;
 }
 
+
+/** Euclidean distance between vector x1 and x2.
+	 \param x1, x2 vectors of size p
+	 \param userdata is ignored
+*/
+double vectordist_euclidean( double *x1, double *x2, int p, void *userdata ){
+  double d;
+  int i;
+
+  d=0.0;
+  for( i=0; i<p; i++ ){
+	 d += SQR( x1[i]-x2[i] );
+  }
+  d = sqrt( d );
+
+  return d;
+}
+
+/** compute the cumulated sum along the regularized warping path.
+	 \param userdata (int)userdata[0] is nmarkers; 
+	       ((int)userdata)[1] and following is an 2 x nmarkers matrix 
+			 given the corresponding markers in the signals.
+ */
+double   vectordist_regularized_dtw( double *x1, double *x2, int p, void *userdata ){
+  int nmarkers;
+  int **markers;
+  double **G, **D;
+  double maxsigma;
+  double Djk;
+
+  nmarkers = *((int*)userdata);
+  userdata = ((int*)userdata)+1;
+  maxsigma = *((double*)userdata);
+  userdata = ((double*)userdata)+1;
+  markers = (int**)userdata;
+  
+  G = regularization_gaussian_line( markers[0], markers[1], nmarkers, p, maxsigma, NULL );
+  /** TODO **/
+  return Djk;
+}
+
+
+/** run the kmedoids function a couple of times and pick the best
+	 in terms of within scatter.
+ */
+Clusters* kmedoids_repeat( const double **dist, int N, int K, int repeat ){
+  Clusters *C;
+  Clusters *Cnew;
+  int i;
+  double within_scatter, tmp;
+
+  C = init_cluster( K, N );
+  within_scatter=DBL_MAX;
+  for( i=0; i<repeat; i++ ){
+	 Cnew = kmedoids( dist, N, K );
+	 tmp = get_within_scatter( dist, N, Cnew );
+
+	 if( tmp<within_scatter ){
+		//		fprintf(stderr, "Run %i: %f\n", i, tmp);
+		within_scatter=tmp; /* TODO: add between-scatter term */
+		copy_cluster( C, Cnew );
+	 }
+	 free_cluster( Cnew );
+  }
+
+  return C;
+}
 
 /** do K-Medoids clustering on the distance-matrix.
-	 \param dist
-	 \param K 
+	 \param dist ance matrix
+	 \param N number of observations
+	 \param K number of medoids to compute
 	 \param clusters - function-allocated memory. contains
 	                   K cluster-structs.
 */
@@ -130,6 +128,13 @@ Clusters* kmedoids(const double **dist, int N, int K){
   int *medoids;
   int i, j, k, r, minidx, num_not_changed;
   double sum, minsum, mindist, curdist;
+  const gsl_rng_type * T;
+  gsl_rng * randgen;
+
+  if( K>N ){
+	 errprintf("K>=N: %i>=%i\n", K, N );
+	 return NULL;
+  }
 
   /* memory alloc */
   medoids = (int*) malloc( K*sizeof(int) );
@@ -137,16 +142,28 @@ Clusters* kmedoids(const double **dist, int N, int K){
   Cnew = init_cluster(K, N);
 
   /* initialization step, random init */
-  srandom( (unsigned int)time( (time_t *)NULL ) );
-  /*random() / (RAND_MAX / N + 1); -- value from 0,...,N-1 */
+  gsl_rng_env_setup();
+  T = gsl_rng_default;
+  randgen = gsl_rng_alloc (T);
+
+  int *permut;
+  permut = (int*)malloc( K*sizeof(int) );
+  for( i=0; i<K; i++ )
+	 permut[i]=i;
+  vector_shuffle_int( permut, K ); /* random permut */
   for( i=0; i<N; i++ ){
-	 r = (random() / (RAND_MAX / K+1));
+	 if( i<K ){ /* first each partition gets a guy */
+		r = permut[i];
+	 } else {
+		r = (random() / (RAND_MAX / K+1));
+	 }
 	 C->clust[r][C->n[r]] = i;
 	 (C->n[r])++;
   }
+  free( permut );
 
-/*   dprintf("initialized cluster\n");  */
-/*   print_cluster(C); */
+  dprintf("initialized cluster\n");  
+  //  print_cluster(C); 
 
   num_not_changed = 0;
   while(num_not_changed<1){ /* iterate until convergence */
@@ -208,6 +225,8 @@ Clusters* kmedoids(const double **dist, int N, int K){
 /*   fprintf(stderr, "medoids = (%i, %i)\n", medoids[0], medoids[1]); */
   free(medoids);
   free_cluster(Cnew);
+  gsl_rng_free (randgen);
+
   return C;
 }
 
@@ -319,9 +338,250 @@ void print_cluster(const Clusters *c){
 }
 
 
-int      gap_get_K(const double *gapstat, int k);
-double*  gap_get_gapstat(const double *Wk, const double **Wkref, int B, int k, double *gapstat);
-double** gap_get_reference_distribution(const double **d, int N, int n, double **ref);
+/** initialize GapStatistic struct.
+	 \param g - a pointer to allocated mem, or NULL -> own memory is allocated
+	 \param K - max num clusters
+	 \param B - num rep ref dist
+ */
+GapStatistic* gapstat_init( GapStatistic *g, int K, int B ){
+  int i;
+
+  if( g==ALLOC_IN_FCT ){
+	 g = (GapStatistic*)malloc( sizeof(GapStatistic) );
+  }
+  g->K = K;
+  g->B = B;
+  g->khat = -1;
+  dprintf("allocating memory\n");
+  g->gapdistr = (double*)malloc( K*sizeof(double) );
+  g->sk = (double*)malloc( K*sizeof(double) );
+  g->Wk= (double*)malloc( K*sizeof(double) );
+  g->Wkref= (double**) malloc( B*sizeof(double*) );
+  for( i=0; i<B; i++ )
+	 g->Wkref[i] = (double*) malloc( K*sizeof(double) );
+
+  return g;
+}
+
+void gapstat_free( GapStatistic *g ){
+  int i;
+  free( g->Wk );
+  for( i=0; i<g->B; i++ )
+	 free( g->Wkref[i] );
+  free( g->Wkref );
+  free( g->gapdistr );
+  free( g->sk );
+  free( g );
+}
+
+/** calculate the gap-statistic. the struct contains all important information.
+	 \param gap
+	 \param X is nxp where n is number of observations and p num features (e.g. 
+	          trials x voltage
+	 \param D is the distance matrix for X (nxn)
+ */
+void gapstat_calculate( GapStatistic *gap, double **X, int n, int p, double(*distfunction)(double*,double*,int,void*), const double** D ){
+  int i, k, b;
+  Clusters *C;
+  double **Xr; /* reference distribution */
+  double **Dr; /* distance in ref dist */
+  double l_bar; /* (1/B sum_b( log(Wkref[b]) )) */
+
+  /* init */
+  Xr = (double**) malloc( n*sizeof( double* ) );
+  Dr = (double**) malloc( n*sizeof( double* ) );
+  for( i=0; i<n; i++ ){
+	 Xr[i] = (double*) malloc( p*sizeof( double ) );
+	 Dr[i] = (double*) malloc( n*sizeof( double ) );
+  }
+
+  /* calculation */
+  for( k=1; k<=gap->K; k++ ){ /* data within-scatter */
+	 C = kmedoids_repeat( D, n, k, 50 );
+	 //	 print_cluster( C );
+	 gap->Wk[k-1] = get_within_scatter( D, n, C );
+	 free_cluster( C );
+  }
+
+  for( b=0; b<gap->B; b++ ){ /* monte Carlo for ref-data*/
+	 for( k=1; k<=gap->K; k++ ){
+		Xr = gap_get_reference_distribution_simple( (const double **) X, n, p, Xr );
+		Dr = distmatrix( distfunction, (const double**)Xr, n, p, Dr, NULL );
+		C = kmedoids_repeat( (const double**)Dr, n, k, 50 );
+		//		print_cluster( C );
+		gap->Wkref[b][k-1] = get_within_scatter( (const double**)Dr, n, C );
+		free_cluster( C );
+	 }
+  }
+  
+  for( k=1; k<=gap->K; k++ ){ /* gap distr */
+	 gap->gapdistr[k-1]=0;
+	 for( b=0; b<gap->B; b++ ){
+		gap->gapdistr[k-1] += log( gap->Wkref[b][k-1] );
+	 }
+	 l_bar = ((gap->gapdistr[k-1])/(double)gap->B);
+	 gap->gapdistr[k-1] = l_bar - log( gap->Wk[k-1] );
+
+	 /* need std and sk */
+	 gap->sk[k-1] = 0;
+	 for( b=0; b<gap->B; b++ ){
+		gap->sk[k-1] += SQR( log( gap->Wkref[b][k-1] ) - l_bar );
+	 }
+	 gap->sk[k-1] = sqrt( gap->sk[k-1]/(double)gap->B );
+	 gap->sk[k-1] = gap->sk[k-1] * sqrt( 1.0 + 1.0/(double)gap->B );
+  }
+  
+  /* find best k */
+  for( k=0; k<=gap->K-1; k++ ){
+	 if( gap->gapdistr[k] >= ((gap->gapdistr[k+1])-(gap->sk[k+1])) ){
+		gap->khat = k+1;
+		break;
+	 }
+  }
+
+  /* free */
+  for( i=0; i<n; i++ ){
+	 free(Xr[i]);
+	 free(Dr[i]);
+  }
+  free( Xr );
+  free( Dr );
+}
+
+void gapstat_print( FILE *out, GapStatistic *g ){
+  int i, j;
+  double mean; 
+
+  fprintf(stderr, "GapStatistic:\n"
+			 " K=%i\n"
+			 " B=%i\n"
+			 " khat=%i\n", g->K, g->B, g->khat );
+  fprintf(stderr, " Gap       = [ ");
+  for(i=0; i<g->K; i++ )
+	 fprintf(stderr, "(%i, %.2f) ", i+1, g->gapdistr[i]);
+  fprintf(stderr, "]\n");
+
+  fprintf(stderr, " sk        = [ ");
+  for(i=0; i<g->K; i++ )
+	 fprintf(stderr, "(%i, %.4f) ", i+1, g->sk[i]);
+  fprintf(stderr, "]\n");
+
+  fprintf(stderr, " Wk        = [ ");
+  for(i=0; i<g->K; i++ )
+	 fprintf(stderr, "(%i, %.4f) ", i+1, g->Wk[i]);
+  fprintf(stderr, "]\n");
+
+  fprintf(stderr, " <Wkref>_B = [ ");
+  for(i=0; i<g->K; i++ ){
+	 mean = 0;
+	 for(j=0; j<g->B; j++){
+		mean += g->Wkref[j][i];
+	 }
+	 mean /= (double)g->B;
+	 fprintf(stderr, "(%i, %.4f) ", i+1, mean);
+  }
+  fprintf(stderr, "]\n");
+
+}
+
+/** Compute a reference distribution for data X.
+	 \param X original data
+	 \param n,p dimensions of X
+	 \param Xr n x p matrix with reference data
+ */
+double** gap_get_reference_distribution_simple( const double **X, int n, int p, double **Xr ){
+  int i, j;
+  double minf, maxf;
+
+  for( i=0; i<p; i++ ){ /* features */
+	 minf=DBL_MAX;
+	 maxf=DBL_MIN;
+	 for( j=0; j<n; j++ ){ 		  /* find min/max for feature i */
+		if( X[j][i]<minf )
+		  minf = X[j][i];
+		if( X[j][i]>maxf )
+		  maxf = X[j][i];
+	 }
+	 
+	 for( j=0; j<n; j++ ){ /* uniform random values in [minf,maxf] */
+		Xr[j][i] = (drand48()*maxf)+minf;
+		if( isnan(Xr[j][i]) ){
+		  errprintf(" Xr[%i][%i] is nan\n", j, i);
+		}
+	 }
+  }
+
+  return Xr;
+}
+
+/** Compute a reference distribution for data X. 
+	 CAUTION, not tested.
+	 \param X original data
+	 \param n,p dimensions of X
+	 \param Xr n x p matrix with reference data
+	 \todo does not yet work for n<p, since libgsl does not support this for SVD
+ */
+double** gap_get_reference_distribution_svd( const double **X, int n, int p, double **Xr ){
+  int i, j;
+  double minf, maxf;
+  gsl_matrix *gX, *gXd, *V;
+  gsl_vector *work, *S;
+
+  /* convert to gsl */
+  gX = gsl_matrix_alloc( n, p );
+  gXd= gsl_matrix_alloc( n, p );
+  V  = gsl_matrix_alloc( n, p );
+  S  = gsl_vector_alloc( p );
+  work=gsl_vector_alloc( p );
+
+  for( i=0; i<n; i++ ){
+	 for( j=0; j<p; j++ ){
+		gsl_matrix_set( gX, i, j, X[i][j] );
+	 }
+  }
+  gsl_matrix_memcpy( gXd, gX );
+
+  gsl_linalg_SV_decomp( gXd, V, S, work);
+
+  gsl_blas_dgemm(CblasNoTrans, /* matrix mult */
+					  CblasNoTrans,
+					  1.0, gX, V, 0.0, gXd);
+
+  for( i=0; i<p; i++ ){ /* features */
+	 minf=DBL_MAX;
+	 maxf=DBL_MIN;
+	 for( j=0; j<n; j++ ){ 		  /* find min/max for feature i */
+		if( gsl_matrix_get( gXd, j, i )<minf )
+		  minf = gsl_matrix_get( gXd, j, i );
+		if( gsl_matrix_get( gXd, j, i )>maxf )
+		  maxf = gsl_matrix_get( gXd, j, i );
+	 }
+	 
+	 for( j=0; j<n; j++ ){ /* uniform random values in [minf,maxf] */
+		gsl_matrix_set( gX, j, i, ((drand48()*maxf)+minf) );
+	 }
+  }
+
+  gsl_matrix_transpose_memcpy( gXd, V );
+  gsl_blas_dgemm(CblasNoTrans,
+					  CblasNoTrans,
+					  1.0, gX, gXd, 0.0, V);
+
+  for( i=0; i<n; i++ ){
+	 for( j=0; j<p; j++ ){
+		Xr[j][i] = gsl_matrix_get( V, i, j );
+	 }
+  }
+
+  gsl_matrix_free( gX );
+  gsl_matrix_free( gXd );
+  gsl_matrix_free( V );
+  gsl_vector_free( work );
+  gsl_vector_free( S );
+
+  return Xr;
+}
+
 
 /** compute \f$ W_k = \sum_{r=1}^{k}\frac{1}{2n_r}D_r\f$
 	 where
@@ -329,24 +589,21 @@ double** gap_get_reference_distribution(const double **d, int N, int n, double *
 	 D_r = \sum_{i,i'\in C_r}d_{ii'}
 	 \f$
 	 for a given cluster assignment.
-	 \param d - difference matrix
+	 \param d - difference matrix (NxN)
 	 \param N - number of entries in d (NxN)
 	 \param c - cluster-assigment (Clusters - struct)
  */
-double   gap_get_within_scatter(const double **d, int N, const Clusters *c){
+double   get_within_scatter(const double **d, int N, const Clusters *c){
   double *sums;
   double W;
   int i, j, k;
-  print_cluster(c);
+  //  print_cluster(c);
   sums = (double*) malloc( c->K*sizeof(double) );
   W = 0;
-  for( i=0; i<c->K; i++ ){
+  for( i=0; i<c->K; i++ ){ /* cluster loop */
 	 sums[i] = 0;
 	 for( j=0; j<(c->n[i])-1; j++ ){
 		for( k=j+1; k<c->n[i]; k++){	 
-	/* 	  dprintf("sums[i]=%f\n", sums[i]); */
-/* 		  dprintf("i,j,k=(%i,%i,%i), c->clust[i][j]=%i, c->clust[i][k]=%i, d[]=%f\n", */
-/* 					 i,j,k, c->clust[i][j], c->clust[i][k], d[c->clust[i][j]][c->clust[i][k]]); */
 		  sums[i] += d[c->clust[i][j]][c->clust[i][k]];
 		}
 	 }
@@ -359,8 +616,28 @@ double   gap_get_within_scatter(const double **d, int N, const Clusters *c){
 
   return W;
 }
-double*  gap_get_within_scatter_distribution(const double **d, int N, int k, const Clusters **c, double *Wk);
 
+/** compute the between-scatter between clusters 
+	 (sum of distances of means of clusters)
+ */
+double get_between_scatter( const double **d, int N, const Clusters *c ){
+  double W;
+  double *centres;
+  int k1, k2, i, j;
+
+  centres = (double*)malloc( c->K*sizeof(double) );
+  W = 0.0; /** TODO **/
+  for( k1=0; k1<c->K-1; k1++ ){
+	 for( k2=k1+1; k2<c->K; k2++ ){ /* compare cluster k1 and k2 */
+		for( i=0; i<c->n[k1]; i++ ){
+		  for( j=0; j<c->n[k2]; j++ ){
+			 W += d[c->clust[k1][i]][c->clust[k2][j]];
+		  }
+		}
+	 }
+  }
+  free(centres);
+}
 
 /** Agglomerative clustering.
 	 \param d distance matrix for the N objects

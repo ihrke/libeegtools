@@ -29,7 +29,7 @@
   -# an averaging scheme to put together s1 and s2 using P.
  * \defgroup warping Warping functions
  *\{
-      \defgroup distance Pointwise Distance Metrices 
+      \defgroup distance Pointwise Distance Metrices to compute point-to-point similarity between to signals
  *    \defgroup timewarp Timewarping-functions
       \defgroup warpaveraging Averaging timewarped signals
       \defgroup regularization Regularization of the Warping
@@ -52,6 +52,14 @@ extern "C" {
 	*\ingroup warping
 	*\{
 	*/
+  double** signaldist_euclidean( const double *s1, int n1, const double *s2, int n2, 
+											double **d, void *userdata );
+  double** signaldist_euclidean_derivative( const double *s1, int n1, const double *s2, int n2, 
+														  double **d, void *userdata );
+  double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, 
+									 double **d, void *userdata );
+
+  /* wrapper for eeg */
   double** eeg_distmatrix_euclidean_channel( const EEGdata *s1, const EEGdata *s2, 
 															int channel, double **d, void* params );
   double** eeg_distmatrix_euclidean_derivative_channel( const EEGdata *s1, const EEGdata *s2, 
@@ -64,6 +72,8 @@ extern "C" {
 	*\ingroup warping
 	*\{
 	*/
+  double** regularization_gaussian_line( const int *markers1, const int *markers2, int nmarkers,
+													  int nsignal, double maxsigma, double **d );
   double** eeg_regularization_gaussian_line( const EEGdata *s1, const EEGdata *s2, 
 															double sigma, double **d );
   /** \} */

@@ -45,22 +45,17 @@ extern "C" {
 	*/ 
 
 
-  double** eegtrials_diffmatrix_channel(EEGdata_trials *eeg, 
-													 double(*dist)(EEGdata*,EEGdata*,int), 
-													 int channel, double **dm);
-  void     diffmatrix_standardize(double **d, int N);
-
-
   Clusters*    kmedoids(const double **dist, int N, int K);
+  Clusters*    kmedoids_repeat( const double **dist, int N, int K, int repeat );
 
+  Dendrogram*  agglomerative_clustering(const double **d, int N, 
+													 double(*dist)(const double**,int,
+																		const Dendrogram*,const Dendrogram*));
 
   /**\addtogroup dendrogram
 	*\{
 	*/ 
 
-  Dendrogram*  agglomerative_clustering(const double **d, int N, 
-													 double(*dist)(const double**,int,
-																		const Dendrogram*,const Dendrogram*));
   double dgram_dist_singlelinkage  (const double **d, int N, 
 												const Dendrogram *c1, const Dendrogram *c2);
   double dgram_dist_completelinkage(const double **d, int N, 
@@ -87,10 +82,12 @@ extern "C" {
 
   /**\addtogroup distances 
 	  \ingroup clustering
-	  \{*/
-  double clusterdist_euclidean_pointwise(EEGdata  *s1, EEGdata *s2, int channel);
-  double clusterdist_tw_complete(EEGdata *s1, EEGdata *s2, int channel);
-  double clusterdist_tw_markers(EEGdata *s1, EEGdata *s2, int channel);
+	  \{*/  
+  double** distmatrix( double(*(f))(double*,double*,int,void*), const double **X, 
+							  int n, int p, double **D, void* userdata );
+
+  double   vectordist_euclidean( double *x1, double *x2, int p, void *userdata );
+  double   vectordist_regularized_dtw( double *x1, double *x2, int p, void *userdata );
   /** \} */
 
 
@@ -99,11 +96,16 @@ extern "C" {
 	  \{
 	  Reference paper: Tibshirani, 2001
   */
-  int      gap_get_K(const double *gapstat, int k);
-  double*  gap_get_gapstat(const double *Wk, const double **Wkref, int B, int k, double *gapstat);
-  double** gap_get_reference_distribution(const double **d, int N, int n, double **ref);
-  double   gap_get_within_scatter(const double **d, int N, const Clusters *c);
-  double*  gap_get_within_scatter_distribution(const double **d, int N, int k, const Clusters **c, double *Wk);
+ 
+  GapStatistic* gapstat_init( GapStatistic *g, int K, int B );
+  void          gapstat_free( GapStatistic *g );
+  void          gapstat_print( FILE *out, GapStatistic *g );
+  void          gapstat_calculate( GapStatistic *gap, double **X, int n, int p, 
+											  double(*distfunction)(double*,double*,int,void*), const double** D );
+
+  double** gap_get_reference_distribution_simple( const double **X, int n, int p, double **Xr );
+  double** gap_get_reference_distribution_svd   ( const double **X, int n, int p, double **Xr );
+  double   get_within_scatter(const double **d, int N, const Clusters *c);
   /** \} */
 
 

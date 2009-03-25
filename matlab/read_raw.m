@@ -33,7 +33,6 @@ function [data, times, markers] = read_raw(filename);
   markers = fread(fid, num_markers*trials, 'double');
   markers = reshape( markers, [num_markers, trials] );
   
-  size(markers)
  
   % data
   for c=1:nbchan

@@ -16,25 +16,56 @@ extern "C" {
 	 ---------------------------------------------------------*/
 
   typedef struct{
-	 unsigned int nbchan; /**< number of channels */
-	 unsigned int n; /**< number of samples */
-	 double **d; /**< data */
+	 unsigned int nbchan;    /**< number of channels */
+	 unsigned int n;         /**< number of samples */
+	 double **d;             /**< data */
 	 unsigned long *markers; /**< stimulus onset, response, etc
-										  in sampling points; nmarkers long */
+										 in sampling points; nmarkers long */
 	 unsigned int nmarkers;
   } EEGdata;
 
   typedef struct{
-	 EEGdata **data; /**< EEG-data for all  trials (n EEGdata-struct-ptr) */
-	 unsigned int ntrials; /**< number of trials = dim(eeg) */  
+	 EEGdata **data;          /**< EEG-data for all  trials (n EEGdata-struct-ptr) */
+	 unsigned int ntrials;    /**< number of trials = dim(eeg) */  
 	 unsigned int nmarkers_per_trial;
 	 unsigned long **markers; /**< stimulus onset, response, etc
 											in sampling points; dims are ntrials x nmarkers */
-	 unsigned int nsamples; /**< number of samples in each data */
-	 double *times; /**< times array; data->n long */
-	 double sampling_rate; /**< in Hz */
+	 unsigned int nsamples;   /**< number of samples in each data */
+	 double *times;           /**< times array; data->n long */
+	 double sampling_rate;    /**< in Hz */
   } EEGdata_trials;
 
+
+  /*-----------------------------------------------------------
+	 - Nonlinear embedding -
+	 ---------------------------------------------------------*/
+
+  typedef struct {
+	 int m;     /**< embedding dimension */
+	 int tau;   /**< time-lag for embedding (>0, multiple of sampling_step) */
+	 double *x; /**< pointer to data */
+	 int xn;    /**< len(x) */
+  } PhaseSpace;
+
+  /*-----------------------------------------------------------
+	 - Recurrence Plots - 
+	 ---------------------------------------------------------*/
+
+  /** Struct for representing recurrence or cross-recurrence plots.
+		For recurrence plot, m=n.
+		
+		However, \f$ \epsilon = \epsilon(i)\f$ is chosen for each point on the 
+		trajectory, such that there is a fixed amount of Neighbours. 
+	*/
+  typedef struct {
+	 double **R;      /**< recurrence plot */
+	 int m;           /**< first dim */
+	 int n;           /**< second dim */
+	 double fixed_epsilon;
+	 double *epsilon; /**< ball in which neighbours are looked for */
+	 int nepsilon;    /**< len(epsilon) */
+	 int fan;         /**< fixed-amount of neighbours */
+  } RecurrencePlot;
 
 
   /*-----------------------------------------------------------
@@ -59,8 +90,8 @@ extern "C" {
   /**\ingroup clustering */
   typedef struct{
 	 int **clust; /** indices for the trials in the cluster (Kxn)*/
-	 int K;  /** number of clusters */
-	 int *n; /** number of trials in each of the K clusters */
+	 int K;       /** number of clusters */
+	 int *n;      /** number of trials in each of the K clusters */
   } Clusters;
 
 
@@ -71,23 +102,33 @@ extern "C" {
 	  Else it is an intermediate node that has at least one child!=NULL.
 	*/
    struct dgram {
-	 int val; /** content representing object val; if val<0, its an intermediate node */
-	 double height; /** proportional to between sub-cluster distance */
+	 int val;            /** content representing object val; if val<0, its an intermediate node */
+	 double height;      /** proportional to between sub-cluster distance */
 	 struct dgram *left;
 	 struct dgram *right;
   };
   typedef struct dgram Dendrogram;
+
+  typedef struct {
+	 int K;            /**< maximum number of clusters */
+	 int B;            /**< Monte-Carlo repetition of reference distr. calc. */
+	 double *gapdistr; /**< final Gap-Statistic Distribution */
+	 double *sk;       /**< modified standard deviation for gapdistr */
+	 double *Wk;       /**< within scatter for data */
+	 double **Wkref;   /**< within scatter for reference-dist */
+	 int khat;         /**> best number of clusters */
+  } GapStatistic;
 
   /*-----------------------------------------------------------
 	 - WARPING -
 	 ---------------------------------------------------------*/
 
   typedef struct{
-	 int *upath; /**< contains y-coordinate in the path through the JxK matrix, maximal length(upath)=K+J */
-	 int *spath;/**< contains x-coordinate in the path through the JxK matrix */
-	 int J; /**< length(u) (not length(upath)) */
-	 int K; /**< length(s) (not length(spath)) */
-	 /*	 int real_length;*/ /**< real length of the path (maximal K+J) */
+	 int *upath; /**< contains y-coordinate in the path through the JxK matrix, 
+						 maximal length(upath)=K+J */
+	 int *spath; /**< contains x-coordinate in the path through the JxK matrix */
+	 int J;      /**< length(u) (not length(upath)) */
+	 int K;      /**< length(s) (not length(spath)) */
   } WarpPath;
 	
 
@@ -113,6 +154,10 @@ extern "C" {
 	 int winlength;					  /**< length of window used for STFT */
 	 int N_freq;						  /**< frequency resolution of STFT */
 	 int N_time;						  /**< time resolution of STFT */
+
+	 int *channels; /**< compute PADTW only for these channels; 
+							 if NULL, all channels are used */
+	 int num_channels; /**< number of elements in channels */
   } SettingsPADTW;
   
 

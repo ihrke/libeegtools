@@ -569,6 +569,6 @@ void estimate_kaiseralpha_bandpass( double passband[2], double A, double samplin
 	 http://ccrma.stanford.edu/~jos/sasp/Window_Method.html
 	 
  */
-double* fir_bandpass_design_window_method( ){
+double* fir_bandpass_design_window_method(  ){
   return NULL;
 }

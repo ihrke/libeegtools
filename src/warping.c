@@ -30,20 +30,86 @@
 	 \return d or NULL (error)
  */
 double** eeg_distmatrix_euclidean_channel( const EEGdata *s1, const EEGdata *s2, 
-														 int channel, double **d, void *params ){
-  int i, j;
-  
+														 int channel, double **d, void *userdata ){
+
+  d = signaldist_euclidean( s1->d[channel], s1->n, s2->d[channel], s2->n, d, userdata );
+
+  return d;
+}
+
+/** pointwise distance matrix for euclidean metric.
+	 \param userdata is ignored
+ */
+double** signaldist_euclidean( const double *s1, int n1, const double *s2, int n2,
+										 double **d, void *userdata ){
+  int i,j;
   if( d==ALLOC_IN_FCT ){
-	 d=matrix_init( s1->n, s2->n );
+	 d=matrix_init( n1, n2 );
   }
 
-  for( i=0; i<s1->n; i++ ){
-	 for( j=0; j<s2->n; j++ ){
-		d[i][j] = SQR( fabs( s1->d[channel][i] - s2->d[channel][j] ) );
+  for( i=0; i<n1; i++){
+	 for( j=0; j<n2; j++ ){
+		d[i][j] = SQR( fabs( s1[i] - s2[j] ) );
 	 }
   }
   return d;
 }
+
+/** calculate
+	 \f[
+	 d(s_1(t_1), s_2(t_2))_{{derivative}} := \theta_1|\tilde{s_1}(t_1) - \tilde{s_2}(t_2)| + \theta_2|\tilde{s_1}'(t_1) - \tilde{s_2}'(t_2)|
+	 \f]
+	 where
+	 \f[ 
+	 \tilde{s}(t) := \frac{s(t) - \langle s(t)
+	 \rangle_t}{\sqrt{\langle s(t)^2 \rangle_t}}
+	 \f]
+	 Derivatives are approximated with s'(t) = s(t)-s(t-1)
+	 \param s1,s2 
+	 \param d matrix or NULL (alloc'd in function)
+	 \param userdata is (theta1,theta2) both as double values
+	 \return d or NULL (error)
+ */
+double** signaldist_euclidean_derivative( const double *s1, int n1, const double *s2, int n2, double **d, void *userdata ){
+  int i, j, k;
+  double avg1, avg2,
+	 rms1=0, rms2=0;
+  double norm1,norm2, /* normalized signal at time t */
+	 norm1p,norm2p;    /* normalized signal at time t-1 */
+  double theta1,theta2;
+
+  theta1 = *((double*)userdata);
+  userdata = ((double*)userdata)+1;
+  theta2 = *((double*)userdata);
+
+  if( d==ALLOC_IN_FCT ){
+	 d=matrix_init( n1, n2 );
+  }
+
+  avg1 = gsl_stats_mean(s1, 1, n1);
+  avg2 = gsl_stats_mean(s2, 1, n2);
+  for(i=0; i<MAX(n1, n2); i++){
+	 if( i<n1 )
+		rms1 += SQR( s1[i] );
+	 if( i<n2 )
+		rms2 += SQR( s2[i] );
+  }
+
+  rms1 = sqrt(rms1/(double)n1);
+  rms2 = sqrt(rms2/(double)n2);
+
+  for( j=0; j<n1; j++ ){
+	 for( k=0; k<n2; k++ ){
+      norm1 = (s1[j]-avg1)/rms1;
+      norm2 = (s2[k]-avg2)/rms2;
+      (j==0) ? (norm1p = 0) : (norm1p = ((s1[j-1]-avg1)/rms1));
+      (k==0) ? (norm2p = 0) : (norm2p = ((s2[k-1]-avg2)/rms2));
+		d[j][k] = theta1*fabs(norm1 - norm2) + theta2*fabs( (norm1-norm1p) - (norm2-norm2p) ); /* (1) */
+	 }
+  }
+  return d;
+}
+
 /** calculate
 	 \f[
 	 d(s_1(t_1), s_2(t_2))_{{derivative}} := \theta_1|\tilde{s_1}(t_1) - \tilde{s_2}(t_2)| + \theta_2|\tilde{s_1}'(t_1) - \tilde{s_2}'(t_2)|
@@ -62,47 +128,117 @@ double** eeg_distmatrix_euclidean_channel( const EEGdata *s1, const EEGdata *s2,
 double** eeg_distmatrix_euclidean_derivative_channel( const EEGdata *s1, const EEGdata *s2, 
 																		int channel, double **d, 
 																		void *params ){ 
-  int i, j, k, n;
-  double avg1, avg2,
-	 rms1=0, rms2=0;
-  double norm1,norm2, /* normalized signal at time t */
-	 norm1p,norm2p;    /* normalized signal at time t-1 */
-  double theta1,theta2;
-
   /* get params from void pointer */
   SettingsPADTW *settings;
   settings = (SettingsPADTW*)params;
-  theta1=settings->theta1;
-  theta2=settings->theta2;
+  double theta[2];
+  theta[0]=settings->theta1;
+  theta[1]=settings->theta2;
 
-
-  if( d==ALLOC_IN_FCT ){
-	 d=matrix_init( s1->n, s2->n );
-  }
   if( eegdata_cmp_settings( s1, s2 ) ){
 	 errprintf(" ERROR: two EEGdata sets are not similar enough\n");
 	 return NULL;
   }
-  n = s1->n;
 
-  avg1 = gsl_stats_mean(s1->d[channel], 1, n);
-  avg2 = gsl_stats_mean(s2->d[channel], 1, n);
-  for(i=0; i<n; i++){
-	 rms1 += SQR( s1->d[channel][i] );
-	 rms2 += SQR( s2->d[channel][i] );
+  d = signaldist_euclidean_derivative( s1->d[channel], s1->n, s2->d[channel], s2->n, d, &theta );
+													
+  return d;
+}
+
+/** 
+	 \todo at the moment, N_time is required to be n, the number of
+	       sampling points in s1 and s2. This needs to be fixed by interpolation
+
+	 calculate
+	 \f[  
+	 d_{{STFT}}(s_1(t_1), s_2(t_2)) := || STFT\{s_1(t_1)\} -
+	 \STFT\{s_2(t_2)\}||_{\circ}.
+	 \f]
+	 where 
+	 \f[
+	 STFT\{s(t)\}(\omega) = \int_{-\infty}^{+\infty} s(t)w(t-\tau)e^{-i\omega t} dt
+	 \f]
+	 \param s1,s2 
+	 \param d matrix or NULL (alloc'd in function)
+	 \param params is a settingsPADTW struct that should contain valid:
+	   - (sample_frequency of the signal),
+	   - (winfct which windowing function? one of window_*()),
+	   - (winlength lenght of window in samples),
+	   - (N_freq how many frequencies),
+	   - (N_time how many time-points),
+	   - (corner_freqs - corner frequencies (lower, upper) for the returned
+	     spectrum at each time-sample in Hz; maximal would be
+	     {0, srate/2}) 
+	 fields
+	 \return d or NULL (error)
+ */
+double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, double **d, void *userdata ){
+  int i, j;
+  Spectrogram *sp1, *sp2;
+  double *window;
+  double *d1, *d2,
+	 mean1, mean2;
+  
+  double sample_frequency;
+  double*(*winfct)(double*,int);
+  int winlength;
+  int N_freq;
+  int N_time;
+  double corner_freqs[2];
+  /* get params from void pointer */
+  SettingsPADTW *settings;
+  settings = (SettingsPADTW*)userdata;
+  sample_frequency=settings->sampling_rate;
+  winfct=settings->winfct;
+  winlength=settings->winlength;
+  N_freq=settings->N_freq;
+  N_time=settings->N_time;
+  corner_freqs[0]=settings->corner_freqs[0];
+  corner_freqs[1]=settings->corner_freqs[1];
+
+  if( d==ALLOC_IN_FCT ){
+	 warnprintf("allocating matrix in fct\n");
+	 d=matrix_init( n1, n2 );
   }
-  rms1 = sqrt(rms1/(double)n);
-  rms2 = sqrt(rms2/(double)n);
 
-  for( j=0; j<s1->n; j++ ){
-	 for( k=0; k<s2->n; k++ ){
-      norm1 = (s1->d[channel][k]-avg1)/rms1;
-      norm2 = (s2->d[channel][j]-avg2)/rms2;
-      (k==0) ? (norm1p = 0) : (norm1p = ((s1->d[channel][k-1]-avg1)/rms1));
-      (j==0) ? (norm2p = 0) : (norm2p = ((s2->d[channel][j-1]-avg2)/rms2));
-		d[j][k] = theta1*fabs(norm1 - norm2) + theta2*fabs( (norm1-norm1p) - (norm2-norm2p) ); /* (1) */
+  /* remove mean from the signals */
+  dprintf("Normalization\n");
+  d1 = vector_init( NULL, n1, 0.0 );
+  d2 = vector_init( NULL, n2, 0.0 );
+  mean1 = gsl_stats_mean( s1, 1, n1 );
+  mean2 = gsl_stats_mean( s2, 1, n2 );
+  for( i=0; i<MAX(n1,n2); i++ ){	  
+	 if( n1<i )
+		d1[i] = s1[i]-mean1;
+	 if( n2<i )
+		d2[i] = s2[i]-mean2;
+  }
+
+  window = winfct(ALLOC_IN_FCT, winlength);
+  sp1 = spectrogram_stft( d1, n1, sample_frequency,
+								  window, winlength, N_freq, N_time, 
+								  corner_freqs, ALLOC_IN_FCT );
+  sp2 = spectrogram_stft( d2, n2, sample_frequency,
+								  window, winlength, N_freq, N_time,
+								  corner_freqs, ALLOC_IN_FCT );
+  spectrogram_compute_powerspectrum( sp1 );
+  spectrogram_compute_powerspectrum( sp2 );
+
+  dprintf(" Compute distances (%i vectors)\n", sp1->N_freq);
+  for( i=0; i<N_time; i++ ){
+	 for( j=0; j<N_time; j++ ){
+		d[i][j] = vector_euclidean_distance( sp1->powerspect[i], sp2->powerspect[j], sp1->N_freq );
 	 }
   }
+  dprintf("\nDone\n");
+
+  /* free */
+  free_spectrogram( sp1 );
+  free_spectrogram( sp2 );
+  free( d1 );
+  free( d2 );
+  free( window );
+  
   return d;
 }
 
@@ -135,73 +271,10 @@ double** eeg_distmatrix_euclidean_derivative_channel( const EEGdata *s1, const E
  */
 double** eeg_distmatrix_stft_channel( const EEGdata *s1, const EEGdata *s2, 
 												  int channel, double **d, void *params ){
-  int i, j;
-  Spectrogram *sp1, *sp2;
-  double *window;
-  double *d1, *d2,
-	 mean1, mean2;
-  
-  double sample_frequency;
-  double*(*winfct)(double*,int);
-  int winlength;
-  int N_freq;
-  int N_time;
-  double corner_freqs[2];
-  /* get params from void pointer */
-  SettingsPADTW *settings;
-  settings = (SettingsPADTW*)params;
-  sample_frequency=settings->sampling_rate;
-  winfct=settings->winfct;
-  winlength=settings->winlength;
-  N_freq=settings->N_freq;
-  N_time=settings->N_time;
-  corner_freqs[0]=settings->corner_freqs[0];
-  corner_freqs[1]=settings->corner_freqs[1];
 
-  if( d==ALLOC_IN_FCT ){
-	 warnprintf("allocating matrix in fct\n");
-	 d=matrix_init( s1->n, s2->n );
-  }
-
-  /* remove mean from the signals */
-  dprintf("Normalization\n");
-  d1 = vector_init( NULL, s1->n, 0.0 );
-  d2 = vector_init( NULL, s2->n, 0.0 );
-  mean1 = gsl_stats_mean( s1->d[channel], 1, s1->n );
-  mean2 = gsl_stats_mean( s2->d[channel], 1, s2->n );
-  for( i=0; i<s1->n; i++ ){	  /* s1->n and s2->n are equal */
-	 d1[i] = s1->d[channel][i]-mean1;
-	 d2[i] = s2->d[channel][i]-mean2;
-  }
-
-  window = winfct(ALLOC_IN_FCT, winlength);
-  sp1 = spectrogram_stft( d1, s1->n, sample_frequency,
-								  window, winlength, N_freq, N_time, 
-								  corner_freqs, ALLOC_IN_FCT );
-  sp2 = spectrogram_stft( d2, s2->n, sample_frequency,
-								  window, winlength, N_freq, N_time,
-								  corner_freqs, ALLOC_IN_FCT );
-  spectrogram_compute_powerspectrum( sp1 );
-  spectrogram_compute_powerspectrum( sp2 );
-
-  dprintf(" Compute distances (%i vectors)\n", sp1->N_freq);
-  for( i=0; i<N_time; i++ ){
-	 for( j=0; j<N_time; j++ ){
-		d[i][j] = vector_euclidean_distance( sp1->powerspect[i], sp2->powerspect[j], sp1->N_freq );
-	 }
-  }
-  dprintf("\nDone\n");
-
-  /* free */
-  free_spectrogram( sp1 );
-  free_spectrogram( sp2 );
-  free( d1 );
-  free( d2 );
-  free( window );
-
+  d = signaldist_stft( s1->d[channel], s1->n, s2->d[channel], s2->n, d, params );
   return d;
 }
-
 
 /** Calculate regularization function
 	 \f[
@@ -209,18 +282,14 @@ double** eeg_distmatrix_stft_channel( const EEGdata *s1, const EEGdata *s2,
 	 \f]
 	 where $f$ is piecwise linear (approximated with bresenham-alg) and the minimization
 	 is approximated with distance-transform (deadreckoning).
-	 \param s1,s2 
+	 \param markers1,2 time-markers within the nsignal x nsignal matrix
+	 \param nsignal number of points in the returned matrix
 	 \param maxsigma
 	 \param d matrix or NULL (alloc'd in function)
 	 \return d or NULL (error)
  */
-double** eeg_regularization_gaussian_line( const EEGdata *s1, const EEGdata *s2, 
-														 double maxsigma,
-														 double **d ){
-  int i, j, k;
-  int *m1, /* markers for signal 1 */
-	 *m2;   /* markers for signal 2 */
-  int nmarkers,n;
+double** regularization_gaussian_line( const int *markers1, const int *markers2, int nmarkers, int nsignal, double maxsigma, double **d ){
+  int i,j,k;
   int maxmem, npoints;
   int *points;
   int **I;
@@ -228,17 +297,14 @@ double** eeg_regularization_gaussian_line( const EEGdata *s1, const EEGdata *s2,
   double maxdist, dist, closest_dist, normgauss;
   int flag;
   double pointdist=0.1;
+  int n;
+
+  /* convenience */
+  n = nsignal;
 
   if( d==ALLOC_IN_FCT ){
-	 d=matrix_init( s1->n, s2->n );
+	 d=matrix_init( nsignal, nsignal );
   } 
-
-  if( eegdata_cmp_settings( s1, s2 ) ){
-	 errprintf(" ERROR: two EEGdata sets are not similar enough\n");
-	 return NULL;
-  }
-  nmarkers=s1->nmarkers;
-  n = s1->n;
 
   I = (int**) malloc( n*sizeof( int* ) );
   for( i=0; i<n; i++ ){
@@ -246,21 +312,11 @@ double** eeg_regularization_gaussian_line( const EEGdata *s1, const EEGdata *s2,
 	 memset( I[i], 0, n*sizeof( int ) );
   }
 
-  /* for convenience, add (0,0) and (n,n) as markers */
-  m1 = (int*) malloc( (nmarkers+2)*sizeof( int ) );
-  m2 = (int*) malloc( (nmarkers+2)*sizeof( int ) );
-  m1[0]=0; m2[0]=0;
-  m1[nmarkers+1]=n-1; m2[nmarkers+1]=n-1;
-  for( i=1; i<nmarkers+1; i++ ){
-	 m1[i] = s1->markers[i-1];
-	 m2[i] = s2->markers[i-1];
-	 dprintf("m=%i,%i, nm=%i\n", m1[i], m2[i], nmarkers);
-  }
 
-  /* compute memory needed for bresenham */
+ /* compute memory needed for bresenham */
   maxmem=0;
   for( i=0; i<nmarkers+1; i++ ){
-	 npoints = bresenham_howmany_points( m1[i], m2[i], m1[i+1], m2[i+1] );
+	 npoints = bresenham_howmany_points( markers1[i], markers2[i], markers1[i+1], markers2[i+1] );
 	 dprintf("npoints=%i\n", npoints );
 	 maxmem  = MAX( npoints, maxmem );
   }
@@ -269,9 +325,9 @@ double** eeg_regularization_gaussian_line( const EEGdata *s1, const EEGdata *s2,
 
   /* compute bresenham for the line segments */
   for( i=0; i<nmarkers+1; i++ ){
-	 npoints = bresenham_howmany_points( m1[i], m2[i], m1[i+1], m2[i+1] );
-	 dprintf("Line from (%i,%i)->(%i,%i) with %i points\n", m1[i], m2[i], m1[i+1], m2[i+1], npoints);
-	 points  = bresenham( m1[i], m2[i], m1[i+1], m2[i+1], points );
+	 npoints = bresenham_howmany_points( markers1[i], markers2[i], markers1[i+1], markers2[i+1] );
+	 dprintf("Line from (%i,%i)->(%i,%i) with %i points\n", markers1[i], markers2[i], markers1[i+1], markers2[i+1], npoints);
+	 points  = bresenham( markers1[i], markers2[i], markers1[i+1], markers2[i+1], points );
 	 for( j=0; j<2*npoints; j+=2 ){ /* draw the line */
 		I[points[j]][points[j+1]] = 1;
 	 }
@@ -287,7 +343,7 @@ double** eeg_regularization_gaussian_line( const EEGdata *s1, const EEGdata *s2,
   	 for( j=0; j<n; j++ ){
 		closest_dist = DBL_MAX;
   		for( k=0; k<nmarkers+2; k++ ){
-  		  dist = ( SQR( (double)(m1[k]-i) )+SQR( (double)(m2[k]-j) ) );
+  		  dist = ( SQR( (double)(markers1[k]-i) )+SQR( (double)(markers2[k]-j) ) );
   		  dist = sqrt( dist - SQR( d[i][j] ) );
 		  dist /= maxdist;
 		  if(dist<closest_dist){
@@ -321,6 +377,50 @@ double** eeg_regularization_gaussian_line( const EEGdata *s1, const EEGdata *s2,
   }
   free(I);
   free( points );
+
+  return d;
+}
+
+/** Calculate regularization function
+	 \f[
+	 G_f(x,y; \sigma) = \frac{1}{\sigma 2\pi} \exp{\left( -\frac{\min_{\xi}\sqrt{(\xi-x)^2+(y-f(\xi))^2}}{2\sigma^2} \right)}
+	 \f]
+	 where $f$ is piecwise linear (approximated with bresenham-alg) and the minimization
+	 is approximated with distance-transform (deadreckoning).
+	 \param s1,s2 
+	 \param maxsigma
+	 \param d matrix or NULL (alloc'd in function)
+	 \return d or NULL (error)
+ */
+double** eeg_regularization_gaussian_line( const EEGdata *s1, const EEGdata *s2, 
+														 double maxsigma,
+														 double **d ){
+  int i;
+  int *m1, /* markers for signal 1 */
+	 *m2;   /* markers for signal 2 */
+  int nmarkers,n;
+
+  if( eegdata_cmp_settings( s1, s2 ) ){
+	 errprintf(" ERROR: two EEGdata sets are not similar enough\n");
+	 return NULL;
+  }
+  nmarkers=s1->nmarkers;
+  n = s1->n;
+
+
+  /* for convenience, add (0,0) and (n,n) as markers */
+  m1 = (int*) malloc( (nmarkers+2)*sizeof( int ) );
+  m2 = (int*) malloc( (nmarkers+2)*sizeof( int ) );
+  m1[0]=0; m2[0]=0;
+  m1[nmarkers+1]=n-1; m2[nmarkers+1]=n-1;
+  for( i=1; i<nmarkers+1; i++ ){
+	 m1[i] = s1->markers[i-1];
+	 m2[i] = s2->markers[i-1];
+	 dprintf("m=%i,%i, nm=%i\n", m1[i], m2[i], nmarkers);
+  }
+
+  d = regularization_gaussian_line( m1, m2, nmarkers, n, maxsigma, d );
+ 
   free(m1); free(m2);
 
   return d;
@@ -849,6 +949,7 @@ EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, int
   double srate;
   double weights[2]={1.0,1.0}; 			  /* this is for recursive averaging */
   int    *indices;				  /* n-array containing number averagings for each trial */
+  int *channels;
 
 
   if( N>eeg_in->ntrials ){
@@ -916,13 +1017,22 @@ EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, int
 
 	 dprintf(" compute G\n");
 	 G = settings.regularize( s1, s2, settings.sigma, G); /* we need G only 
-																		 once for all channels */
-	 /* loop this for all channels ! */
-	 for( c=0; c<num_chan; c++){
-		oprintf("Trials (%i,%i): Channel=%i\n", idx1, idx2, c); 
+																				once for all channels */
+
+	 int nchan,chan;
+	 /* loop this for all channels */
+	 if(settings.channels==NULL){
+		channels = linspace(0,num_chan-1);
+		nchan = num_chan;
+	 } else {
+		channels = settings.channels;
+		nchan = settings.num_channels;
+	 }
+	 for( c=0; c<nchan; c++){
+		chan = channels[c];
+		oprintf("Trials (%i,%i): Channel=%i\n", idx1, idx2, chan); 
 		dprintf(" compute d\n");
-		/* d = eeg_distmatrix_euclidean_derivative_channel(  s1, s2, c, d, 1, 1 ); */
-		d = settings.trialdistance( s1, s2, c, d, (void*)(&settings) );
+		d = settings.trialdistance( s1, s2, chan, d, (void*)(&settings) );
 		dprintf(" ...done\n");  
 		dprintf(" Regularize d\n");
 		maxdist = matrix_max( (const double**)d, n, n, NULL, NULL );
@@ -934,9 +1044,8 @@ EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, int
 		P = DTW_path_from_square_distmatrix( (const double**)d, n, P );
 		dprintf(" ...done\n");  
 		dprintf(" Warpavg\n");  
-		new = eeg_DTW_add_signals_by_path( s1, s2, new, c, P, weights );
+		new = eeg_DTW_add_signals_by_path( s1, s2, new, chan, P, weights );
 		dprintf(" ...done\n");  
-		//eeg_ADTW_channel2( eeg->data[idx1], eeg->data[idx2], new, c, args.theta );
 	 }
 
 	 /* remove the previous trials */
@@ -1218,6 +1327,8 @@ SettingsPADTW init_PADTW( const EEGdata_trials *eeg ){
   settings.N_freq=-1;
   settings.N_time=-1;
   settings.sigma=0.2;
+  settings.channels=NULL;
+  settings.num_channels = -1;
   _settings_guess_from_eegtrials( eeg, &settings );
   return settings;
 }

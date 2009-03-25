@@ -16,7 +16,8 @@
 #include "helper.h"
 #include "clustering.h"
 
-#include "config.h"
+//#include "config.h"
+//#define HAVE_LIBPLOTTER
 #ifdef HAVE_LIBPLOTTER
 #include <libplotter/cplotter.h>
 #define PL(code) (code)
@@ -31,62 +32,75 @@ void test_dummycluster();
    -- main routine                                                           -- 
    ---------------------------------------------------------------------------- */
 int main(int argc, char **argv){ 
-  FILE *f;
-  int i, j, k, chan;
+  //  oldgapstat(argc, argv);
+  int i,j;
+  double mean;
   EEGdata_trials *eeg;
-  double **dist;
-  double(*distmetric)(EEGdata*,EEGdata*,int);
-  Clusters *C;
-  int maxk=10;
-  double xWk[200], Wk[200], logWk[200];
-  chan = 0;
+  GapStatistic *gapstat_handle;
+  double **X, **D;
+  int K, B;
+  int n,p;
+  unsigned long int myseed;
 
-  fprintf(stderr, "reading file   : %s\n", argv[1]);
-  fprintf(stderr, "using distance : %s\n", argv[2]);
-  fprintf(stderr, "using electrode: %i\n", chan);
-
-  if(!strcmp(argv[2], "tw")){
-	 fprintf(stderr, "... recognized TW-distance\n");
-	 distmetric=clusterdist_tw_complete;
-  } else if(!strcmp(argv[2], "euclid")){
-	 fprintf(stderr, "... recognized euclidean-distance\n");
-	 distmetric=clusterdist_euclidean_pointwise;
-  } else {
-	 fprintf(stderr, "... metric not recognized, aborting\n");
-	 return -1;
-  }
-
-
+  myseed = (unsigned long int)time( (time_t *)NULL );
+  srandom( myseed );
+  
   /* get data */
   eeg=read_eegtrials_from_raw(argv[1]);
   print_eegdata_trials(stderr, eeg);
-
-  /* get distances */
-  dist = eegtrials_diffmatrix_channel( eeg, distmetric, chan, ALLOC_IN_FCT );
-
-  diffmatrix_standardize(dist, eeg->ntrials);
-  write_double_matrix_ascii( "diffeeg.txt", dist, eeg->ntrials, eeg->ntrials );
-
-  /* test_cmpclust();
-	  test_dummycluster();*/
-
-  for( k=1; k<maxk; k++ ){
-	 C = kmedoids( dist, eeg->ntrials, k );
-	 print_cluster( C );
-	 xWk[k] = (double)k;
-	 Wk[k] = gap_get_within_scatter( dist, eeg->ntrials, C );
-	 logWk[k] = log( Wk[k] );
-	 free_cluster( C );
-	 dprintf( "W[%i]=%f\n", k, Wk[k] );
+  
+  /* compose nxp-matrix (observations x features) */
+  X = matrix_init( eeg->ntrials, eeg->nsamples );
+  for( i=0; i<eeg->ntrials; i++ ){
+	 for( j=0; j<eeg->nsamples; j++ ){
+		/* just a single channel for now */
+		X[i][j] = eeg->data[i]->d[0][j];
+	 }
   }
-  PL( plot_format( &(xWk[1]), &(Wk[1]), maxk-1, "rO-") ); 
-  PL( plot_format( &(xWk[1]), &(logWk[1]), maxk-1, "bO-") );
-  PL( plot_show() );
-  free_eegdata_trials( eeg );
+  n = eeg->ntrials; p = eeg->nsamples;
+  
+/*   n=100; */
+/*   p = 2; */
+/*   X = read_double_matrix_ascii( argv[1], p, n, X); */
+  
+  D = distmatrix( vectordist_euclidean, X, n, p, ALLOC_IN_FCT, NULL );
+
+  printf("starting gapstat\n");
+  K = atoi(argv[2]);
+  B = atoi(argv[3]);
+  gapstat_handle = gapstat_init( NULL, K, B );
+
+  printf(" now really!\n");
+  gapstat_calculate( gapstat_handle, X, n, p, vectordist_euclidean, D );
+  printf(" done gapstat\nBest K=%i\n", gapstat_handle->khat);
+  gapstat_print(stderr, gapstat_handle);
+
+  FILE *f;
+  f = fopen( "gapstat.txt", "w");
+  for( i=0; i<gapstat_handle->K; i++ ){
+	 fprintf(f,  "%10f\t", gapstat_handle->gapdistr[i]);
+  }
+
+  fprintf(f, "\n");
+  for( i=0; i<gapstat_handle->K; i++ ){
+	 fprintf(f,  "%10f\t", gapstat_handle->Wk[i]);
+  }
+
+  fprintf(f, "\n");
+  for( i=0; i<gapstat_handle->K; i++ ){
+	 mean = 0;
+	 for(j=0; j<gapstat_handle->B; j++){
+		mean += log(gapstat_handle->Wkref[j][i]);
+	 }
+	 mean /= (double)gapstat_handle->B;
+
+	 fprintf(f,  "%10f\t", mean);
+  }
+
+  fclose(f);
 
   return 0;
 }
-
 
 void test_dummycluster(){
   double **d;

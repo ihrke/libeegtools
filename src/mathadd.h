@@ -26,8 +26,17 @@
 #include <float.h>
 #include <math.h>
 #include <string.h>
+
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_sf_bessel.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_linalg.h>
+#include <gsl/gsl_cblas.h>
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+
 #include "helper.h"
 #include "definitions.h"
 
@@ -168,6 +177,7 @@ extern "C" {
   void    vector_minus_scalar( double *v, int n, double val );
   double* vector_complex_to_real( const Complex *vc, double *vr, int n );
   double  vector_euclidean_distance( const double *v1, const double *v2, int n );
+  void vector_shuffle_int( int *permut, int n );
   /** \} */
 
   /* ---------------------------------------------------------------------------- 
