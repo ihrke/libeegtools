@@ -18,18 +18,10 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/**\file nonlinear.h
- \brief Functions using nonlinear systems-theory.
-
- Phase-Space reconstruction is done as in
- \f[
- \vec{x}_i = \sum_{j=1}^{m}s_{i+(j-1)\tau}\vec{e}_j
- \f]
- where \f$ \tau = \nu \Delta t\f$ is a multiple of the sampling step.
-	
+/**\file regularization.h
  */
-#ifndef NONLINEAR_H
-# define NONLINEAR_H
+#ifndef REGULARIZATION_H
+# define REGULARIZATION_H
 #include "mathadd.h"
 #include "definitions.h"
 
@@ -37,18 +29,15 @@
 extern "C" {
 #endif
 
-  /**\ingroup nonlinear
+
+  /** \addtogroup regularization
 	*\{
-	*/ 
-
-  PhaseSpace* phspace_init ( int m, int tau, double *x, int n );
-  void        phspace_free ( PhaseSpace *p );
-  void        phspace_print( FILE *out, PhaseSpace *p);
-
-  double      phspace_index_ij( PhaseSpace *p, int i, int j );
-  void        phspace_index_i ( PhaseSpace *p, int i, double *x);
-  void        phspace_index_j ( PhaseSpace *p, int j, double *x);
-  /*\}*/
+	*/
+  double** regularization_gaussian_line( const int *markers1, const int *markers2, int nmarkers,
+													  int nsignal, double maxsigma, double **d );
+  double** eeg_regularization_gaussian_line( const EEGdata *s1, const EEGdata *s2, 
+															double sigma, double **d );
+  /** \} */
 
 #ifdef __cplusplus
 }

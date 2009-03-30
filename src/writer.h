@@ -35,6 +35,9 @@ extern "C" {
 /* -------------------------------------------------------------------- */
 /* functions */
 /* -------------------------------------------------------------------- */
+  /** \addtogroup writer
+		\{
+  */
   void write_raw_header( FILE *f, int nbchan, int nbtrials, int nsamples, 
 								 int nmarkers );
   void write_raw_markers( FILE *f, const EEGdata *eeg );
@@ -59,6 +62,7 @@ extern "C" {
 
   double* eegtrials_to_double( EEGdata_trials *eeg, int *n );
   EEGdata_trials* eegtrials_from_double( double *stream, int n );
+  /** \} */
 
 #ifdef __cplusplus
 }

@@ -69,7 +69,6 @@ void test_recplot( int argc, char **argv ){
   double epsilon;
   int m, tau, fan;
   double *s1, *s2;
-  WarpPath *P;
 
   
   /* get data */
@@ -93,16 +92,12 @@ void test_recplot( int argc, char **argv ){
 
   R = recplot_init( p1->xn, p2->xn, fan, RPLOT_FAN );
   recplot_calculate( R, p1, p2 );
-  recplot_print( stderr, R );
-
-  P = recplot_los_marwan( R, 100,100 );
 
 
-  /* plot_format( NULL, s1, eeg->nsamples, "r"); */
-  /* plot_format( NULL, s2, eeg->nsamples, "b"); */
-  /* plot_switch(plot_add()); */
+  plot_format( NULL, s1, eeg->nsamples, "r");
+  plot_format( NULL, s2, eeg->nsamples, "b");
+  plot_switch(plot_add());
   plot_image( R->R, R->m, R->n, "hot");
-  plot_format_int( P->upath, P->spath, (P->J+P->K)/2, "r.o");
   plot_show();
 
 

@@ -30,7 +30,7 @@
 extern "C" {
 #endif
 
-  /** \defgroup spectgram Spectrogram (Time-Frequency Representations)
+  /** \addtogroup spectgram 
 		\{ */
   typedef struct _Spectrogram  {
     int            N_freq;		 /**< number of freq bins in the TFR matrix */
@@ -45,7 +45,7 @@ extern "C" {
 	 int           has_power_spectrum; /**< true if power spectrum is filled */
   } Spectrogram;
   
-  /** \defgroup spectspect Spectrogram Algorithms (TFR)
+  /** \addtogroup spectspect
 		\{ */
   Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
 										  const double *Window, int Window_Length,
@@ -53,14 +53,14 @@ extern "C" {
 										  Spectrogram *spectgram);
   /** \} */
 
-  /** \defgroup specthelp Spectrogram Convenience
+  /** \ingroup specthelp
 		\{ */
   Spectrogram* init_spectrogram( int N_freq, int N_time );
   void         free_spectrogram( Spectrogram *s );
   void         spectrogram_compute_powerspectrum( Spectrogram *s );
   /** \} */
 
-  /** \defgroup windows Windowing Functions
+  /** \addtogroup windows
 	* \{ */
   double* window_dirichlet( double *window, int n );
   double* window_gaussian ( double *window, int n, double sigma );

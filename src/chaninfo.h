@@ -1,3 +1,6 @@
+/**\file chaninfo.h
+	\brief Predefined structs for channel locations.
+*/
 #ifndef CHANINFO_H
 #define CHANINFO_H
 

@@ -7,8 +7,8 @@ noinst_HEADERS =
 
 libeegtools_la_SOURCES = mathadd.c averaging.c averaging.h denoising.c \
 	helper.c reader.c clustering.c writer.c tools.c time_frequency.c warping.c \
-	nonlinear.c recurrence_plot.c
+	nonlinear.c recurrence_plot.c regularization.c
 pkginclude_HEADERS = averaging.h denoising.h helper.h mathadd.h definitions.h reader.h clustering.h writer.h\
 	escape_codes.h tools.h time_frequency.h chaninfo.h warping.h \
-	nonlinear.h recurrence_plot.h
+	nonlinear.h recurrence_plot.h regularization.h
 libeegtools_la_LDFLAGS =  `@GSL_CONFIG@ --libs`

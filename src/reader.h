@@ -19,7 +19,8 @@
  ***************************************************************************/
 
 /**\file reader.h
- * Read EEG-data from files.
+ * \brief Read EEG-data from files.
+
  * \todo implement reader for EEGlab set-files
  */
 #ifndef READER_H
@@ -65,7 +66,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  /** \defgroup reader Reader Function (Import)
+  /** \weakgroup reader
 		\{ */
   /* -------------------------------------------------------------------- */
   /* functions */

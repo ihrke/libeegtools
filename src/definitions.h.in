@@ -1,3 +1,6 @@
+/** \file definitions.h
+	 \brief Definitions for libeegtools.
+ */
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 
@@ -87,7 +90,8 @@ extern "C" {
 	 - CLUSTERING -
 	 ---------------------------------------------------------*/
 
-  /**\ingroup clustering */
+  /**\ingroup clustering
+	\{ */
   typedef struct{
 	 int **clust; /** indices for the trials in the cluster (Kxn)*/
 	 int K;       /** number of clusters */
@@ -95,8 +99,7 @@ extern "C" {
   } Clusters;
 
 
-  /**\ingroup clustering
-	  This struct is the representation of a rooted binary tree to
+  /** This struct is the representation of a rooted binary tree to
 	  hold a dendrogram. 
 	  It is a terminal node if val>0 and left=right=NULL.
 	  Else it is an intermediate node that has at least one child!=NULL.
@@ -108,7 +111,8 @@ extern "C" {
 	 struct dgram *right;
   };
   typedef struct dgram Dendrogram;
-
+  /** \} */
+  /** \ingroup gap */
   typedef struct {
 	 int K;            /**< maximum number of clusters */
 	 int B;            /**< Monte-Carlo repetition of reference distr. calc. */

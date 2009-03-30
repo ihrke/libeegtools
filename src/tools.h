@@ -20,9 +20,7 @@
 
 /**\file tools.h
  * Other Tools.
- * \defgroup tools Some Other Tools
- *\{
- *\}
+ *
  */
 #ifndef TOOLS_H
 #define TOOLS_H

@@ -1,14 +1,3 @@
-
-/* 
-** denoising.c
-**
-** Made by (Matthias Ihrke)
-** Login   <mihrke@localhost>
-** 
-** Started on  Thu Jul  5 23:30:56 2007 Matthias Ihrke
-** Last update Sun Oct 14 12:31:45 2007 Matthias Ihrke
-**/
-
 /* **************************************************************************
  *   Copyright (C) 2008 by Matthias Ihrke   *
  *   mihrke@uni-goettingen.de   *
@@ -522,9 +511,9 @@ void butterworth_design_bandpass( int order, double sampling_rate, double passba
 	 Directly apply the filter given in bcoeff/acoeff (polynomial coefficients of the transfer function)
 	 to signal. For FIR-filters, set the recursive coefficients to 0.
 	 That is, compute
-	 \[
+	 \f[
 	 y_n = \frac{1}{b_0}\left( a_0 x_n + \ldots + a_n x_0 - b_1 y_{n-1} -\ldots - b_n y_0 \right)
-	 \]
+	 \f]
 	 \param bcoeff recursive coefficients in array of length nb
 	 \param acoeff input coefficients in array of length nb
 	 \param signal to-be-filtered signal of length n

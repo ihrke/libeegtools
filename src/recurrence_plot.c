@@ -296,3 +296,29 @@ WarpPath* recplot_los_marwan( RecurrencePlot *R, int dx, int dy ){
 
   return P;
 }
+
+/** Calculate the Line-Of-Synchrony of a Cross-Recurrence-Plot using 
+	 a dynamic time-warping strategy.
+
+	 Algorithm:
+	 \code
+	 Input: RecurrencePlot R (1 where recurrence, 0 otherwise)
+	 1. calculate d = 1-R;
+	 2. cumulate d, such that D[jk] = min{ D[j-1k], D[jk-1], D[j-1k-1] }
+	 3. Backtrack
+	 \endcode
+ */
+WarpPath* recplot_los_dtw( RecurrencePlot *R ){
+  double **d;
+  WarpPath *P;
+
+  if( R->m != R->n ){
+	 errprintf(" Sorry, right now, we can only handle square matrices, got (%i,%i)\n", R->m, R->n );
+	 return NULL;
+  }
+  d = matrix_init( R->m, R->n );
+  matrix_copy( R->R, d, R->m, R->n ); 
+  scalar_minus_matrix( 1.0, d, R->m, R->n );
+  P = DTW_path_from_square_distmatrix( (const double**)d, R->m, P );
+  return P;
+}

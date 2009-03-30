@@ -18,6 +18,10 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+/** \file mathadd.h
+	 \brief Additional math-functions.
+*/
+
 #ifndef MATH_ADD_H
 # define MATH_ADD_H
 #define _ISOC99_SOURCE
@@ -61,7 +65,7 @@ extern "C" {
   /* ---------------------------------------------------------------------------- 
 	  -- Complex Arithmetic
 	  ---------------------------------------------------------------------------- */ 
-  /** \defgroup complex Complex Arithmetic
+  /** \ingroup complex 
 		\{
   */
   typedef struct {
@@ -84,7 +88,7 @@ extern "C" {
   Complex complex_bilinear_transform(Complex pz);
   /** \} */
 
-  /**\addtogroup helpermath
+  /**\ingroup helpermath
 	*\{*/
   double  glog(double v, int b);  
   double  mad(const double *data, int n); 
@@ -121,28 +125,15 @@ extern "C" {
 	---------------------------------------------------------------------------- */
   void fft(double *data,  unsigned long nn, int isign);
   
-
+  /**\}*/
+  
 /* ---------------------------------------------------------------------------- 
    -- Signal extension routines                                              -- 
    ---------------------------------------------------------------------------- */
-  /** \defgroup sigext Signal Extension Functions 
+  /** \ingroup sigext
 	\{
   */
-  /**
-	* Signal extension schemes to extend signal of length n to length 2^j
-	*    with 2^j being the closest power of 2 to n.
-	* The extension functions return a pointer to the former data[0],
-	* because this is where the unextended signal began;\n
-	* Example:
-	* \code
-	* sigext([1 2 3 - - - -]) -> [0 0 1 2 3 0 0] 
-	*                                 ^ ptr
-	* \endcode
-	*  Assumptions (not for full generality!):
-	* -# ns <= n
-	* -# n <= 2*ns
-	*
-	*/
+ 
   double* sigext_zeros(double *data, int ns, int n);
   double* sigext_zerosr(double *data, int ns, int n);
   double* sigext_sym(double *data, int ns, int n);
@@ -152,7 +143,7 @@ extern "C" {
   /* ---------------------------------------------------------------------------- 
 	  -- Interpolation
 	  ---------------------------------------------------------------------------- */ 
-  /** \defgroup interp Interpolation and resampling
+  /** \ingroup interp
 	\{
   */
   double  drawsample_nearest_neighbour( const double *v, int n, double x );
@@ -170,7 +161,7 @@ extern "C" {
   /* ---------------------------------------------------------------------------- 
 	  -- vector ops                                                             -- 
 	  ---------------------------------------------------------------------------- */  
-  /** \defgroup vectorops Vector Operations
+  /** \ingroup vectorops
 		\{
   */
   double* vector_init( double *v, int n,  double val );
@@ -183,7 +174,7 @@ extern "C" {
   /* ---------------------------------------------------------------------------- 
 	  -- Matrix ops                                                             -- 
 	  ---------------------------------------------------------------------------- */ 
-  /** \defgroup matrixops Matrix operations
+  /** \ingroup matrixops
 		\{
   */
   double** matrix_delrow(double **m, int N, int n, int row);
@@ -200,7 +191,7 @@ extern "C" {
   void     scalar_minus_matrix( double scalar, double **m, int N, int M );
   void     matrix_free(double **m, int N);
   /**\}*/
-  /**\}*/
+
 #ifdef __cplusplus
 }
 #endif

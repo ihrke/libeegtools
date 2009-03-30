@@ -29,6 +29,10 @@ f.write(nversion);
 f.close()
 print "Done"
 
+print "Touching ./doc/mainpage.doc ..."
+status=os.system("touch ./doc/mainpage.doc");
+print "Done (%i)"%status
+
 cmd = "cvs commit"
 print cmd;
 os.system(cmd);

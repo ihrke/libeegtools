@@ -19,15 +19,9 @@
  ***************************************************************************/
 
 /**\file clustering.h
- * Clustering functions.
- * Groups:
- \defgroup clustering Clustering functions
- \{
-    \defgroup distances Distance measures
-    \defgroup gap Gap-statistic
-	 \defgroup dendrogram Dendrogram (Hierarchical Clustering)
- \}
+ * \brief Clustering functions.
  */
+
 #ifndef CLUSTERING_H
 # define CLUSTERING_H
 #include <time.h>

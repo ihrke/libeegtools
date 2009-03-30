@@ -27,14 +27,6 @@
   -# optionally a regularization matrix G (multiply with d)
   -# the warp-path P obtained from d (or d*G)
   -# an averaging scheme to put together s1 and s2 using P.
- * \defgroup warping Warping functions
- *\{
-      \defgroup distance Pointwise Distance Metrices to compute point-to-point similarity between to signals
- *    \defgroup timewarp Timewarping-functions
-      \defgroup warpaveraging Averaging timewarped signals
-      \defgroup regularization Regularization of the Warping
- *    \defgroup otherwarp Other Warping functions
- *\}
  */
 #ifndef WARPING_H
 #define WARPING_H
@@ -42,6 +34,7 @@
 #include "definitions.h"
 #include "clustering.h"
 #include "time_frequency.h"
+#include "regularization.h"
  
 #ifdef __cplusplus
 extern "C" {
@@ -68,15 +61,6 @@ extern "C" {
 													 int channel, double **d, void *params );
   /** \} */
 
-  /** \addtogroup regularization
-	*\ingroup warping
-	*\{
-	*/
-  double** regularization_gaussian_line( const int *markers1, const int *markers2, int nmarkers,
-													  int nsignal, double maxsigma, double **d );
-  double** eeg_regularization_gaussian_line( const EEGdata *s1, const EEGdata *s2, 
-															double sigma, double **d );
-  /** \} */
 
   /* ---------------------------------------------------------------------------- 
 	  -- Timewarping                                                            -- 

@@ -19,11 +19,7 @@
  ***************************************************************************/
 
 /**\file averaging.h
- * Averaging functions.
- * \defgroup averaging Averaging functions
- *\{
- *    \defgroup otheravg Other Averaging functions
- *\}
+ * \brief Averaging functions.
  */
 #ifndef AVERAGING_H
 #define AVERAGING_H
@@ -34,8 +30,7 @@
 extern "C" {
 #endif
 
-/** \addtogroup otheravg
- *\ingroup averaging
+/** \weakgroup otheravg
  *\{
  */
   double* simple_average_2v(const double *s1, const double *s2, int n, double *avg);

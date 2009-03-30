@@ -1,21 +1,3 @@
-/**\file denoising.h
- * \brief Contains functions used for signal denoising.
- *
- * Especially wavelet-based denoising. 
- */
-/** 
- * \defgroup denoising Denoising Routines 
- * \{
- *    \defgroup wavelet Wavelet-Denoising
- *    \{
- *       \defgroup thresholding Thresholding Functions
- *       \defgroup select_thresh Threshold selection Functions
- *    \}
- *    \defgroup robust_filtering Robust-Filtering
- *    \defgroup other_filtering Other Filtering
- * \}
- *
- */
 /* **************************************************************************
  *   Copyright (C) 2008 by Matthias Ihrke   *
  *   mihrke@uni-goettingen.de   *
@@ -35,6 +17,12 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
+/**\file denoising.h
+ * \brief Contains functions used for signal denoising.
+ *
+ * Especially wavelet-based denoising. 
+ */
 
 #ifndef DENOISING_H
 # define DENOISING_H
@@ -58,9 +46,8 @@ extern "C" {
 	  -- Robust filtering methods  --
 	  ------------------------------ */
 
-  /** \addtogroup robust_filtering
-	* \ingroup denoising
-	*\{
+  /** \ingroup robust_filtering
+		\{
 	*/
   void eeg_filter_running_median(EEGdata *s, int win);
   double* running_median(double *d, int n, int win);
@@ -75,9 +62,8 @@ extern "C" {
 	  -- Other filtering methods  --
 	  ------------------------------ */
 
-  /** \addtogroup other_filtering
-	* \ingroup denoising
-	*\{
+  /** \ingroup other_filtering
+		\{
 	*/
   double* moving_average(double *s, int n, int win);
   /** \} */
@@ -85,18 +71,18 @@ extern "C" {
   /* ---------------------------------------------------------------------------- 
 	  -- Wavelet-based Denoising routines                                                     -- 
 	  ---------------------------------------------------------------------------- */
-  /** \addtogroup thresholding
-	* \ingroup wavelet
-	*\{
-	*/
+  /** \ingroup thresholding
+		\{
+  */
+
   double eta_s(double d, double lambda);
   double eta_h(double d, double lambda);
+  
   /** \} */
 
-  /** \addtogroup select_thresh
-	*\ingroup wavelet
-	*\{
-	*/
+  /** \ingroup wavelet 
+		\{
+  */
   int generic_denoising(double *data, int n, int L, 
 								double(*threshfct)(const double*, int), 
 								double(*etafct)(double,double));
@@ -107,7 +93,12 @@ extern "C" {
   void eeg_wavelet_denoise(EEGdata *eeg, int L, 
 									double(*threshfct)(const double*, int), 
 									double(*etafct)(double,double), 
-									double*(*sigextfct)(double*, int, int));
+									double*(*sigextfct)(double*, int, int)); 
+  /**\} */
+
+  /** \ingroup select_thresh
+		\{
+	*/
   double translation_invariant_thresholding(const double *data, int n);
   double conventional_thresholding(const double *data, int n);
   double sureshrink(const double *data, int n);
@@ -117,8 +108,7 @@ extern "C" {
  /* ------------------------------ 
 	  -- Bandpass filter design  --
 	  ------------------------------ */
-  /** \addtogroup filter_design
-	* \ingroup denoising
+  /** \ingroup filter_design
 	*\{
 	*/
   void butterworth_design_bandpass( int order, double sampling_rate, double passband[2],

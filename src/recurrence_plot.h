@@ -20,11 +20,6 @@
 
 /**\file recurrence_plot.h
  * Functions using nonlinear systems-theory and recurrence-plots.
- * Groups:
- \defgroup recplots Recurrence Plots
- \{
-    \defgroup los Line-of-Synchrony-computation
- \}
  */
 #ifndef RECURRENCE_PLOT_H
 # define RECURRENCE_PLOT_H
@@ -58,6 +53,7 @@ extern "C" {
 	*\{
 	*/
   WarpPath* recplot_los_marwan( RecurrencePlot *R, int dx, int dy );
+  WarpPath* recplot_los_dtw   ( RecurrencePlot *R );
   /*\}*/
 
   /*\}*/
