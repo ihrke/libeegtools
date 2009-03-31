@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os;
+import os,sys;
 
 f = open("VERSION", "r");
 version = f.read().strip();
@@ -29,10 +29,11 @@ f.write(nversion);
 f.close()
 print "Done"
 
-print "Touching ./doc/mainpage.doc ..."
-status=os.system("touch ./doc/mainpage.doc");
-print "Done (%i)"%status
+#print "Touching ./doc/mainpage.doc ..."
+#status=os.system("touch ./doc/mainpage.doc");
+#print "Done (%i)"%status
 
 cmd = "cvs commit"
+sys.stdin.readline();
 print cmd;
 os.system(cmd);

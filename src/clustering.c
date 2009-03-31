@@ -20,74 +20,6 @@
 
 #include "clustering.h"
 
-/** build a distance matrix D from data X which consists of n observations with
-	 p features each. 
-	 Observations are compared using f.
-	 \param f distance function
-	 \param X data (nxp)
-	 \param D output matrix or NULL -> own memory allocation
- */
-double** distmatrix( double(*(f))(double*,double*,int,void*), const double **X, int n, int p, double **D, void *userdata ){
-  int i,j;
-  
-  if( D==ALLOC_IN_FCT ){
-	 warnprintf(" allocating matrix in fct\n");
-	 D = matrix_init( n, n );
-  }
-  
-  for( i=0; i<n; i++ ){
-	 for( j=i+1; j<n; j++ ){
-		D[i][j] = f( (double*)X[i], (double*)X[j], p, userdata );
-		D[j][i] = D[i][j];
-		if( isnan( D[j][i] ) ){
-		  errprintf("D[%i][%i] is nan\n", j, i);
-		}
-	 }
-  }
-
-  return D;
-}
-
-
-/** Euclidean distance between vector x1 and x2.
-	 \param x1, x2 vectors of size p
-	 \param userdata is ignored
-*/
-double vectordist_euclidean( double *x1, double *x2, int p, void *userdata ){
-  double d;
-  int i;
-
-  d=0.0;
-  for( i=0; i<p; i++ ){
-	 d += SQR( x1[i]-x2[i] );
-  }
-  d = sqrt( d );
-
-  return d;
-}
-
-/** compute the cumulated sum along the regularized warping path.
-	 \param userdata (int)userdata[0] is nmarkers; 
-	       ((int)userdata)[1] and following is an 2 x nmarkers matrix 
-			 given the corresponding markers in the signals.
- */
-double   vectordist_regularized_dtw( double *x1, double *x2, int p, void *userdata ){
-  int nmarkers;
-  int **markers;
-  double **G, **D;
-  double maxsigma;
-  double Djk;
-
-  nmarkers = *((int*)userdata);
-  userdata = ((int*)userdata)+1;
-  maxsigma = *((double*)userdata);
-  userdata = ((double*)userdata)+1;
-  markers = (int**)userdata;
-  
-  G = regularization_gaussian_line( markers[0], markers[1], nmarkers, p, maxsigma, NULL );
-  /** TODO **/
-  return Djk;
-}
 
 
 /** run the kmedoids function a couple of times and pick the best
@@ -380,7 +312,8 @@ void gapstat_free( GapStatistic *g ){
 	          trials x voltage
 	 \param D is the distance matrix for X (nxn)
  */
-void gapstat_calculate( GapStatistic *gap, double **X, int n, int p, double(*distfunction)(double*,double*,int,void*), const double** D ){
+void gapstat_calculate( GapStatistic *gap, double **X, int n, int p, 
+								VectorDistanceFunction distfunction, const double** D ){
   int i, k, b;
   Clusters *C;
   double **Xr; /* reference distribution */
@@ -406,7 +339,7 @@ void gapstat_calculate( GapStatistic *gap, double **X, int n, int p, double(*dis
   for( b=0; b<gap->B; b++ ){ /* monte Carlo for ref-data*/
 	 for( k=1; k<=gap->K; k++ ){
 		Xr = gap_get_reference_distribution_simple( (const double **) X, n, p, Xr );
-		Dr = distmatrix( distfunction, (const double**)Xr, n, p, Dr, NULL );
+		Dr = vectordist_distmatrix( distfunction, (const double**)Xr, n, p, Dr, NULL );
 		C = kmedoids_repeat( (const double**)Dr, n, k, 50 );
 		//		print_cluster( C );
 		gap->Wkref[b][k-1] = get_within_scatter( (const double**)Dr, n, C );
@@ -646,8 +579,7 @@ double get_between_scatter( const double **d, int N, const Clusters *c ){
 	             defined are dgram_dist_singlelinkage(), dgram_dist_completelinkage(),
 					 dgram_dist_averagelinkage()
  */
-Dendrogram* agglomerative_clustering(const double **d, int N, 
-												  double(*dist)(const double**,int,const Dendrogram*,const Dendrogram*)){
+Dendrogram* agglomerative_clustering(const double **d, int N, LinkageFunction dist ){
   Dendrogram **nodes, *tmp; /* at the lowest level, we have N nodes */
   double min_d, cur_d;
   int min_i=0, min_j=0;

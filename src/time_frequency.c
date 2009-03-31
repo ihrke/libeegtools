@@ -79,7 +79,7 @@ Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
   normh = sqrt (inter);
 
   /* FFT-settings */
-  Nfft = next_pow2( N_freq );	  /* num of samples for FFT */
+  Nfft = pow( 2, next_pow2( N_freq ));	  /* num of samples for FFT */
   if( corner_freqs[1]<=corner_freqs[0] || 
 		corner_freqs[0]<0 || corner_freqs[1]>sampling_rate/2.0 ){
 	 errprintf("corner_freqs funny: (%f,%f)\n", 
@@ -139,8 +139,8 @@ Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
 		frequency++;
 	 }
 	 /* fft of the windowed signal */
-	 /* fft( wind_sig_complex, Nfft, 1 );  */
-	 gsl_fft_complex_radix2_forward ( wind_sig_complex, 1, Nfft ); 
+	 fft( wind_sig_complex, Nfft, 1 );  
+	 /* gsl_fft_complex_radix2_forward ( wind_sig_complex, 1, Nfft );  */
 
 	 /* the first half of the fft is put in the stft matrix  */
 	 for (frequency = corner_freqs_idx[0]; frequency < corner_freqs_idx[1]; frequency++){

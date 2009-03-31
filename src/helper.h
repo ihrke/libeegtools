@@ -38,6 +38,7 @@
 #include <float.h>
 #include <stdint.h>
 
+
 #define _WITH_ANSI_ESCAPE_CODES /* necessary for the esc-codes to show up */
 #include "escape_codes.h"
 
@@ -68,11 +69,11 @@
 
 
 /** debugging macros */
-/*#define DEBUG*/
 #ifdef DEBUG
 /*#define dprintf(...) fprintf(stderr, ## __VA_ARGS__)*/
 #define dprintf(...) do{																\
-		fprintf(stderr, ESCAPE_FGYELLOW_STR ESCAPE_BRIGHT_STR "%s (%i), %s(): ", __FILE__, __LINE__, __FUNCTION__); \
+		fprintf(stderr, ESCAPE_FGYELLOW_STR ESCAPE_BRIGHT_STR "%s (%i), %s(): ", \
+				  __FILE__, __LINE__, __FUNCTION__);								\
 		fprintf(stderr, ## __VA_ARGS__);												\
 		fprintf(stderr, ESCAPE_RESET_STR);											\
 	 } while(0)
@@ -115,28 +116,24 @@ extern "C" {
 	  -- Helper functions (org)                                                       -- 
 	  ---------------------------------------------------------------------------- */
   /**\addtogroup helperorg
-	*\ingroup helper
 	*\{*/
+  void     errormsg(int err_no, int fatal);
 
+  void     swap_bytes(void *ptr, int nmemb);
+  void     wswap(void *ptr, int nmemb, int flag);
+  int      is_little_endian();
 
-  void    errormsg(int err_no, int fatal);
+  void     qsort_int_index( int *idx_idx, const int *idx, int n );
+  int      compare_ints (const void *a, const void *b);
 
-  void    swap_bytes(void *ptr, int nmemb);
-  void    wswap(void *ptr, int nmemb, int flag);
-  int     is_little_endian();
+  int      randint( int from, int to );  
 
-  void    qsort_int_index( int *idx_idx, const int *idx, int n );
-  int     compare_ints (const void *a, const void *b);
-  
-  int     strcount( const char *s, char c );
+  int      strcount( const char *s, char c );
 
   double** copy_double_ptrptr(const double **s, int N, int n);
-
-
   /**\}*/
 
   /**\addtogroup helperio
-	*\ingroup helper
 	*\{*/
   /* ---------------------------------------------------------------------------- 
 	  -- Helper functions (IO)                                                  -- 
@@ -147,7 +144,7 @@ extern "C" {
   size_t  ffread(void *ptr, size_t size, size_t nmemb, FILE *stream);
   size_t  ffwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
 
-  int stream_count_char( FILE* f, char c );
+  int     stream_count_char( FILE* f, char c );
 
   /**\}*/
 
@@ -160,17 +157,15 @@ extern "C" {
   /* constructors */
   EEGdata*        init_eegdata(int nbchan, int nsamples, int nmarkers);
   void            reset_eegdata( EEGdata* eeg );
-  EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, int nbchan, int nbsamples, double *times);
-  WarpPath*       init_warppath(WarpPath *path, int J, int K);
-
+  EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, 
+												  int nbchan, int nbsamples, double *times);
+ 
   
   /* destructors */
-  void    free_warppath(WarpPath *p);
   void    free_eegdata(EEGdata *eeg);
   void    free_eegdata_trials(EEGdata_trials *eeg);
 
   /* convenience functions for structs */
-  void      reset_warppath(WarpPath *P, int J, int K);  
   int       eegdata_cmp_settings( const EEGdata *s1, const EEGdata *s2 );
   int       copy_similar_eegdata( EEGdata *dest, const EEGdata *source );
   EEGdata_trials*      clone_eegdata_trials( const EEGdata_trials *source );
@@ -181,28 +176,18 @@ extern "C" {
   void    print_channelinfo( FILE *out, const ChannelInfo *c );
   /**\}*/
 
-  /**\addtogroup helperplot
-	*\ingroup helper
-	*\{*/
-
-
-#ifdef HAVE_MATLAB
-  Engine*  ml_init(void);
-  int  ml_close(Engine *m);
-  void ml_plot(Engine *matlab, const double *r, const double *v, int n, const char* color, int new);
-  void ml_plot_path(Engine *matlab, const int *path, int K);
-  void ml_wait(Engine *matlab);
-#endif
-
-  /**\}*/
-
   /* ---------------------------------------------------------------------------- 
 	  -- Gobals                                                                 -- 
 	  ---------------------------------------------------------------------------- */
+
+  /** \addtogroup progressbar 
+		\{  
+  */
+  static ProgressBarStatus progress_status;
+  void   progressbar_rotating( int flag, int num );
+  /** \} */
+
   static int *verbosity; 
-#ifdef HAVE_MATLAB
-  Engine *matlab;
-#endif
 
 #ifdef __cplusplus
 }

@@ -27,8 +27,19 @@ int padtw_test(int argc, char **argv);
 int interpolation_test(int argc, char **argv);
 
 int main(int argc, char **argv){ 
+  EEGdata_trials *eeg;
+  SettingsHierarchicalDTW settings;
   dprintf("in t_test\n");
-  return padtw_test(argc, argv); 
+
+  oprintf("Reading from '%s'\n", argv[1]);
+  eeg=read_eegtrials_from_raw( argv[1] );
+  print_eegdata_trials(stderr, eeg);
+  
+  settings = init_dtw_hierarchical( eeg );
+  print_settings_hierarchicaldtw( stderr, settings );
+  eeg_distmatrix_stft_channel( eeg->data[0], eeg->data[1], 0, NULL, &settings );
+
+  /* return padtw_test(argc, argv);  */
   /* return interpolation_test(argc, argv); */
 }
 
@@ -70,17 +81,17 @@ int padtw_test(int argc, char **argv){
   print_eegdata_trials(stderr, eeg);
   N = eeg->ntrials;
 
-  Delta = eegtrials_diffmatrix_channel( eeg, clusterdist_euclidean_pointwise, 0, ALLOC_IN_FCT);
+  Delta = eegtrials_distmatrix_channel( eeg, vectordist_euclidean, 0, ALLOC_IN_FCT);
   matrix_print( Delta, N, N );
 
   fprintf(stderr, "eeg->n=%i\n", eeg->nsamples );
   n = eeg->nsamples;
-  SettingsPADTW settings = init_PADTW( eeg );
+  SettingsHierarchicalDTW settings = init_dtw_hierarchical( eeg );
   settings.corner_freqs[1]=25.0;
   settings.sigma=atof(argv[1]);
-  settings.trialdistance=eeg_distmatrix_stft_channel;
+  settings.pointdistance=eeg_distmatrix_stft_channel;
   new = init_eegdata( eeg->data[0]->nbchan, eeg->nsamples, eeg->nmarkers_per_trial );
-  eegtrials_PADTW( eeg, Delta, N, new, settings );
+  eegtrials_dtw_hierarchical( eeg, Delta, N, new, settings );
   write_eegdata_ascii_file( "test.out", new );
 
   for( i=0; i<N; i++ ){

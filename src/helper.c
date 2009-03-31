@@ -7,6 +7,13 @@
    -- Helper functions                                                       -- 
    ---------------------------------------------------------------------------- */
 
+/** returns a random integer in the range [from, from+1, ..., to]
+ */
+int randint( int from, int to ){
+  return ((int)(drand48() * to))+from;
+}
+
+
 /** deep copy of double ptrptr
  */
 double** copy_double_ptrptr(const double **s, int N, int n){
@@ -84,28 +91,11 @@ EEGdata_trials*      clone_eegdata_trials( const EEGdata_trials *source ){
   return dest;
 }
 
-void free_warppath(WarpPath *p){
-	free(p->upath);
-	free(p->spath);
-	free(p);
-}
-
 void print_channelinfo( FILE* out, const ChannelInfo *c ){
   fprintf( out, "Channel No. %i/%i - '%s' at (%.2f, %.2f, %.2f)\n", 
 			  c->num, c->num_chans, c->label, c->x, c->y, c->z );
 }
 
-WarpPath* init_warppath(WarpPath *path, int J, int K){
-  if(path==NULL){
-	 path = (WarpPath*)malloc(sizeof(WarpPath));
-  }
-  path->J=J;
-  path->K=K;
-  path->upath = (int*)calloc(J+K, sizeof(int));
-  path->spath = (int*)calloc(J+K, sizeof(int));
-
-  return path;
-}
 
 /** set all data->d[][] to zero
  */
@@ -375,13 +365,6 @@ void   errormsg(int err_no, int fatal){
   } else errprintf("\n");
 }
 
-void      reset_warppath(WarpPath *P, int J, int K){
-  memset( P->upath, 0, P->J*sizeof(int) );
-  memset( P->spath, 0, P->K*sizeof(int) );
-  P->J = J; P->K = K;
-  memset( P->upath, 0, J*sizeof(int) );
-  memset( P->spath, 0, K*sizeof(int) );
-}
 
 
 int       eegdata_cmp_settings( const EEGdata *s1, const EEGdata *s2 ){
@@ -406,91 +389,52 @@ int strcount( const char *s, char c ){
 }
 	
 
-/* ----------------------------------------------------------------------
-	MATLAB
-   ----------------------------------------------------------------------*/
-#ifdef HAVE_MATLAB
-Engine* ml_init(){
-  Engine *m;
-  if (!(m = engOpen(MATLAB_STARTUP_CMD))) {
-    dprintf("\nCan't start MATLAB engine\n");
-    return NULL;
-  }
-  dprintf("Matlab successfully started...\n");
-  return m;
+/** displays a progress-bar like this
+	 \code
+	 [ #####\                          ]
+	 \endcode
+	 \param flag one of PROGRESSBAR_INIT, PROGRESSBAR_CONTINUE_LONG, 
+	             PROGRESSBAR_CONTINUE_SHORT
+	 \param num meaning depends on flag
+ */
+void progressbar_rotating( int flag, int num ){
+  int c, i;
+
+  switch(flag){
+  case PROGRESSBAR_INIT:
+	 progress_status.max_progress = num;
+	 progress_status.cur_progress = 0;
+	 progress_status.prev_progress= 0;
+	 fprintf( stderr, "[ " );
+	 for( i=0; i<PROGRESSBAR_NUMCOLS; i++ ){
+		fprintf( stderr, " " );
+	 }
+	 fprintf( stderr, " ]" );
+	 for( i=0; i<PROGRESSBAR_NUMCOLS+2; i++ ){
+		fprintf( stderr, "\b" );
+	 }
+	 break;
+  case PROGRESSBAR_CONTINUE_LONG:
+	 c = (num*PROGRESSBAR_NUMCOLS/progress_status.max_progress);
+	 //printf("c=%i, cur_progress=%i, num=%i, p=%i\n", c, cur_progress, num, max_progress);
+	 if( c>progress_status.cur_progress ){
+		fprintf( stderr, "#" );
+		progress_status.cur_progress++;
+	 }
+	 break;
+  case PROGRESSBAR_CONTINUE_SHORT:
+	 c = (progress_status.prev_progress++ % 4);
+	 switch(c){
+	 case 0: c = '/'; break;
+	 case 1: c = '-'; break;
+	 case 2: c = '\\'; break;
+	 case 3: c = '|'; break;
+	 }
+	 fprintf( stderr, "%c", c);
+	 fprintf( stderr, "\b" );
+	 break;
+  case PROGRESSBAR_FINISH:
+	 fprintf( stderr, "\n");
+	 break;
+  } /* switch */
 }
-
-int ml_close(Engine *m){
-  return engClose(m);
-}
-
-
-void ml_plot(Engine *matlab, const double *r, const double *v, int n, const char *color, int new){
-  mxArray *a1, *a2;
-  double *d1,*d2;
-  char tmpstring[255];
- 
-  if(r!=NULL){
-    a1 = mxCreateDoubleMatrix(1,n,mxREAL);
-    d1 = mxGetPr(a1); 
-    d1 = memcpy(d1, r, n*sizeof(double)); 
-    if(engPutVariable(matlab, "times", a1))
-       fprintf(stderr,"Error putting variable to MATLAB\n");
-  }
-  a2 = mxCreateDoubleMatrix(1,n,mxREAL);
-  d2 = mxGetPr(a2); d2 = memcpy(d2, v, n*sizeof(double));
-
-  if(engPutVariable(matlab, "sig", a2))
-    fprintf(stderr,"Error putting variable to MATLAB\n");
-  
-  if(new) engEvalString(matlab, "figure;");
-  if(r!=NULL)
-    sprintf(tmpstring, "plot(times, sig, '%s');", color);
-  else
-    sprintf(tmpstring, "plot(sig, '%s');", color);
-
-  dprintf("Evaluating: '%s'\n",tmpstring); 
-  engEvalString(matlab, tmpstring);
-
-  if(r!=NULL)  mxDestroyArray(a1);
-  mxDestroyArray(a2);
-  return;
-} 
-
-void ml_plot_path(Engine *matlab, const int *path, int K){
-  int J, m, i, j, k;
-  double *x, *y;
-  mxArray *xp, *yp;
-  char tmpstring[255];
-
-  J = path[K-1];
-  m = MAX(J, K);
-
-  xp = mxCreateDoubleMatrix(1,m,mxREAL);
-  x = mxGetPr(xp); 
-
-  yp = mxCreateDoubleMatrix(1,m,mxREAL);
-  y = mxGetPr(yp); 
-
-  i=0; j=0; k=0; 
-  for(i=0; i<m; i++){
-    x[i] = (double)k;
-    y[i] = (double)j;
-
-    if(path[k]==j){  k++;  }
-    else if(path[k]>j) j++;
-  }
-
-  if(engPutVariable(matlab, "xpath", xp) ||engPutVariable(matlab, "ypath", yp))
-    fprintf(stderr,"Error putting variable to MATLAB\n");
-  sprintf(tmpstring, "figure; plot(xpath, ypath); axis([0 %i 0 %i]);", K, J);
-  engEvalString(matlab,tmpstring);
-  
-  mxDestroyArray(xp);  mxDestroyArray(yp);
-  return;
-}
-
-void ml_wait(Engine *matlab){
-  engEvalString(matlab, "waitforbuttonpress;");
-}
-#endif

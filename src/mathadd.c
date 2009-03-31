@@ -264,6 +264,17 @@ double vector_euclidean_distance( const double *v1, const double *v2, int n ){
 /* ---------------------------------------------------------------------------- 
    -- Matrix ops                                                             -- 
    ---------------------------------------------------------------------------- */\
+/** Normalizes matrix by its maximum value:
+	 \f[
+	 \hat{M} = \frac{1}{\mbox{max}(M)} M
+	 \f]
+ */
+void     matrix_normalize_by_max( double **m, int M, int N ){
+  double max; 
+
+  max = matrix_max( m, M, N, NULL, NULL );
+  matrix_divide_scalar( m, M, N, max );
+}
 
 /** Delete a row in a matrix. Memory remains allocated and the row pointer
  *  is moved to the end of the matrix. Index runs from 0,...,N-1
@@ -724,7 +735,7 @@ void fft(double *data, unsigned long nn, int isign){
   double wtemp,wr,wpr,wpi,wi,theta;
   float tempr,tempi;
   data--; /* because num_rec assumes [1,...n] arrays */
-  dprintf( "nn=%li, isign=%i\n", nn, isign );
+  /* dprintf( "nn=%li, isign=%i\n", nn, isign ); */
 
   n=nn << 1;
   j=1;
@@ -842,7 +853,7 @@ double* sigext_smooth(double *data, int ns, int n){
 int next_pow2( int n ){
   int p;
   p = (int)round(glog((double)n, 2))+1;
-  return (int)pow(2, p);
+  return (int)p;//(int)pow(2, p);
 }
 
 /** computes remainder of x/y using

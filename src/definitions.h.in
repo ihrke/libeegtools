@@ -10,6 +10,12 @@
 #define ALLOC_IN_FCT NULL
 #define MAX_LABEL_LENGTH 40
 
+
+#define PROGRESSBAR_NUMCOLS        80 /**< number of columns for progress bar */
+#define PROGRESSBAR_INIT           0  /**< initialize flag for progress bar   */
+#define PROGRESSBAR_CONTINUE_SHORT 1  /**< continue flag for progress bar, minor step */
+#define PROGRESSBAR_CONTINUE_LONG  2  /**< continue flag for progress bar, major step */
+#define PROGRESSBAR_FINISH         3  /**< cleanup */
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -40,6 +46,15 @@ extern "C" {
 
 
   /*-----------------------------------------------------------
+	 - Progress Bar
+	 ---------------------------------------------------------*/
+  typedef struct{
+	 int max_progress;
+	 int cur_progress;
+	 int prev_progress;
+  } ProgressBarStatus;
+
+  /*-----------------------------------------------------------
 	 - Nonlinear embedding -
 	 ---------------------------------------------------------*/
 
@@ -57,7 +72,8 @@ extern "C" {
   /** Struct for representing recurrence or cross-recurrence plots.
 		For recurrence plot, m=n.
 		
-		However, \f$ \epsilon = \epsilon(i)\f$ is chosen for each point on the 
+		Depending on the settings of the struct, epsilon is fixed 
+		or \f$ \epsilon = \epsilon(i)\f$ is chosen for each point on the 
 		trajectory, such that there is a fixed amount of Neighbours. 
 	*/
   typedef struct {
@@ -112,6 +128,7 @@ extern "C" {
   };
   typedef struct dgram Dendrogram;
   /** \} */
+
   /** \ingroup gap */
   typedef struct {
 	 int K;            /**< maximum number of clusters */
@@ -128,33 +145,53 @@ extern "C" {
 	 ---------------------------------------------------------*/
 
   typedef struct{
-	 int *upath; /**< contains y-coordinate in the path through the JxK matrix, 
-						 maximal length(upath)=K+J */
-	 int *spath; /**< contains x-coordinate in the path through the JxK matrix */
-	 int J;      /**< length(u) (not length(upath)) */
-	 int K;      /**< length(s) (not length(spath)) */
+	 int *t1; /**< time-scale of first signal */
+	 int *t2; /**< time-scale of second signal */
+	 int n1; /**< length of signal 1 */
+	 int n2; /**< length of signal 2 */
+	 int n; /**< length(t1)==length(t2) */
   } WarpPath;
 	
 
+  /*-----------------------------------------------------------
+	 - Function Pointers
+	 ---------------------------------------------------------*/
+  typedef double**(*RegularizationFunction)       (const EEGdata*,const EEGdata*,double,double**);
+  typedef double  (*LinkageFunction)              (const double**,int,const Dendrogram*,const Dendrogram*);
+
+  typedef double**(*EEGPointwiseDistanceFunction) (const EEGdata*,const EEGdata*,int,double**,void*);
+  typedef double**(*PointwiseDistanceFunction)    (const double*,int,const double*,int,double**,void*);
+  typedef double  (*VectorDistanceFunction)       (double*,double*,int,void*);
+  typedef double  (*PointDistanceFunction)        (double,double);
+
+  typedef double  (*ThresholdSelectionFunction)   (const double*,int);
+  typedef double  (*ThresholdFunction)            (double,double);
+  typedef double* (*SignalExtensionFunction)      (double*,int,int);
+
+  typedef double* (*WindowFunction)               (double*,int);
+
+  typedef void    (*ProgressBarFunction)          (int,int);
+
+ /*-----------------------------------------------------------
+	 - Hierarchical WARPING -
+	 ---------------------------------------------------------*/
+
   typedef struct {
-	 double** (*regularize)
-		(const EEGdata*,const EEGdata*,double,double**); /**< regularization function; 
-																			 at the moment only one double 
-																			 parameter is possible */
-	 double sigma; 				  /** for regularization; maximal sigma of gaussian corridor */
-	 double (*linkage)
-	 (const double**,int,const Dendrogram*,const Dendrogram*); /**< linkage function 
-																					  for clustering; one of 
-																					  dgram_dist_*() */
+	 RegularizationFunction regularize; /**< regularization function; 
+														at the moment only one double 
+														parameter is possible */
+	 double sigma; 				  /**< for regularization; maximal sigma of gaussian corridor */
+	 LinkageFunction linkage; /**< linkage function 
+										  for clustering; one of 
+										  dgram_dist_*() */
 	 int dont_touch_eeg;    /**< overwrite eeg_in or not? */
-	 double** (*trialdistance)( const EEGdata*,const EEGdata*,
-										 int,double**,void*); /**< distance function for between
-																		 trials; params receives the complete
-																		 SettingsPADTW struct */
+	 EEGPointwiseDistanceFunction pointdistance; /**< distance function for between
+															  trials; params receives the complete
+															  SettingsHierarchicalDTW struct */
 	 double theta1, theta2;			  /**< for derivative timewarping metric */
 	 double corner_freqs[2];	  /**< for local-frequency metric */
 	 double sampling_rate;	     /**< sampling frequency of the signal */
-	 double* (*winfct)(double*,int); /**< windowing function for STFT */
+	 WindowFunction winfct; /**< windowing function for STFT */
 	 int winlength;					  /**< length of window used for STFT */
 	 int N_freq;						  /**< frequency resolution of STFT */
 	 int N_time;						  /**< time resolution of STFT */
@@ -162,7 +199,14 @@ extern "C" {
 	 int *channels; /**< compute PADTW only for these channels; 
 							 if NULL, all channels are used */
 	 int num_channels; /**< number of elements in channels */
-  } SettingsPADTW;
+	 ProgressBarFunction progress; /**< callback function, called every now and then.
+												 The function is called with PROGRESSBAR_INIT and 
+												 the max number of calls once. Then it is called
+											    for a major step with PROGRESSBAR_CONTINUE_LONG
+											    and the num of the step as second arg. For small
+											    steps it is called with PROGRESSBAR_CONTINUE_SHORT.
+											    If NULL, nothing is done. */
+  } SettingsHierarchicalDTW;
   
 
 #ifdef __cplusplus

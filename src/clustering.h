@@ -29,6 +29,7 @@
 #include "definitions.h"
 #include "averaging.h"
 #include "warping.h"
+#include "distances.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,14 +38,10 @@ extern "C" {
   /**\addtogroup clustering
 	*\{
 	*/ 
-
-
   Clusters*    kmedoids(const double **dist, int N, int K);
   Clusters*    kmedoids_repeat( const double **dist, int N, int K, int repeat );
 
-  Dendrogram*  agglomerative_clustering(const double **d, int N, 
-													 double(*dist)(const double**,int,
-																		const Dendrogram*,const Dendrogram*));
+  Dendrogram*  agglomerative_clustering(const double **d, int N, LinkageFunction dist);
 
   /**\addtogroup dendrogram
 	*\{
@@ -74,29 +71,18 @@ extern "C" {
 
   /** \} */
 
-  /**\addtogroup distances 
-	  \ingroup clustering
-	  \{*/  
-  double** distmatrix( double(*(f))(double*,double*,int,void*), const double **X, 
-							  int n, int p, double **D, void* userdata );
-
-  double   vectordist_euclidean( double *x1, double *x2, int p, void *userdata );
-  double   vectordist_regularized_dtw( double *x1, double *x2, int p, void *userdata );
-  /** \} */
-
 
   /**\addtogroup gap
-	  \ingroup clustering
-	  \{
 	  Reference paper: Tibshirani, 2001
+	  \{
   */
- 
+  
   GapStatistic* gapstat_init( GapStatistic *g, int K, int B );
   void          gapstat_free( GapStatistic *g );
   void          gapstat_print( FILE *out, GapStatistic *g );
   void          gapstat_calculate( GapStatistic *gap, double **X, int n, int p, 
-											  double(*distfunction)(double*,double*,int,void*), const double** D );
-
+											  VectorDistanceFunction distfunction, const double** D );
+  
   double** gap_get_reference_distribution_simple( const double **X, int n, int p, double **Xr );
   double** gap_get_reference_distribution_svd   ( const double **X, int n, int p, double **Xr );
   double   get_within_scatter(const double **d, int N, const Clusters *c);

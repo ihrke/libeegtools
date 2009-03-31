@@ -185,6 +185,7 @@ extern "C" {
   double** matrix_init(int N, int M);
   int**    matrix_init_int(int N, int M);
   void     matrix_divide_scalar(double **m, int N, int n, double s);
+  void     matrix_normalize_by_max( double **m, int M, int N );
   void     matrix_add_matrix(double **m1, const double **m2, int N, int n);
   void     matrix_dottimes_matrix( double **m1, const double **m2, int N, int M );
   void     matrix_copy( const double **src, double **dest, int N, int M );

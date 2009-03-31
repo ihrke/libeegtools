@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <string.h> /* memcpy */
 #include "reader.h"
 #include "writer.h"
@@ -69,6 +70,10 @@ void test_recplot( int argc, char **argv ){
   double epsilon;
   int m, tau, fan;
   double *s1, *s2;
+  WarpPath *P1, *P2;
+
+  long seed = (long) time( NULL ); // intitializing the random number generator
+  srand48(seed);
 
   
   /* get data */
@@ -83,8 +88,14 @@ void test_recplot( int argc, char **argv ){
   tau=atoi( argv[3] );
   fan  = atoi( argv[4] );
   
-  s1 = eeg->data[0]->d[0];
-  s2 = eeg->data[0]->d[1];
+
+  int trial1 = randint(0,eeg->ntrials-1);
+  int trial2 = randint(0,eeg->ntrials-1);
+  trial1=0;
+  trial2=0;
+  oprintf("Comparing Trials %i <--> %i\n", trial1, trial2 );
+  s1 = eeg->data[0]->d[trial1];
+  s2 = eeg->data[0]->d[trial2];
   p1 = phspace_init( m, tau, s1, eeg->nsamples );
   p2 = phspace_init( m, tau, s2, eeg->nsamples );
   phspace_print( stderr, p1 );
@@ -92,12 +103,43 @@ void test_recplot( int argc, char **argv ){
 
   R = recplot_init( p1->xn, p2->xn, fan, RPLOT_FAN );
   recplot_calculate( R, p1, p2 );
+  recplot_print( stderr, R );
+
+  P1 = recplot_los_marwan( R, 100,100 );
 
 
-  plot_format( NULL, s1, eeg->nsamples, "r");
-  plot_format( NULL, s2, eeg->nsamples, "b");
+  double **d, **D;
+  d = matrix_init( R->m, R->n );
+  D = matrix_init( R->m, R->n );
+  matrix_copy( R->R, d, R->m, R->n ); 
+  scalar_minus_matrix( 1.0, d, R->m, R->n );
+  matrix_copy( d, D, R->m, R->n ); 
+  dtw_cumulate_matrix( D, R->m, R->n );
+
+  P2 = dtw_backtrack( (const double**) D, R->m, R->n, NULL );
+  matrix_normalize_by_max( D, R->m, R->n );
+  //P2 = recplot_los_dtw   ( R );
+
+  /* plot_format( NULL, s1, eeg->nsamples, "r"); */
+  /* plot_format( NULL, s2, eeg->nsamples, "b"); */
+  plot_image( d, R->m, R->n, "hot");
+  plot_format_int( P1->t1, P1->t2, P1->n, "r");
+  plot_format_int( P2->t1, P2->t2, P2->n, "g");
+  plot_switch(plot_add());
+   plot_image( D, R->m, R->n, "hot");
+  double position[2] = {0,0};
+  double size[2] = {R->m, R->n};
+  double scaling[2] = {0.0, 0.01};
+  write_double_matrix_ascii_file( "test.txt", D, R->m, R->n );
+  plot_image_position_scaling_nocopy(D, R->m, R->n, "hot",
+												 position, size, scaling);
+
+  plot_format_int( P1->t1, P1->t2, P1->n, "r");
+  plot_format_int( P2->t1, P2->t2, P2->n, "g");
   plot_switch(plot_add());
   plot_image( R->R, R->m, R->n, "hot");
+  plot_format_int( P1->t1, P1->t2, P1->n, "r.o");
+  plot_format_int( P2->t1, P2->t2, P2->n, "g.o");
   plot_show();
 
 

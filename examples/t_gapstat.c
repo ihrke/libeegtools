@@ -63,7 +63,7 @@ int main(int argc, char **argv){
 /*   p = 2; */
 /*   X = read_double_matrix_ascii( argv[1], p, n, X); */
   
-  D = distmatrix( vectordist_euclidean, X, n, p, ALLOC_IN_FCT, NULL );
+  D = vectordist_distmatrix( vectordist_euclidean, X, n, p, ALLOC_IN_FCT, NULL );
 
   printf("starting gapstat\n");
   K = atoi(argv[2]);

@@ -95,7 +95,7 @@ double* moving_average(double *s, int n, int win){
 void eeg_filter_weighted_running_median(EEGdata *s, int win){
   int i;
   for(i=0; i<s->nbchan; i++){
-    weighted_running_median(s->d[i], s->n, win, dist_euclidean);
+    weighted_running_median(s->d[i], s->n, win, pointdist_euclidean);
   }
 }
 /** Weighted Running Median filter.
@@ -171,9 +171,6 @@ double weighted_median_from_unsorted(const double *d, const double *w, int n){
   return d[idx];
 }
 
-double dist_euclidean(double x, double y){
-  return fabs(x-y);
-}
 
 /** Wavelet estimation of single trial ERP's using Wang et al.'s
  * (2007) technique. 
@@ -265,8 +262,9 @@ double sureshrink(const double *data, int n){
 
 /** Generic Denoising: compute DWT of signal, call the thresholding
    function 'threshfct' for each resolution level and IDWT the signal */
-int generic_denoising(double *data, int n, int L, 
-		      double(*threshfct)(const double*, int), double(*etafct)(double,double)){
+int generic_denoising   ( double *data, int n, int L, 
+								  ThresholdSelectionFunction threshfct,
+								  ThresholdFunction etafct ) {
   gsl_wavelet *w;
   gsl_wavelet_workspace *work;
   int j, J, k, offset;
@@ -300,10 +298,10 @@ int generic_denoising(double *data, int n, int L,
 /** Extend data to length 2^j using sigextfct and denoise it.
  * \see generic_denoising()
  */
-int extend_and_denoise(double *data, int n, int L, 
-		       double(*threshfct)(const double*, int), 
-		       double(*etafct)(double,double), 
-		       double*(*sigextfct)(double*, int, int)){
+int extend_and_denoise  ( double *data, int n, int L, 
+								  ThresholdSelectionFunction threshfct,
+								  ThresholdFunction etafct, 
+								  SignalExtensionFunction sigextfct ){
   int J;
   double *tmp, *dptr;
 
@@ -357,10 +355,10 @@ double eta_h(double d, double lambda){
  * \see extend_and_denoise()
  * data is directly written into the eegdata-struct
  */
-void eeg_wavelet_denoise(EEGdata *eeg, int L, 
-								double(*threshfct)(const double*, int), 
-								double(*etafct)(double,double), 
-								double*(*sigextfct)(double*, int, int)){
+void eeg_wavelet_denoise( EEGdata *eeg, int L, 
+								  ThresholdSelectionFunction threshfct,
+								  ThresholdFunction etafct, 
+								  SignalExtensionFunction sigextfct ){
   int c;
   
   for( c=0; c<eeg->nbchan; c++ ){

@@ -37,6 +37,7 @@
 #include <string.h> /* memcpy */
 #include "helper.h"
 #include "mathadd.h"
+#include "distances.h"
 
 
 #ifdef __cplusplus
@@ -49,13 +50,16 @@ extern "C" {
   /** \ingroup robust_filtering
 		\{
 	*/
-  void eeg_filter_running_median(EEGdata *s, int win);
-  double* running_median(double *d, int n, int win);
-  void eeg_filter_weighted_running_median(EEGdata *s, int win);
-  double* weighted_running_median(double *d, int n, int win, 
-											 double(*dist)(double,double));
-  double weighted_median_from_unsorted(const double *d, const double *w, int n);
-  double dist_euclidean(double x, double y);
+  void    eeg_filter_running_median(EEGdata *s, int win);
+  double* running_median           (double *d, int n, int win);
+
+  void    eeg_filter_weighted_running_median(EEGdata *s, int win);
+  double* weighted_running_median           (double *d, int n, int win, 
+															PointDistanceFunction dist);
+
+  double  weighted_median_from_unsorted(const double *d, const double *w, int n);
+
+
   /** \} */
 
   /* ------------------------------ 
@@ -74,35 +78,33 @@ extern "C" {
   /** \ingroup thresholding
 		\{
   */
-
   double eta_s(double d, double lambda);
   double eta_h(double d, double lambda);
-  
   /** \} */
 
   /** \ingroup wavelet 
 		\{
   */
-  int generic_denoising(double *data, int n, int L, 
-								double(*threshfct)(const double*, int), 
-								double(*etafct)(double,double));
-  int extend_and_denoise(double *data, int n, int L, 
-								 double(*threshfct)(const double*, int), 
-								 double(*etafct)(double,double), 
-								 double*(*sigextfct)(double*, int, int));
-  void eeg_wavelet_denoise(EEGdata *eeg, int L, 
-									double(*threshfct)(const double*, int), 
-									double(*etafct)(double,double), 
-									double*(*sigextfct)(double*, int, int)); 
+  int generic_denoising   ( double *data, int n, int L, 
+									 ThresholdSelectionFunction threshfct,
+									 ThresholdFunction etafct );
+  int extend_and_denoise  ( double *data, int n, int L, 
+									 ThresholdSelectionFunction threshfct,
+									 ThresholdFunction etafct, 
+									 SignalExtensionFunction sigextfct );
+  void eeg_wavelet_denoise( EEGdata *eeg, int L, 
+									 ThresholdSelectionFunction threshfct,
+									 ThresholdFunction etafct, 
+									 SignalExtensionFunction sigextfct );
   /**\} */
 
   /** \ingroup select_thresh
 		\{
 	*/
-  double translation_invariant_thresholding(const double *data, int n);
-  double conventional_thresholding(const double *data, int n);
-  double sureshrink(const double *data, int n);
-  double heuristic_sure(const double *data, int n);
+  double translation_invariant_thresholding( const double *data, int n );
+  double conventional_thresholding         ( const double *data, int n );
+  double sureshrink                        ( const double *data, int n );
+  double heuristic_sure                    ( const double *data, int n );
   /** \} */
 
  /* ------------------------------ 

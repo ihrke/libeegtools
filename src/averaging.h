@@ -33,13 +33,12 @@ extern "C" {
 /** \weakgroup otheravg
  *\{
  */
-  double* simple_average_2v(const double *s1, const double *s2, int n, double *avg);
-  double* simple_average_nv(const double **s, int N, int n, double *avg);
-  double* alternate_average_nv(const double **s, int N, int n, double *avg);
+  double*  simple_average_2v   ( const double *s1, const double *s2, int n, double *avg );
+  double*  simple_average_nv   ( const double **s, int N, int n, double *avg );
+  double*  alternate_average_nv( const double **s, int N, int n, double *avg );
 
   EEGdata* eegtrials_simple_average( EEGdata_trials *eeg, EEGdata *avg);
   double*  eegtrials_simple_average_channel( EEGdata_trials *eeg, int channel, double *avg );
-
 /** \} */
 #ifdef __cplusplus
 }

@@ -2,18 +2,16 @@
  * \brief Matlab wrapper for PADTW
  *
  *   Compilation:
- *     MATLAB will need to see libGSL, helper.o, denoising.o
+ *     MATLAB will need to see libGSL and libeegtools.
  *     Put these (or similar) lines to the bottom of
  *     ~/.matlab/<version>/mexopts.sh
  \code
  *          CFLAGS="$CFLAGS -I/home/ihrke/local/include"
- *	    LD="$LD -lm -lgsl -lgslcblas -lplot"
+ *	         LD="$LD -lm -lgsl -lgslcblas -lplot"
  *          LDFLAGS="$LDFLAGS -L/home/ihrke/local/lib"
  *    
  *    then: 
- *     call 'make' in the directory and
- *     >> mex -v ml_timewarp.c denoising.o helper.o
- *     from MATLAB
+ *     mex -v ml_padtw.c -leegtools
  *   
  \endcode
  *  Doc: 
@@ -30,61 +28,134 @@
  */
 #include "mex.h"
 #include <stdlib.h>
-#include "denoising.h"  
-#include "averaging.h"  
+#include "warping.h"
 
+void progressbar_matlab( int flag, int num ){
+  char buf[100];
+
+  switch( flag ){
+  case PROGRESSBAR_INIT:
+	 mexEvalString("h=waitbar(0, \'Hierarchical Averaging\')");
+	 progress_status.max_progress = num;
+	 progress_status.cur_progress = 0;
+	 break;
+  case PROGRESSBAR_CONTINUE_LONG:
+	 sprintf( buf, "waitbar(h,%f);", (double)num/(double)progress_status.max_progress );
+	 mexEvalString( buf );
+	 break;
+  case PROGRESSBAR_CONTINUE_SHORT:
+	 break;
+  case PROGRESSBAR_FINISH:
+	 mexEvalString("close(h)");
+	 break;
+  }
+
+}
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
-  /* DOKU
-   */
+  char *docstring = 
+	 "This function is part of the EEGlab-Plugin for the removal of\n"
+	 "temporal distortion. The function is called thus:\n"
+	 "[padtw] = ml_padtw( X, markers, settings );\n\n"
+	 "Here, X is the input matrix, which is 3-dimensional, \n"
+	 "(channel x trial x sample).\n"
+	 "markers is a (nmarkers x trials) matrix, containing the time-markers\n"
+	 "in sampling units, used for the regularization.\n"
+	 "settings is a struct, containing the configuration for \n"
+	 "the hierarchical averaging procedure:\n"
+	 " -> fields:\n"
+	 "    - regularization\n"
+	 "    - sigma\n"
+	 "    - linkage\n"
+	 "    - distance\n";
   char msg[500];
-  int n, N, zero, i;
-  int *sR;
-  double **ui;
-  double *d, *m;
-  double *wavg;
-
-  char *docstring = "[average] = ml_padtw(s, zero, sR, [opt])\n"
-    "s    - Nxn matrix of EEG-data (N trials, n sampling points)\n"
-    "zero - stimulus onset in sampling units\n"
-    "sR   - N reaction times in sampling units\n"
-    "OPTS:\n";
-
   /* check proper input and output */
-  if(nrhs<3){
-    sprintf(msg, "Need at least 3 inputs.\n%s\n", docstring);
+  if(nrhs<2){
+    sprintf(msg, "Need at least 2 inputs.\n%s\n", docstring);
     mexErrMsgTxt(msg);
   } else if(!mxIsDouble(prhs[0]) || !mxIsDouble(prhs[1])){
-    sprintf(msg, "First and second Input must be double array.\n%s\n", docstring);
+    sprintf(msg, "First and second Input must be double arrays.\n%s\n", docstring);
     mexErrMsgTxt(msg);
-  } else if(mxGetM(prhs[1])!=1 || mxGetM(prhs[2])!=1){
-    sprintf(msg, "Inputs must be 1-dim vectors, got %ix%i.\n%s\n", 
-	    mxGetM(prhs[1]), mxGetN(prhs[1]), docstring);
+  } else if( nrhs>2 && !mxIsStruct(prhs[2]) ){
+	 sprintf(msg, "Third Input must be a struct.\n%s\n", docstring);
     mexErrMsgTxt(msg);
-  } 
-  
-  N = mxGetN(prhs[0]);
-  n = mxGetM(prhs[0]);
-  zero=(int)mxGetPr(prhs[1])[0];
-
-  fprintf(stderr, "N=%i, n=%i, zero=%i\n", (int)N, (int)n, zero);
-  fprintf(stderr, "markers(M=%i, N=%i)\n", mxGetM(prhs[2]), mxGetN(prhs[2]));
-
-  sR = (int*)mxCalloc(N,sizeof(int));
-
-  /* for convenience, create pointers to the correct segments */
-  ui = (double**)mxCalloc(N, sizeof(double*));
-  d = mxGetPr(prhs[0]);
-  m = mxGetPr(prhs[2]);
-  for(i=0; i<N; i++){
-	  ui[i]=&(d[n*i]);
-	  sR[i]=(int)m[i];
+  } else if( mxGetNumberOfDimensions(prhs[0])!=3 ){
+    sprintf(msg, "Data must be three-dimensional, got \n%s\n", 
+				mxGetNumberOfDimensions(prhs[0]), docstring);
+    mexErrMsgTxt(msg);
+  } else if( mxGetNumberOfDimensions(prhs[1])!=2 ){
+    sprintf(msg, "Marker-array must be two-dimensional, got \n%s\n", 
+				mxGetNumberOfDimensions(prhs[1]), docstring);
+    mexErrMsgTxt(msg);
   }
-  fprintf(stderr, "m[0]=%i, m[N]=%i\n", (int)m[0], (int)m[N-1]);
-  
-  plhs[0] = mxCreateDoubleMatrix(1, n, mxREAL); 
-  wavg = mxGetPr(plhs[0]);
 
-  wavg = PADTW((const double**)ui, N, n, zero, sR, wavg);
+  double *dptr, *curptr;
+  int index[3], idx;
+  int ntrials, nsamples, nchannels, nmarkers;
+  int trial, channel; 			  /* counter */
+  EEGdata_trials *eeg;
+
+  nchannels   = ((mxGetDimensions(prhs[0]))[0]);
+  ntrials     = ((mxGetDimensions(prhs[0]))[1]);
+  nsamples    = ((mxGetDimensions(prhs[0]))[2]);
+
+  nmarkers    = ((mxGetDimensions(prhs[1]))[0]);
+  mexPrintf("Input Data is (%i x %i x %x), with %i markers\n", nchannels, ntrials, nsamples, nmarkers );
+
+  eeg = init_eegdata_trials( ntrials, nmarkers, nchannels, nsamples, NULL );
+
+
+  /* copy data and markers to struct for handing */
+  dptr = mxGetPr( prhs[0] );
+  for( trial=0; trial<ntrials; trial++ ){
+	 /* copying data */
+	 for( channel=0; channel<nchannels; channel++ ){
+		/* mwIndex mxCalcSingleSubscript(const mxArray *pm, mwSize nsubs, mwIndex *subs); */
+		index[0] = channel;
+		index[1] = trial;
+		index[2] = 0;
+		idx = mxCalcSingleSubscript( prhs[0], 3, index );
+		curptr = &(dptr[idx]);
+		memcpy( eeg->data[trial]->d[channel], curptr, nsamples*sizeof(double) );
+	 }
+	 /* copying markers */	 
+	 
+  }
+  
+  mexPrintf("data: %f, %f, %f, %f, %f\n",
+				eeg->data[0]->d[0][0], 
+				eeg->data[1]->d[0][0], 
+				eeg->data[0]->d[2][4], 
+				eeg->data[3]->d[2][1], 
+				eeg->data[2]->d[1][1] );
+  
+  
+  /* EEGdata *new; */
+  /* double **Delta; */
+  /* int i, n; */
+  
+  /* /\* get data *\/				   */
+  /* oprintf("Reading from '%s'\n", buf); */
+  /* eeg=read_eegtrials_from_raw( buf ); */
+  /* print_eegdata_trials(stderr, eeg); */
+  /* N = eeg->ntrials; */
+
+  /* Delta = eegtrials_distmatrix_channel( eeg, vectordist_euclidean, 0, ALLOC_IN_FCT); */
+  /* matrix_print( Delta, N, N ); */
+
+  /* fprintf(stderr, "eeg->n=%i\n", eeg->nsamples ); */
+  /* n = eeg->nsamples; */
+  /* SettingsHierarchicalDTW settings = init_dtw_hierarchical( eeg ); */
+  /* new = init_eegdata( eeg->data[0]->nbchan, eeg->nsamples, eeg->nmarkers_per_trial ); */
+
+  /* settings = init_dtw_hierarchical( eeg ); */
+  /* settings.progress = progressbar_matlab; */
+  /* print_settings_hierarchicaldtw( stderr, settings ); */
+  /* eegtrials_dtw_hierarchical( eeg, Delta, N, new, settings ); */
+  /* write_eegdata_ascii_file( "test.out", new ); */
+  
+
+
+  plhs[0] = mxCreateDoubleMatrix(1, 10, mxREAL); 
 
   return;
 }

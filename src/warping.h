@@ -19,14 +19,8 @@
  ***************************************************************************/
 
 /**\file warping.h
- * Warping functions.
+	\brief Warping functions.
  
- Generally, to warp EEG-signals with a hierarchical method, you need:
-  -# distance matrix Delta between trials (use clusterdist_*() functions)
-  -# a pointwise distance matrix d between 2 trials (use eeg_distmatrix_*())
-  -# optionally a regularization matrix G (multiply with d)
-  -# the warp-path P obtained from d (or d*G)
-  -# an averaging scheme to put together s1 and s2 using P.
  */
 #ifndef WARPING_H
 #define WARPING_H
@@ -35,88 +29,135 @@
 #include "clustering.h"
 #include "time_frequency.h"
 #include "regularization.h"
+#include "distances.h"
  
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-  /** \addtogroup distance
-	*\ingroup warping
-	*\{
-	*/
-  double** signaldist_euclidean( const double *s1, int n1, const double *s2, int n2, 
-											double **d, void *userdata );
-  double** signaldist_euclidean_derivative( const double *s1, int n1, const double *s2, int n2, 
-														  double **d, void *userdata );
-  double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, 
-									 double **d, void *userdata );
-
-  /* wrapper for eeg */
-  double** eeg_distmatrix_euclidean_channel( const EEGdata *s1, const EEGdata *s2, 
-															int channel, double **d, void* params );
-  double** eeg_distmatrix_euclidean_derivative_channel( const EEGdata *s1, const EEGdata *s2, 
-																		  int channel, double **d, void *params ); 
-  double** eeg_distmatrix_stft_channel( const EEGdata *s1,const  EEGdata *s2, 
-													 int channel, double **d, void *params );
-  /** \} */
-
-
   /* ---------------------------------------------------------------------------- 
 	  -- Timewarping                                                            -- 
 	  ---------------------------------------------------------------------------- */
-  /** \addtogroup timewarp
-	*\ingroup warping
-	*\{
+  /** \addtogroup dtw
+		Dynamic Time-Warping is a method to account for temporal distortion when 
+		comparing two signals.
+		It is done by finding a function that minimizes the sum 
+		of entries through a distance matrix, such that
+		\f[ 
+		\mbox{argmin}_\phi \int d(s_1(t_1),s_2(\phi(t_2)))
+		\f]
+		for a given pointwise distance between two signals. Such distances can be 
+		computed using the functions in distances.h.
+
+		The minimization is done by cumulating the matrix
+		\f[
+		\D_{jk} = \mathbf{d}_{jk}+\min{\{\D_{j,k-1}, \D_{j-1,k}, \D_{j-1, k-1}\}}
+		\f]
+		and backtracking via the minimum of the three neighboring entries (down,
+		down-right, right) from \f$\D_{J,K}\f$ to \f$\D_{1,1}\f$.
+		Here, the functions dtw_cumulate_matrix() and dtw_backtrack() do that.
+
+		Finally, the signals need to be mapped to one another to get time-amplitude 
+		averaging with 
+		\f[
+		s'(t)=\frac{\omega_1 s_1(p_1^t) + \omega_2 s_2(p_2^t)}{\omega_1 +
+		\omega_2}
+		\f]
+		using weights \f$\omega_1,\omega_2\f$. Here, you can use 
+		warp_add_signals_by_path().
+
+		\todo add a high-level interface where a dtw-struct is used
+		\{
 	*/
 
-
-  WarpPath* DTW_path_from_square_distmatrix(const double **d, int n, WarpPath *P);
-
-  double**  DTW_build_cumdistmatrix(const double *u, int J, const double *s, int K, 
-												double theta1, double theta2, double **d);
-  double**  DTW_build_restricted_cumdistmatrix(const double *u, int J, 
-															  const double *s, int K, 
-															  double R, double **d);
+  void       dtw_regularize_matrix( double **d, const double **R, int M, int N );
+  void       dtw_cumulate_matrix  ( double **d, int M, int N );
+  /* void dtw_cumulate_matrix_chiba_band( double **d, int M, int N, double restriction );*/
+  WarpPath*  dtw_backtrack        ( const double **d, int M, int N, WarpPath *P );
   
-  WarpPath* DTW_get_warppath2(const double *u, int J, const double *s, int K,	
-										double theta1, double theta2, double *Djk);
-  double    DTW_get_warpdistance(const double *u, int J, const double *s, int K,
-											double theta1, double theta2);
-  WarpPath* DTW_path_from_cumdistmatrix(const double **d, int J, int K, WarpPath *P);
 
-  double    DTW_distance_between_paths(const WarpPath *P1, const WarpPath *P2);
   /** \} */
-
+  
   /** \addtogroup warpaveraging
-	*\ingroup warping
 	*\{
 	*/  
-  EEGdata*  eeg_ADTW_from_path(const EEGdata *s1, const EEGdata *s2, 
-										 EEGdata *target, int channel, const WarpPath *P);  
-  double*   ADTW (const double *s1, int n1, const double *s2, int n2, double *avg);
-  double*   ADTW_from_path(const double *u, int J, const double *s, int K, 
-									const WarpPath *P, double *avg);
-  double*   DTW_add_signals_by_path(const double *s1, int n1,
-												const double *s2, int n2, const WarpPath *P, double *avg,
-												const double weights[2]);
-  EEGdata*  eeg_DTW_add_signals_by_path(const EEGdata *s1, const EEGdata *s2, EEGdata *target, 
-													 int channel, const WarpPath *P, const double weights[2]);
+  double*   warp_add_signals_by_path(const double *s1, int n1,
+												 const double *s2, int n2, 
+												 const WarpPath *P, double *avg,
+												 const double weights[2]);
+  EEGdata*  eeg_warp_add_signals_by_path(const EEGdata *s1, const EEGdata *s2, 
+													  EEGdata *target, int channel, 
+													  const WarpPath *P, 
+													  const double weights[2]);
+  /** \} */
 
-  EEGdata* eegtrials_PADTW( EEGdata_trials *eeg_in, const double **distmatrix, 
-									 int N,  EEGdata *out, SettingsPADTW settings );
+  /** \addtogroup hierarchical		
+		Generally, to warp EEG-signals with a hierarchical method, you need:
+		-# distance matrix Delta between trials (use vectordist_distmatrix())
+		-# a pointwise distance matrix d between 2 trials (use eeg_distmatrix_*())
+		-# optionally a regularization matrix G (multiply with d)
+		-# the warp-path P obtained from d (or d*G)
+		-# an averaging scheme to put together s1 and s2 using P.
+		
+		In this implementation, you can cal init_dtw_hierarchical() to initialize
+		a settings-struct SettingsHierarchicalDTW and manipulate the entries in this
+		struct before plugging it into the eegtrials_dtw_hierarchical() function.
+		See SettingsHierarchicalDTW for documentation of the struct's fields. 
+		
+		The distance matrix for between-trials must be provided separately.
+		\{
+  */
+  SettingsHierarchicalDTW init_dtw_hierarchical          ( const EEGdata_trials *eeg );
+  void                    print_settings_hierarchicaldtw ( FILE *out, SettingsHierarchicalDTW s );
+  EEGdata*                eegtrials_dtw_hierarchical     ( EEGdata_trials *eeg_in, 
+																			  const double **distmatrix, 
+																			  int N,  EEGdata *out, 
+																			  SettingsHierarchicalDTW settings );
 
-  SettingsPADTW init_PADTW();
+  /** \} */
+  
+
+  /** \addtogroup structwarppath
+		These are convenience functions for handling the WarpPath struct.
+		\{
+  */
+  WarpPath* init_warppath ( WarpPath *path, int n1, int n2 );
+  void      free_warppath ( WarpPath *p );
+  void      reset_warppath( WarpPath *P, int n1, int n2 );  
+  void      print_warppath( FILE *out, WarpPath *P );
   /** \} */
 
   /** \addtogroup otherwarp
-	*\ingroup warping
 	*\{
 	*/  
   EEGdata* eegtrials_gibbons( const EEGdata_trials *eeg_in, EEGdata *target, 
 										int stimulus_marker, int response_marker, double k );
   /** \} */
 
+
+  /* ------------------------------------------------------------------------------
+	  ------------------------------------------------------------------------------
+	  -----------------------OBSOLETE-----------------------------------------------
+	  ------------------------------------------------------------------------------
+	  ------------------------------------------------------------------------------ */
+  /** \cond OBSOLETE 
+		\addtogroup dtw
+		\{
+	*/
+  WarpPath* DTW_path_from_square_distmatrix(const double **d, int n, WarpPath *P);
+  WarpPath* DTW_path_from_cumdistmatrix(const double **d, int J, int K, WarpPath *P);
+  
+  double    DTW_distance_between_paths(const WarpPath *P1, const WarpPath *P2);
+  double**  DTW_build_cumdistmatrix(const double *u, int J, const double *s, int K, 
+												double theta1, double theta2, double **d);
+  double**  DTW_build_restricted_cumdistmatrix(const double *u, int J, 
+															  const double *s, int K, 
+															  double R, double **d);
+
+  /** \} 
+		\endcond */
+
+  
 #ifdef __cplusplus
 }
 #endif

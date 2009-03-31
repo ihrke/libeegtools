@@ -193,9 +193,10 @@ WarpPath* recplot_los_marwan( RecurrencePlot *R, int dx, int dy ){
   int i,j, pidx, breakflag;
   int no_recpoint_found, reached_border;
 
-  P = init_warppath( P, R->m, R->n );
+  P = init_warppath( NULL, R->m, R->n );
   
   breakflag=0;
+  ii=0; ij=0;
   for( i=0; MIN( R->m, R->n ); i++ ){ /* find first point (1) */
 	 for( j=0; j<=i; j++ ){
 		if( R->R[i][j] ){
@@ -211,10 +212,10 @@ WarpPath* recplot_los_marwan( RecurrencePlot *R, int dx, int dy ){
 	 if(breakflag)
 		break;
   }
-  dprintf("(ii,ij) = (%i,%i)\n", ii,ij);
+  /* dprintf("(ii,ij) = (%i,%i)\n", ii,ij); */
   pidx = 0;
-  P->upath[pidx]=ii;
-  P->spath[pidx]=ij;
+  P->t1[pidx]=ii;
+  P->t2[pidx]=ij;
   pidx++;
 
   reached_border=0;
@@ -251,7 +252,7 @@ WarpPath* recplot_los_marwan( RecurrencePlot *R, int dx, int dy ){
 	 if( reached_border )
 		break;
 
-	 dprintf("w=(%i,%i), cont=(%i,%i)\n", wi,wj,	xcont, ycont );
+	 /* dprintf("w=(%i,%i), cont=(%i,%i)\n", wi,wj,	xcont, ycont ); */
 	 deltawi=0;
 	 deltawj=0;
 	 while( xcont || ycont ){	  /* (3) */
@@ -283,16 +284,17 @@ WarpPath* recplot_los_marwan( RecurrencePlot *R, int dx, int dy ){
 		if( deltawi >= dx || deltawj >= dy )
 		  break;
 	 }	/* while xcont */
-	 dprintf("deltaw=(%i,%i)\n", deltawi, deltawj );
+	 /* dprintf("deltaw=(%i,%i)\n", deltawi, deltawj ); */
 	 if( reached_border )
 		break;
 
 	 ii = ii + (wi+deltawi)/2;
 	 ij = ij + (wj+deltawj)/2;
-	 P->upath[pidx]=ii;
-	 P->spath[pidx]=ij;
+	 P->t1[pidx]=ii;
+	 P->t2[pidx]=ij;
 	 pidx++;
   } /* while !reached_border */
+  P->n = pidx;
 
   return P;
 }
@@ -307,18 +309,27 @@ WarpPath* recplot_los_marwan( RecurrencePlot *R, int dx, int dy ){
 	 2. cumulate d, such that D[jk] = min{ D[j-1k], D[jk-1], D[j-1k-1] }
 	 3. Backtrack
 	 \endcode
+	 (see \ref dtw for details)
  */
 WarpPath* recplot_los_dtw( RecurrencePlot *R ){
   double **d;
   WarpPath *P;
 
-  if( R->m != R->n ){
-	 errprintf(" Sorry, right now, we can only handle square matrices, got (%i,%i)\n", R->m, R->n );
-	 return NULL;
-  }
+  /* if( R->m != R->n ){ */
+  /* 	 errprintf(" Sorry, right now, we can only handle square matrices, got (%i,%i)\n", R->m, R->n ); */
+  /* 	 return NULL; */
+  /* } */
   d = matrix_init( R->m, R->n );
-  matrix_copy( R->R, d, R->m, R->n ); 
+  matrix_copy( (const double**)R->R, d, R->m, R->n ); 
+
+  /* flip binary matrix */
   scalar_minus_matrix( 1.0, d, R->m, R->n );
-  P = DTW_path_from_square_distmatrix( (const double**)d, R->m, P );
+  /* add a bias such that diagonal is preferred */
+  
+  
+  dtw_cumulate_matrix( d, R->m, R->n );
+  //matrix_normalize_by_max( D, R->m, R->n );
+  P = dtw_backtrack( (const double**) d, R->m, R->n, NULL );
+
   return P;
 }

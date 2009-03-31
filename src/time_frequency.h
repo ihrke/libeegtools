@@ -24,7 +24,7 @@
 #include "definitions.h"
 #include "mathadd.h"
 #include <math.h>
-#include <gsl/gsl_fft_complex.h>
+/* #include <gsl/gsl_fft_complex.h> */
 
 #ifdef __cplusplus
 extern "C" {
