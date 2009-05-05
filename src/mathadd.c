@@ -210,6 +210,26 @@ double* lininterp(const double *x1, const double *y1, int n1,
    -- vector ops                                                             -- 
    ---------------------------------------------------------------------------- */
 
+/** find minimum element in vector.
+	 \param v vector of length n
+	 \param idx the index in v where v[i] is minimal
+	 \return v[i]
+ */
+double vector_min( double *v, int n, int *idx ){
+  int i;
+  double min=DBL_MAX;
+  *idx=-1;
+
+  for( i=0; i<n; i++ ){
+	 if( v[i] < min ){
+		min = v[i];
+		*idx = i;
+	 }
+  }
+
+  return min;
+}
+
 /** create a random permutation of the elements in permut.
 	 This is crude and simple, the function graps n pairs of indices and swaps them.
  */
@@ -263,7 +283,25 @@ double vector_euclidean_distance( const double *v1, const double *v2, int n ){
 
 /* ---------------------------------------------------------------------------- 
    -- Matrix ops                                                             -- 
-   ---------------------------------------------------------------------------- */\
+   ---------------------------------------------------------------------------- */
+
+/** fills m with uniformely drawn random values from [lower, upper].
+ */
+double** matrix_rand( double **m, int N, int M, double lower, double upper ){
+  int i,j;
+  
+  srand((long)time(NULL));
+  if( !m ){
+	 m = matrix_init( N, M );
+  }
+  for( i=0; i<N; i++ ){
+	 for( j=0; j<M; j++ ){
+		m[i][j] = ( (((double)rand()) / RAND_MAX)*(upper-lower))+lower;
+	 }
+  }
+
+  return m;
+}
 /** Normalizes matrix by its maximum value:
 	 \f[
 	 \hat{M} = \frac{1}{\mbox{max}(M)} M
@@ -469,7 +507,26 @@ void matrix_divide_scalar(double **m, int N, int n, double s){
 	 }
   }
 }
+void     matrix_add_scalar(double **m, int N, int n, double s){
+  int i, j;
 
+  for( i=0; i<N; i++){
+	 for( j=0; j<n; j++ ){
+		m[i][j] += s;
+	 }
+  }
+}
+/** multiply all entries in m by s
+ */
+void matrix_mul_scalar(double **m, int N, int n, double s){
+  int i, j;
+
+  for( i=0; i<N; i++){
+	 for( j=0; j<n; j++ ){
+		m[i][j] *= s;
+	 }
+  }
+}
 
 /** free matrix memory 
  */
@@ -525,8 +582,8 @@ int* bresenham(int xstart,int ystart,int xend,int yend, int *points){
  
   if( points==ALLOC_IN_FCT ){
 	 warnprintf( "allocating in bresenham!\n");
-	 points = (int*) malloc( bresenham_howmany_points( xstart, ystart, 
-																		xend, yend )*sizeof(int) );
+	 points = (int*) malloc( 2*bresenham_howmany_points( xstart, ystart, 
+																		  xend, yend )*sizeof(int) );
   }
 
   /* Vorzeichen des Inkrements bestimmen */

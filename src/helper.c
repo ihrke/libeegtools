@@ -405,20 +405,20 @@ void progressbar_rotating( int flag, int num ){
 	 progress_status.max_progress = num;
 	 progress_status.cur_progress = 0;
 	 progress_status.prev_progress= 0;
-	 fprintf( stderr, "[ " );
+	 fprintf( stdout, "[ " );
 	 for( i=0; i<PROGRESSBAR_NUMCOLS; i++ ){
-		fprintf( stderr, " " );
+		fprintf( stdout, " " );
 	 }
-	 fprintf( stderr, " ]" );
+	 fprintf( stdout, " ]" );
 	 for( i=0; i<PROGRESSBAR_NUMCOLS+2; i++ ){
-		fprintf( stderr, "\b" );
+		fprintf( stdout, "\b" );
 	 }
 	 break;
   case PROGRESSBAR_CONTINUE_LONG:
 	 c = (num*PROGRESSBAR_NUMCOLS/progress_status.max_progress);
 	 //printf("c=%i, cur_progress=%i, num=%i, p=%i\n", c, cur_progress, num, max_progress);
 	 if( c>progress_status.cur_progress ){
-		fprintf( stderr, "#" );
+		fprintf( stdout, "#" );
 		progress_status.cur_progress++;
 	 }
 	 break;
@@ -430,11 +430,11 @@ void progressbar_rotating( int flag, int num ){
 	 case 2: c = '\\'; break;
 	 case 3: c = '|'; break;
 	 }
-	 fprintf( stderr, "%c", c);
-	 fprintf( stderr, "\b" );
+	 fprintf( stdout, "%c", c);
+	 fprintf( stdout, "\b" );
 	 break;
   case PROGRESSBAR_FINISH:
-	 fprintf( stderr, "\n");
+	 fprintf( stdout, "\n");
 	 break;
   } /* switch */
 }

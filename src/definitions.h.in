@@ -6,16 +6,18 @@
 
 /* replaced by autoconf */
 #define @DEF_DEBUG@
+#define @DEF_PLOTTER@
 
 #define ALLOC_IN_FCT NULL
-#define MAX_LABEL_LENGTH 40
 
+#define MAX_LABEL_LENGTH 40
 
 #define PROGRESSBAR_NUMCOLS        80 /**< number of columns for progress bar */
 #define PROGRESSBAR_INIT           0  /**< initialize flag for progress bar   */
 #define PROGRESSBAR_CONTINUE_SHORT 1  /**< continue flag for progress bar, minor step */
 #define PROGRESSBAR_CONTINUE_LONG  2  /**< continue flag for progress bar, major step */
 #define PROGRESSBAR_FINISH         3  /**< cleanup */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -102,6 +104,7 @@ extern "C" {
 
 
   
+
   /*-----------------------------------------------------------
 	 - CLUSTERING -
 	 ---------------------------------------------------------*/
@@ -128,31 +131,6 @@ extern "C" {
   };
   typedef struct dgram Dendrogram;
   /** \} */
-
-  /** \ingroup gap */
-  typedef struct {
-	 int K;            /**< maximum number of clusters */
-	 int B;            /**< Monte-Carlo repetition of reference distr. calc. */
-	 double *gapdistr; /**< final Gap-Statistic Distribution */
-	 double *sk;       /**< modified standard deviation for gapdistr */
-	 double *Wk;       /**< within scatter for data */
-	 double **Wkref;   /**< within scatter for reference-dist */
-	 int khat;         /**> best number of clusters */
-  } GapStatistic;
-
-  /*-----------------------------------------------------------
-	 - WARPING -
-	 ---------------------------------------------------------*/
-
-  typedef struct{
-	 int *t1; /**< time-scale of first signal */
-	 int *t2; /**< time-scale of second signal */
-	 int n1; /**< length of signal 1 */
-	 int n2; /**< length of signal 2 */
-	 int n; /**< length(t1)==length(t2) */
-  } WarpPath;
-	
-
   /*-----------------------------------------------------------
 	 - Function Pointers
 	 ---------------------------------------------------------*/
@@ -171,6 +149,31 @@ extern "C" {
   typedef double* (*WindowFunction)               (double*,int);
 
   typedef void    (*ProgressBarFunction)          (int,int);
+
+  /** \ingroup gap */
+  typedef struct {
+	 int K;            /**< maximum number of clusters */
+	 int B;            /**< Monte-Carlo repetition of reference distr. calc. */
+	 double *gapdistr; /**< final Gap-Statistic Distribution */
+	 double *sk;       /**< modified standard deviation for gapdistr */
+	 double *Wk;       /**< within scatter for data */
+	 double **Wkref;   /**< within scatter for reference-dist */
+	 int khat;         /**> best number of clusters */
+	 ProgressBarFunction progress; /**> progress-bar callback */
+  } GapStatistic;
+
+  /*-----------------------------------------------------------
+	 - WARPING -
+	 ---------------------------------------------------------*/
+
+  typedef struct{
+	 int *t1; /**< time-scale of first signal */
+	 int *t2; /**< time-scale of second signal */
+	 int n1; /**< length of signal 1 */
+	 int n2; /**< length of signal 2 */
+	 int n; /**< length(t1)==length(t2) */
+  } WarpPath;
+	
 
  /*-----------------------------------------------------------
 	 - Hierarchical WARPING -
@@ -195,6 +198,10 @@ extern "C" {
 	 int winlength;					  /**< length of window used for STFT */
 	 int N_freq;						  /**< frequency resolution of STFT */
 	 int N_time;						  /**< time resolution of STFT */
+
+	 int m;   /**< embedding dimension in case of recplot-based LOS estimation */
+	 int tau; /**< time-lag in case of recplot-based LOS estimation */
+	 int FAN; /**< fixed amount of neighbours in case of recplot-based LOS estimation */
 
 	 int *channels; /**< compute PADTW only for these channels; 
 							 if NULL, all channels are used */

@@ -164,11 +164,12 @@ extern "C" {
   /** \ingroup vectorops
 		\{
   */
+  double  vector_min( double *v, int n, int *idx );
   double* vector_init( double *v, int n,  double val );
   void    vector_minus_scalar( double *v, int n, double val );
   double* vector_complex_to_real( const Complex *vc, double *vr, int n );
   double  vector_euclidean_distance( const double *v1, const double *v2, int n );
-  void vector_shuffle_int( int *permut, int n );
+  void    vector_shuffle_int( int *permut, int n );
   /** \} */
 
   /* ---------------------------------------------------------------------------- 
@@ -185,11 +186,14 @@ extern "C" {
   double** matrix_init(int N, int M);
   int**    matrix_init_int(int N, int M);
   void     matrix_divide_scalar(double **m, int N, int n, double s);
+  void     matrix_add_scalar(double **m, int N, int n, double s);
+  void     matrix_mul_scalar(double **m, int N, int n, double s);
   void     matrix_normalize_by_max( double **m, int M, int N );
   void     matrix_add_matrix(double **m1, const double **m2, int N, int n);
   void     matrix_dottimes_matrix( double **m1, const double **m2, int N, int M );
   void     matrix_copy( const double **src, double **dest, int N, int M );
   void     scalar_minus_matrix( double scalar, double **m, int N, int M );
+  double** matrix_rand( double **m, int N, int M, double lower, double upper );
   void     matrix_free(double **m, int N);
   /**\}*/
 

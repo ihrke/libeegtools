@@ -29,10 +29,24 @@ f.write(nversion);
 f.close()
 print "Done"
 
+print "Updating configure.in ...",
+f = open("configure.in", 'r');
+lines=f.readlines();
+f.close();
+f = open("configure.in", "w");
+for line in lines:
+    if "AC_INIT([libeegtools]," in line.strip().replace(" ", ""):
+        f.write("AC_INIT([libeegtools], [%s], [mihrke@gwdg.de])\n"%(nversion));
+    else:
+        f.write(line);
+f.close();
+print "Done"
+
 #print "Touching ./doc/mainpage.doc ..."
 #status=os.system("touch ./doc/mainpage.doc");
 #print "Done (%i)"%status
 
+print "Hit <Enter> to 'cvs commit'";
 cmd = "cvs commit"
 sys.stdin.readline();
 print cmd;

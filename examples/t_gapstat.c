@@ -16,17 +16,9 @@
 #include "helper.h"
 #include "clustering.h"
 
-//#include "config.h"
-//#define HAVE_LIBPLOTTER
-#ifdef HAVE_LIBPLOTTER
+#ifdef PLOTTER
 #include <libplotter/cplotter.h>
-#define PL(code) (code)
-#else
-#define PL(code)
 #endif
-
-void test_cmpclust();
-void test_dummycluster();
 
 /* ---------------------------------------------------------------------------- 
    -- main routine                                                           -- 
@@ -34,7 +26,8 @@ void test_dummycluster();
 int main(int argc, char **argv){ 
   //  oldgapstat(argc, argv);
   int i,j;
-  double mean;
+  double mean[100];
+  double logWk[100];
   EEGdata_trials *eeg;
   GapStatistic *gapstat_handle;
   double **X, **D;
@@ -45,6 +38,11 @@ int main(int argc, char **argv){
   myseed = (unsigned long int)time( (time_t *)NULL );
   srandom( myseed );
   
+
+  if( argc<4 ){
+	 fprintf( stderr, "Usage: t_gapstat test.raw max_num_clusters num_rep\n");
+	 return -1;
+  }
   /* get data */
   eeg=read_eegtrials_from_raw(argv[1]);
   print_eegdata_trials(stderr, eeg);
@@ -63,115 +61,41 @@ int main(int argc, char **argv){
 /*   p = 2; */
 /*   X = read_double_matrix_ascii( argv[1], p, n, X); */
   
-  D = vectordist_distmatrix( vectordist_euclidean, X, n, p, ALLOC_IN_FCT, NULL );
+  fprintf( stderr, "Distance: ");  
+  D = vectordist_distmatrix( vectordist_euclidean, X, n, p, 
+									  ALLOC_IN_FCT, progressbar_rotating, 
+									  (void*)signaldist_euclidean  );
+  write_double_matrix_ascii_file( "out.txt", D, n, n );
 
-  printf("starting gapstat\n");
+
   K = atoi(argv[2]);
   B = atoi(argv[3]);
   gapstat_handle = gapstat_init( NULL, K, B );
+  gapstat_handle->progress = progressbar_rotating;
 
-  printf(" now really!\n");
+  fprintf( stderr, "Gap-Statistic: ");
   gapstat_calculate( gapstat_handle, X, n, p, vectordist_euclidean, D );
   printf(" done gapstat\nBest K=%i\n", gapstat_handle->khat);
   gapstat_print(stderr, gapstat_handle);
 
-  FILE *f;
-  f = fopen( "gapstat.txt", "w");
-  for( i=0; i<gapstat_handle->K; i++ ){
-	 fprintf(f,  "%10f\t", gapstat_handle->gapdistr[i]);
-  }
 
-  fprintf(f, "\n");
-  for( i=0; i<gapstat_handle->K; i++ ){
-	 fprintf(f,  "%10f\t", gapstat_handle->Wk[i]);
-  }
+#ifdef PLOTTER
+  plot_format( NULL, gapstat_handle->gapdistr+1, gapstat_handle->K-1, "r-o" );
 
-  fprintf(f, "\n");
   for( i=0; i<gapstat_handle->K; i++ ){
-	 mean = 0;
+	 mean[i] = 0;
 	 for(j=0; j<gapstat_handle->B; j++){
-		mean += log(gapstat_handle->Wkref[j][i]);
+		mean[i] += log(gapstat_handle->Wkref[j][i]);
 	 }
-	 mean /= (double)gapstat_handle->B;
+	 mean[i] /= (double)gapstat_handle->B;
 
-	 fprintf(f,  "%10f\t", mean);
+	 logWk[i] = log(gapstat_handle->Wk[i]);
   }
 
-  fclose(f);
+  /* plot_format( NULL, mean, gapstat_handle->K, "g" );  */
+  /* plot_format( NULL, logWk, gapstat_handle->K, "b" );  */
 
-  return 0;
+  plot_show();
+#endif
 }
 
-void test_dummycluster(){
-  double **d;
-  int i, x, y;
-  Clusters *C;
-
-  int l = 25;
-  d = read_double_matrix_ascii( "pam.txt", l, l, NULL );
-  
-  for(y=0; y<l; y++){
-	 for( x= 0; x<l; x++){
-		fprintf(stderr, "%f\t", d[y][x]);
-	 }
-	 fprintf(stderr, "\n");
-  }
-
-  C = kmedoids(d, l, 2);
-
-  for( i=0; i<l; i++ )
-	 free( d[i] );
-  free( d );
-  free_cluster(C);
-}
-
-
-
-void test_cmpclust(){
-  Clusters *c1, *c2;
-  int i;
-
-  c1 = init_cluster(3, 10);
-  c2 = init_cluster(3, 10);
-
-  c1->n[0]=2;
-  c1->clust[0][0]=5;
-  c1->clust[0][1]=1;
-
-  c1->n[1]=4;
-  c1->clust[1][0]=9;
-  c1->clust[1][1]=4;
-  c1->clust[1][2]=8;
-  c1->clust[1][3]=2;
-
-  c1->n[2]=3;
-  c1->clust[2][0]=3;
-  c1->clust[2][1]=7;
-  c1->clust[2][2]=6;
-
-  c2->n[1]=2;
-  c2->clust[1][0]=5;
-  c2->clust[1][1]=1;
-
-  c2->n[0]=4;
-  c2->clust[0][0]=2;
-  c2->clust[0][1]=8;
-  c2->clust[0][2]=4;
-  c2->clust[0][3]=9;
-
-  c2->n[2]=3;
-  c2->clust[2][0]=3;
-  c2->clust[2][1]=7;
-  c2->clust[2][2]=6;
-
-
-  fprintf(stderr, "compare_clusters(c1,c2)=%i\n", compare_clusters(c1, c2));
-
-  fprintf(stderr, "C1=\n");
-  print_cluster(c1);
-  fprintf(stderr, "C2=\n");
-  print_cluster(c2);
-
-  free_cluster(c1);
-  free_cluster(c2);
-}

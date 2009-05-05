@@ -33,6 +33,7 @@ extern "C" {
   /** \addtogroup regularization
 	*\{
 	*/
+  double** regularization_linear_points( const int *markers1, const int *markers2, int nmarkers, int nsignal, double **d );
   double** regularization_gaussian_line( const int *markers1, const int *markers2, int nmarkers,
 													  int nsignal, double maxsigma, double **d );
   double** eeg_regularization_gaussian_line( const EEGdata *s1, const EEGdata *s2, 

@@ -20,6 +20,66 @@
 
 #include "regularization.h"
 
+/** Calculate the regularization function that is the distance
+	 transform of $f$, the piecwise linear interpolation between
+	 event-markers (approximated with bresenham-alg).
+
+	 \param markers1,2 time-markers within the nsignal x nsignal matrix
+	 \param nsignal number of points in the returned matrix
+	 \param d matrix or NULL (alloc'd in function)
+	 \return d or NULL (error)
+*/
+double** regularization_linear_points( const int *markers1, const int *markers2, int nmarkers, int nsignal, double **d ){ 
+  int i,j;
+  int maxmem, npoints;
+  int *points;
+  int **I;
+  int n;
+ 
+  /* convenience */
+  n = nsignal;
+
+  if( d==ALLOC_IN_FCT ){
+	 d=matrix_init( nsignal, nsignal );
+  } 
+
+  I = (int**) malloc( n*sizeof( int* ) );
+  for( i=0; i<n; i++ ){
+	 I[i] = (int*) malloc( n*sizeof( int ) );
+	 memset( I[i], 0, n*sizeof( int ) );
+  }
+  /* compute memory needed for bresenham */
+  maxmem=0;
+  for( i=0; i<nmarkers+1; i++ ){
+	 npoints = bresenham_howmany_points( markers1[i], markers2[i], markers1[i+1], markers2[i+1] );
+	 dprintf("npoints=%i\n", npoints );
+	 maxmem  = MAX( npoints, maxmem );
+  }
+  dprintf("2*(maxmem+1)=%i\n", 2*(maxmem+1));
+  points = (int*) malloc( (2*(maxmem+1))*sizeof(int) );
+  
+  /* compute bresenham for the line segments */
+  for( i=0; i<nmarkers+1; i++ ){
+	 npoints = bresenham_howmany_points( markers1[i], markers2[i], markers1[i+1], markers2[i+1] );
+	 dprintf("Line from (%i,%i)->(%i,%i) with %i points\n", markers1[i], markers2[i], markers1[i+1], markers2[i+1], npoints);
+	 points  = bresenham( markers1[i], markers2[i], markers1[i+1], markers2[i+1], points );
+	 for( j=0; j<2*npoints; j+=2 ){ /* draw the line */
+		I[points[j]][points[j+1]] = 1;
+	 }
+  }
+	 
+  /* distance transform of line-segments */
+  d = disttransform_deadreckoning( I, n, n, d );
+
+  /* free */
+  for( i=0; i<n; i++ ){
+	 free( I[i] );
+  }
+  free(I);
+  free( points );
+
+  return d;
+}
 
 /** Calculate regularization function
 	 \f[
@@ -35,9 +95,7 @@
  */
 double** regularization_gaussian_line( const int *markers1, const int *markers2, int nmarkers, int nsignal, double maxsigma, double **d ){
   int i,j,k;
-  int maxmem, npoints;
-  int *points;
-  int **I;
+ 
   double sigma;
   double maxdist, dist, closest_dist, normgauss;
   int flag;
@@ -51,36 +109,9 @@ double** regularization_gaussian_line( const int *markers1, const int *markers2,
 	 d=matrix_init( nsignal, nsignal );
   } 
 
-  I = (int**) malloc( n*sizeof( int* ) );
-  for( i=0; i<n; i++ ){
-	 I[i] = (int*) malloc( n*sizeof( int ) );
-	 memset( I[i], 0, n*sizeof( int ) );
-  }
+  /* get distance transform of the linear interpolation between markers */
+  d = regularization_linear_points( markers1, markers2, nmarkers, nsignal, d );
 
-
- /* compute memory needed for bresenham */
-  maxmem=0;
-  for( i=0; i<nmarkers+1; i++ ){
-	 npoints = bresenham_howmany_points( markers1[i], markers2[i], markers1[i+1], markers2[i+1] );
-	 dprintf("npoints=%i\n", npoints );
-	 maxmem  = MAX( npoints, maxmem );
-  }
-  dprintf("2*(maxmem+1)=%i\n", 2*(maxmem+1));
-  points = (int*) malloc( (2*(maxmem+1))*sizeof(int) );
-
-  /* compute bresenham for the line segments */
-  for( i=0; i<nmarkers+1; i++ ){
-	 npoints = bresenham_howmany_points( markers1[i], markers2[i], markers1[i+1], markers2[i+1] );
-	 dprintf("Line from (%i,%i)->(%i,%i) with %i points\n", markers1[i], markers2[i], markers1[i+1], markers2[i+1], npoints);
-	 points  = bresenham( markers1[i], markers2[i], markers1[i+1], markers2[i+1], points );
-	 for( j=0; j<2*npoints; j+=2 ){ /* draw the line */
-		I[points[j]][points[j+1]] = 1;
-	 }
-  }
-	 
-  /* distance transform of line-segments */
-  d = disttransform_deadreckoning( I, n, n, d );
-  
   /* apply gaussian with varying sigma */
   flag = 0;
   maxdist = sqrt(2.0)*(double)(n-1);
@@ -115,13 +146,6 @@ double** regularization_gaussian_line( const int *markers1, const int *markers2,
   		flag = 0;
   	 }
   }
-
-  /* free */
-  for( i=0; i<n; i++ ){
-	 free( I[i] );
-  }
-  free(I);
-  free( points );
 
   return d;
 }

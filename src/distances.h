@@ -25,6 +25,8 @@
 # define DISTANCES_H
 #include "clustering.h"
 #include "definitions.h"
+#include "recurrence_plot.h"
+#include "nonlinear.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,6 +61,8 @@ extern "C" {
 																		  int channel, double **d, void *params ); 
   double** eeg_distmatrix_stft_channel( const EEGdata *s1,const  EEGdata *s2, 
 													 int channel, double **d, void *params );
+  double** eeg_distmatrix_recplot_losdtwnoise_channel( const EEGdata *s1,const  EEGdata *s2, 
+																		 int channel, double **d, void *params );  
   /** \} */
 
   /** \addtogroup vectordist 
@@ -75,12 +79,24 @@ extern "C" {
 		\f]
 		\{
   */  
-  double** vectordist_distmatrix( VectorDistanceFunction f, const double **X, 
-											 int n, int p, double **D, void* userdata );
-  double   vectordist_euclidean( double *x1, double *x2, int p, void *userdata );
-  double   vectordist_regularized_dtw( double *x1, double *x2, int p, void *userdata );
+  double** vectordist_distmatrix          ( VectorDistanceFunction f, const double **X, 
+														  int n, int p, double **D, 
+														  ProgressBarFunction progress, void* userdata );
+  double   vectordist_euclidean           ( double *x1, double *x2, int p, void *userdata );
+  double   vectordist_euclidean_normalized( double *x1, double *x2, int p, void *userdata );
+  double   vectordist_dtw                 ( double *x1, double *x2, int p, void *userdata );
+  double   vectordist_regularized_dtw     ( double *x1, double *x2, int p, void *userdata );
+
   double** eegtrials_distmatrix_channel( EEGdata_trials *eeg, VectorDistanceFunction f, 
-													  int channel, double **d );
+													  int channel, double **d, void *userdata );
+  /** \} */
+
+  /** \addtogroup warppathdist 
+		These distances (functions starting with pathdist_*()) are between 
+		two WarpPath structs.
+		\{
+  */  
+  double   pathdist_euclidean_dt(WarpPath *p1, WarpPath *p2); 
   /** \} */
 
   /** \addtogroup pointdist 
@@ -90,6 +106,14 @@ extern "C" {
   */  
   double   pointdist_euclidean(double x, double y); 
   /** \} */
+
+  /** \addtogroup otherdist
+		Other distance functions.
+		\{
+  */  
+  double   dist_point_line(double *p, double *x, double *y); 
+  /** \} */
+  
 #ifdef __cplusplus
 }
 #endif

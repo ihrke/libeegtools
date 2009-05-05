@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------
 ### preludes
 # ----------------------------------------------------------------------
-AC_INIT([libeegtools], [0.2b], [mihrke@gwdg.de])
+AC_INIT([libeegtools], [0.4.1], [mihrke@gwdg.de])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 #AC_DISABLE_SHARED
 
@@ -54,23 +54,6 @@ if test z${GSL_CONFIG} == z; then
     AC_MSG_ERROR([configure could not find the ${GSL_CONFIG_NAME} script. Aborting.])
 fi
 
-dnl CPLOTTER
-
-AC_ARG_WITH(plotter-config,
-            [  --with-plotter-config=PROG PROG is the plotter-config script],
-            PLOTTER_CONFIG_NAME="$withval",
-            PLOTTER_CONFIG_NAME='plotter-config')
-AC_ARG_WITH([plotter],
-            [--with-plotter=DIR   DIR is the plotter root directory],
-				[plotter_dir="$withval"],
-            [plotter_dir=no])
-
-AC_PATH_PROG(PLOTTER_CONFIG, ${PLOTTER_CONFIG_NAME},, ${plotter_dir}${plotter_dir:+/bin:}$PATH)
-if test z${PLOTTER_CONFIG} == z; then
-    AC_MSG_WARN([[configure could not find the ${PLOTTER_CONFIG_NAME} script. no Plotting.]])
-else
-		  AC_DEFINE([HAVE_LIBPLOTTER], 1, "plotter-library")
-fi
 
 AC_CHECK_LIB([m], [pow], [], \
 						["You need mat-library installed."
@@ -94,19 +77,61 @@ fi
 AC_SUBST(DEF_DEBUG)
 AC_SUBST(DEBUG_FLAGS)
 
+##------ MATLAB SUPPORT -----#
+AC_ARG_ENABLE(matlab,
+  [  --enable-matlab             enable MATLAB (default="no")],
+  [with_matlab=$enableval],
+  [with_matlab=no]
+)
+
+DEF_MATLAB="NOMATLAB"
+MATLAB_INCLUDES=""
+MATLAB_PATH=""
+if test "x${with_matlab}" = xyes; then
+        DEF_MATLAB="MATLAB"       
+		  MATLAB_PATH=`matlab -e|grep MATLAB=|sed s/MATLAB=//`
+		  MATLAB_INCLUDES="-I $MATLAB_PATH/extern/include"
+fi
+
+AC_SUBST(DEF_MATLAB)
+AC_SUBST(MATLAB_INCLUDES)
+AC_SUBST(MATLAB_PATH)
+
 ##------ PLOTTER SUPPORT -----#
-#AC_ARG_ENABLE(plotter,
-#  [  --enable-plotter             enable plotter support (default "no")],
-#  [with_plotter=$enableval],
-#  [with_plotter=no]
-#)
+AC_ARG_ENABLE(plotter,
+  [  --enable-plotter             enable plotter support (default "no")],
+  [with_plotter=$enableval],
+  [with_plotter=no]
+)
 
-#DEF_PLOTTER="NOPLOTTER"
-#if test "x${with_plotter}" = xyes; then
-#        DEF_PLOTTER="PLOTTER"       
-#fi
+DEF_PLOTTER="NOPLOTTER"
+PLOTTER_CONFIG=""
+PLOTTER_CFLAGS=""
+if test "x${with_plotter}" = xyes; then
+        DEF_PLOTTER="PLOTTER"  
 
-#AC_SUBST(DEF_PLOTTER)
+		  AC_ARG_WITH(plotter-config,
+					     [  --with-plotter-config=PROG PROG is the plotter-config script],
+            		  PLOTTER_CONFIG_NAME="$withval",
+						  PLOTTER_CONFIG_NAME='plotter-config')
+		  AC_ARG_WITH([plotter],
+						  [--with-plotter=DIR   DIR is the plotter root directory],
+						  [plotter_dir="$withval"],
+            		  [plotter_dir=no])
+		  AC_PATH_PROG(PLOTTER_CONFIG, ${PLOTTER_CONFIG_NAME},, ${plotter_dir}${plotter_dir:+/bin:}$PATH)
+		  if test z${PLOTTER_CONFIG} == z; then
+    	  	  AC_MSG_WARN([[configure could not find the ${PLOTTER_CONFIG_NAME} script. no Plotting.]])
+			  DEF_PLOTTER="NOPLOTTER"
+		  else
+			  AC_DEFINE([HAVE_LIBPLOTTER], 1, "plotter-library")
+			  PLOTTER_CFLAGS="`${PLOTTER_CONFIG} --with-capi --cflags`"
+			  PLOTTER_LDFLAGS="`${PLOTTER_CONFIG} --with-capi --ldflags`"		
+		  fi
+fi
+
+AC_SUBST(PLOTTER_CFLAGS)
+AC_SUBST(PLOTTER_LDFLAGS)
+AC_SUBST(DEF_PLOTTER)
 
 # ----------------------------------------------------------------------
 ### check for headers
@@ -117,6 +142,25 @@ AC_HEADER_STDC # standard library headers, stdlib.h, stdarg.h, string.h, and flo
 # check for typedefs etc.
 # check for library functions
 
+##------ UNIT-TEST SUPPORT with libcheck -----#
+AC_ARG_ENABLE(unittest,
+  [  --enable-unittest             Unit-testing support (default "no")],
+  [with_unittest=$enableval],
+  [with_unittest=no]
+)
+
+AC_CHECK_LIB([check], [srunner_create], [], ["LibCheck not installed, no unit-tests." with_unittest=no])	
+#AC_SEARCH_LIBS([], [libcheck], [with_unittest=yes]) 
+AC_CHECK_HEADERS([check.h], [], [with_unittest=no])
+
+# test/Makefile is compiled only if unittests are enabled
+AM_CONDITIONAL([BUILD_CHECKS], [test "x$with_unittest" = xyes] )
+
+
+
+
+
+
 # ----------------------------------------------------------------------
 ### subprojects
 # ----------------------------------------------------------------------
@@ -124,35 +168,42 @@ AC_HEADER_STDC # standard library headers, stdlib.h, stdarg.h, string.h, and flo
 #AC_CONFIG_SUBDIRS([fltk2])
 
 # ----------------------------------------------------------------------
-### config files
+  ### config files
 # ----------------------------------------------------------------------
 AM_CONFIG_HEADER([config.h])
 AC_OUTPUT(Makefile src/Makefile misc/Makefile progs/Makefile)
 AC_OUTPUT(src/definitions.h matlab/Makefile)
+AC_OUTPUT(test/Makefile eeglab_plugin/Makefile scipy/Makefile)
 
 echo "
-
-==================================="
+======================================================================"
 echo "Found gsl-config in ${GSL_CONFIG_NAME}"
 echo "  gsl-config --prefix : `${GSL_CONFIG_NAME} --prefix`"
 echo "  gsl-config --version: `${GSL_CONFIG_NAME} --version`"
 echo "  gsl-config --cflags : `${GSL_CONFIG_NAME} --cflags`"
 echo "  gsl-config --libs   : `${GSL_CONFIG_NAME} --libs`"
-echo "===================================
-
-"
+echo ""
 
 if test z${PLOTTER_CONFIG} != z; then
-echo "
-
-==================================="
 echo "Found plotter-config in ${PLOTTER_CONFIG_NAME}"
 echo "  plotter-config  --with-capi --prefix : `${PLOTTER_CONFIG_NAME} --with-capi --prefix`"
 echo "  plotter-config  --with-capi --version: `${PLOTTER_CONFIG_NAME} --with-capi --version`"
 echo "  plotter-config  --with-capi --cflags : `${PLOTTER_CONFIG_NAME} --with-capi --cflags`"
 echo "  plotter-config  --with-capi --ldflags: `${PLOTTER_CONFIG_NAME} --with-capi --ldflags`"
 echo "  plotter-config  --with-capi --libs   : `${PLOTTER_CONFIG_NAME} --with-capi --libs`"
-echo "===================================
-
-"
 fi
+
+if test z${with_matlab} != z; then
+echo ""
+echo "MATLAB enabled"
+echo " MATLAB_PATH     ='${MATLAB_PATH}'"
+echo " MATLAB_INCLUDES ='${MATLAB_INCLUDES}'"
+fi
+
+if test "x${with_unittest}" = xyes; then
+echo ""
+echo "Unit-Testing is enabled"
+echo "  using libcheck"
+fi	
+
+echo "======================================================================"

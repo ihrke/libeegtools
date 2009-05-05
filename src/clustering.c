@@ -24,22 +24,29 @@
 
 /** run the kmedoids function a couple of times and pick the best
 	 in terms of within scatter.
+	 \param dist ance matrix
+	 \param N number of observations
+	 \param K number of medoids to compute
+	 \param repeat number of repetitions
+	 \return clusters - function-allocated memory. contains
+	                    K cluster-structs.
  */
 Clusters* kmedoids_repeat( const double **dist, int N, int K, int repeat ){
   Clusters *C;
   Clusters *Cnew;
   int i;
-  double within_scatter, tmp;
+  double ratio, tmp;
 
   C = init_cluster( K, N );
-  within_scatter=DBL_MAX;
+  ratio=DBL_MAX;
   for( i=0; i<repeat; i++ ){
 	 Cnew = kmedoids( dist, N, K );
-	 tmp = get_within_scatter( dist, N, Cnew );
+	 tmp =  get_within_scatter ( dist, N, Cnew );
+	 tmp /= get_between_scatter( dist, N, Cnew );
 
-	 if( tmp<within_scatter ){
-		//		fprintf(stderr, "Run %i: %f\n", i, tmp);
-		within_scatter=tmp; /* TODO: add between-scatter term */
+	 if( tmp<ratio ){
+		dprintf("Run %i: %f\n", i, tmp);
+		ratio=tmp; 
 		copy_cluster( C, Cnew );
 	 }
 	 free_cluster( Cnew );
@@ -52,7 +59,7 @@ Clusters* kmedoids_repeat( const double **dist, int N, int K, int repeat ){
 	 \param dist ance matrix
 	 \param N number of observations
 	 \param K number of medoids to compute
-	 \param clusters - function-allocated memory. contains
+	 \return clusters - function-allocated memory. contains
 	                   K cluster-structs.
 */
 Clusters* kmedoids(const double **dist, int N, int K){
@@ -95,7 +102,7 @@ Clusters* kmedoids(const double **dist, int N, int K){
   free( permut );
 
   dprintf("initialized cluster\n");  
-  //  print_cluster(C); 
+  print_cluster(stderr, C); 
 
   num_not_changed = 0;
   while(num_not_changed<1){ /* iterate until convergence */
@@ -109,7 +116,6 @@ Clusters* kmedoids(const double **dist, int N, int K){
 		  }
 		  
 		  if( sum<minsum ){
-			 /* fprintf(stderr, "sum=%f, minsum=%f\n", sum, minsum);*/
 			 minsum = sum;
 			 minidx = C->clust[i][j];
 		  }
@@ -136,25 +142,13 @@ Clusters* kmedoids(const double **dist, int N, int K){
 		Cnew->clust[minidx][Cnew->n[minidx]] = i;
 		Cnew->n[minidx] += 1;
 	 }
-/* 	 if(count>=100000){ */
-/* 		fprintf(stderr, "count=%i\n", count); */
-/* 		fprintf(stderr, "medoids = (%i, %i)\n", medoids[0], medoids[1]); */
-/* 		fprintf(stderr, "C=\n"); */
-/* 		print_cluster(C); */
-/* 		fprintf(stderr, "Cnew=\n"); */
-/* 		print_cluster(Cnew); */
-/* 		count = 0; */
-/* 	 } else { */
-/* 		count++; */
-/* 	 } */
+
 	 if(!compare_clusters(C, Cnew))
 		num_not_changed++;
 	 else
 		copy_cluster(C, Cnew);
   }
 
-/*   print_cluster(C); */
-/*   fprintf(stderr, "medoids = (%i, %i)\n", medoids[0], medoids[1]); */
   free(medoids);
   free_cluster(Cnew);
   gsl_rng_free (randgen);
@@ -187,7 +181,7 @@ int compare_clusters(const Clusters *c1, const Clusters *c2){
 
   /* deep comparison */
   for( i=0; i<c1->K; i++ ){ /* each cluster from c1 */ 
-	 dprintf("i = %i\n", i);
+	 /* dprintf("i = %i\n", i); */
 	 prev_c2i = c1->K+1;
 	 c2i = 0;
 	 for( j=0; j<c1->n[i]; j++ ){ /* each element from c1 */
@@ -254,10 +248,9 @@ Clusters* init_cluster(int K, int maxN){
   return c;
 }
 
-void print_cluster(const Clusters *c){
-  FILE *o;
+void print_cluster(FILE *o,const Clusters *c){
   int i, j;
-  o = stderr;
+
   fprintf(o, "Cluster with %i partitions\n", c->K);
   for( i=0; i<c->K; i++ ){
 	 fprintf(o, " C[%i]=\{ ", i+1);
@@ -291,6 +284,7 @@ GapStatistic* gapstat_init( GapStatistic *g, int K, int B ){
   g->Wkref= (double**) malloc( B*sizeof(double*) );
   for( i=0; i<B; i++ )
 	 g->Wkref[i] = (double*) malloc( K*sizeof(double) );
+  g->progress=NULL;
 
   return g;
 }
@@ -328,20 +322,30 @@ void gapstat_calculate( GapStatistic *gap, double **X, int n, int p,
 	 Dr[i] = (double*) malloc( n*sizeof( double ) );
   }
 
+  if( gap->progress ){
+	 gap->progress( PROGRESSBAR_INIT, (gap->B+1)*gap->K );
+  }
+
   /* calculation */
   for( k=1; k<=gap->K; k++ ){ /* data within-scatter */
+	 if( gap->progress )
+		gap->progress( PROGRESSBAR_CONTINUE_LONG, k );
 	 C = kmedoids_repeat( D, n, k, 50 );
-	 //	 print_cluster( C );
+	 //	 print_cluster( stderr, C );
 	 gap->Wk[k-1] = get_within_scatter( D, n, C );
 	 free_cluster( C );
   }
 
   for( b=0; b<gap->B; b++ ){ /* monte Carlo for ref-data*/
 	 for( k=1; k<=gap->K; k++ ){
+		if( gap->progress ){
+		  gap->progress( PROGRESSBAR_CONTINUE_LONG, (b+1)*gap->K+k );
+		}
+		
 		Xr = gap_get_reference_distribution_simple( (const double **) X, n, p, Xr );
-		Dr = vectordist_distmatrix( distfunction, (const double**)Xr, n, p, Dr, NULL );
+		Dr = vectordist_distmatrix( distfunction, (const double**)Xr, n, p, Dr, NULL, NULL );
 		C = kmedoids_repeat( (const double**)Dr, n, k, 50 );
-		//		print_cluster( C );
+		//		print_cluster(stderr, C );
 		gap->Wkref[b][k-1] = get_within_scatter( (const double**)Dr, n, C );
 		free_cluster( C );
 	 }
@@ -371,6 +375,8 @@ void gapstat_calculate( GapStatistic *gap, double **X, int n, int p,
 		break;
 	 }
   }
+  if( gap->progress )
+	 gap->progress( PROGRESSBAR_FINISH, 0 );
 
   /* free */
   for( i=0; i<n; i++ ){
@@ -530,7 +536,7 @@ double   get_within_scatter(const double **d, int N, const Clusters *c){
   double *sums;
   double W;
   int i, j, k;
-  //  print_cluster(c);
+  //  print_cluster( stderr, c);
   sums = (double*) malloc( c->K*sizeof(double) );
   W = 0;
   for( i=0; i<c->K; i++ ){ /* cluster loop */
@@ -541,7 +547,7 @@ double   get_within_scatter(const double **d, int N, const Clusters *c){
 		}
 	 }
 	 sums[i] /= (double)2*c->n[i];
-	 dprintf("sums[i]=%f\n", sums[i]);
+	 /* dprintf("sums[i]=%f\n", sums[i]); */
 	 W += sums[i];
   }
 
@@ -552,24 +558,29 @@ double   get_within_scatter(const double **d, int N, const Clusters *c){
 
 /** compute the between-scatter between clusters 
 	 (sum of distances of means of clusters)
+	 \param d distance matrix (NxN)
+	 \param c the partioning of d
  */
 double get_between_scatter( const double **d, int N, const Clusters *c ){
   double W;
-  double *centres;
   int k1, k2, i, j;
+  int num_comp; 
 
-  centres = (double*)malloc( c->K*sizeof(double) );
-  W = 0.0; /** TODO **/
+  W = 0.0; 
+  num_comp=0;
   for( k1=0; k1<c->K-1; k1++ ){
 	 for( k2=k1+1; k2<c->K; k2++ ){ /* compare cluster k1 and k2 */
 		for( i=0; i<c->n[k1]; i++ ){
 		  for( j=0; j<c->n[k2]; j++ ){
 			 W += d[c->clust[k1][i]][c->clust[k2][j]];
+			 num_comp++;
 		  }
 		}
 	 }
   }
-  free(centres);
+  W /= (double)2*num_comp;
+
+  return W;
 }
 
 /** Agglomerative clustering.

@@ -51,7 +51,7 @@ void      dtw_cumulate_matrix  ( double **d, int M, int N ){
   */
   int j, k;
   
-  /* computing D_jk */
+   /* computing D_jk */
   for(j=0; j<M; j++){
     for(k=0; k<N; k++){
       if(k==0 && j==0) ;
@@ -110,9 +110,9 @@ WarpPath* dtw_backtrack        ( const double **d, int M, int N, WarpPath *P ){
 		  } 
 		} else {						  /* left or down */
 		  if( down<=left ){
-			 j--;						  /* down */
+			 k--;						  /* down */
 		  } else {
-			 k--; 					  /* left */
+			 j--; 					  /* left */
 		  }
 		}
 
@@ -133,18 +133,21 @@ WarpPath* dtw_backtrack        ( const double **d, int M, int N, WarpPath *P ){
 
 	 P->t1[idx] = j;
 	 P->t2[idx] = k;
+	 dprintf("(j, k), idx = (%i,%i), %i\n", j, k, idx);
+	 if(idx>0 && P->t1[idx]>=P->t1[idx-1] && P->t2[idx]>=P->t2[idx-1]  ){
+		warnprintf("P=%p: idx=%i\n", P, idx);
+	 }
 	 idx++;
-	 //dprintf("(j, k), idx = (%i,%i), %i\n", j, k, idx);
   }
   P->n=idx-1;
-  print_warppath( stderr, P );
+  //  print_warppath( stderr, P );
 
   /* now the warppath has wrong order, reverse */
   for( j=0; j<(P->n)/2; j++ ){
-	 swap2i( &(P->t1[j]), &(P->t1[P->n-j]) );
-	 swap2i( &(P->t2[j]), &(P->t2[P->n-j]) );
+	 swap2i( &(P->t1[j]), &(P->t1[P->n-1-j]) );
+	 swap2i( &(P->t2[j]), &(P->t2[P->n-1-j]) );
   }
-  print_warppath( stderr, P );
+  //  print_warppath( stderr, P );
 
   return P;
 }
@@ -158,11 +161,11 @@ WarpPath* dtw_backtrack        ( const double **d, int M, int N, WarpPath *P ){
  *              if NULL is given, memory is allocated by the function.
  */
 double* warp_add_signals_by_path(const double *s1, int n1, 
-										  const double *s2, int n2, 
-										  const WarpPath *P, double *avg, 
-										  const double weights[2]){
+											const double *s2, int n2, 
+											const WarpPath *P, double *avg, 
+											const double weights[2]){
   double *x, *y, *xp;
-  int idx, newn, i;
+  int newn, i;
   
   newn = (n1+n2)/2;			  /* length of average signal */
   x = (double*)malloc( (n1+n2)*sizeof(double) );
@@ -177,23 +180,19 @@ double* warp_add_signals_by_path(const double *s1, int n1,
 	 xp[i] = (double)i;
   }
 
-  x[0] = 0;
-  y[0] = weights[0]*(s1[0]) + weights[1]*(s2[0]); /* first entry, because it is skipped in path */
-  idx = 1;
-  for(i=0; i<n1+n2; i++){
-	 if( P->t1[i]==0 && P->t2[i]==0 ){
-		continue;
+
+  for(i=0; i<P->n; i++){
+	 x[i] = (double)((P->t1[i])+(P->t2[i]))/2.0; /* average latencies */
+	 y[i] = weights[0]*(s1[P->t1[i]]) + weights[1]*(s2[P->t2[i]]); /* average magnitude */
+	 dprintf( "x[%i]=(%f,%f), (%i, %i)\n", i, x[i], y[i], (P->t1[i]), (P->t2[i]) );
+	 if( i>0 && x[i]<=x[i-1] ){
+		warnprintf("x not monotonic at P=%p x[%i]=(%f,%f), (%i, %i)\n", P, i, x[i], y[i], (P->t1[i]), (P->t2[i]) );
 	 }
-	 x[idx] = (double)((P->t1[i])+(P->t2[i]))/2.0; /* average latencies */
-	 y[idx] = weights[0]*(s1[P->t1[i]]) + weights[1]*(s2[P->t2[i]]); /* average magnitude */
-	 dprintf( "x[%i]=(%f,%f), (%i, %i)\n", idx, x[idx], y[idx], (P->t1[i]), (P->t2[i]) );
-	 idx++;
   }
 
-  dprintf("idx=%i\n", idx );
   gsl_interp_accel *acc = gsl_interp_accel_alloc ();
-  gsl_spline *spline = gsl_spline_alloc (gsl_interp_linear, idx);
-  gsl_spline_init (spline, x, y, idx);
+  gsl_spline *spline = gsl_spline_alloc (gsl_interp_linear, P->n);
+  gsl_spline_init (spline, x, y, P->n);
 
   for( i=0; i<newn; i++ ){
 	 dprintf("xp[%i]=%f\n", i, xp[i] ); 
@@ -240,11 +239,19 @@ EEGdata* eegtrials_dtw_hierarchical( EEGdata_trials *eeg_in, const double **dist
   double weights[2]={1.0,1.0}; 			  /* this is for recursive averaging */
   int    *indices;				  /* n-array containing number averagings for each trial */
   int *channels;
-
+  int nchan,chan;
 
   if( N>eeg_in->ntrials ){
 	 errprintf(" distance matrix contains more trials than eegdata. this is fatal\n");
 	 return NULL;
+  }
+
+  if(settings.channels==NULL){
+	 channels = linspace(0,num_chan-1);
+	 nchan = num_chan;
+  } else {
+	 channels = settings.channels;
+	 nchan = settings.num_channels;
   }
 
   /* build hierarchical dendrogram */
@@ -313,18 +320,18 @@ EEGdata* eegtrials_dtw_hierarchical( EEGdata_trials *eeg_in, const double **dist
 	 s2  = eeg->data[idx2];
 
 	 dprintf(" compute G\n");
-	 G = settings.regularize( s1, s2, settings.sigma, G); /* we need G only 
-																				once for all channels */
-
-	 int nchan,chan;
-	 /* loop this for all channels */
-	 if(settings.channels==NULL){
-		channels = linspace(0,num_chan-1);
-		nchan = num_chan;
-	 } else {
-		channels = settings.channels;
-		nchan = settings.num_channels;
+	 if( settings.regularize ){
+		G = settings.regularize( s1, s2, settings.sigma, G); /* we need G only 
+																				  once for all channels */
+		if(!G){
+		  errprintf("Regularization did not work\n");
+		  return NULL;
+		}
 	 }
+
+
+  
+	 /* loop this for all channels */
 	 for( c=0; c<nchan; c++){	
 		chan = channels[c];
 
@@ -334,13 +341,20 @@ EEGdata* eegtrials_dtw_hierarchical( EEGdata_trials *eeg_in, const double **dist
 		}
 
 		dprintf(" compute d\n");
-		d = settings.pointdistance( s1, s2, chan, d, (void*)(&settings) );
+		if(!(d = settings.pointdistance( s1, s2, chan, d, (void*)(&settings) )) ){
+		  errprintf("pointdistance faulty\n");
+		  return NULL;
+		}
 		dprintf(" ...done\n");  
-		dprintf(" Regularize d\n");
-		dtw_regularize_matrix( d, G, n, n );
-		dprintf(" ...done\n");  
+		if( settings.regularize ){
+		  dprintf(" Regularize d\n");
+		  dtw_regularize_matrix( d, G, n, n );
+		  dprintf(" ...done\n");  
+		}
 		dprintf(" Compute path\n");  
-		P = DTW_path_from_square_distmatrix( (const double**)d, n, P );
+		dtw_cumulate_matrix( d, n, n );
+		P = dtw_backtrack( (const double**) d, n, n, P );
+		/* P = DTW_path_from_square_distmatrix( (const double**)d, n, P ); */
 		dprintf(" ...done\n");  
 		dprintf(" Warpavg\n");  
 		new = eeg_warp_add_signals_by_path( s1, s2, new, chan, P, weights );
@@ -382,6 +396,10 @@ EEGdata* eegtrials_dtw_hierarchical( EEGdata_trials *eeg_in, const double **dist
   dgram_free( T );
   free( indices );
   free_warppath( P );
+  if( !settings.channels ){
+	 free( channels );
+  }
+
 
   return out;
 }
@@ -535,7 +553,7 @@ void _settings_guess_from_eegtrials( const EEGdata_trials *eeg, SettingsHierarch
 
 SettingsHierarchicalDTW init_dtw_hierarchical( const EEGdata_trials *eeg ){	 
   SettingsHierarchicalDTW settings;
-  settings.regularize=eeg_regularization_gaussian_line;
+  settings.regularize=NULL; /* eeg_regularization_gaussian_line; */
   settings.linkage=dgram_dist_completelinkage;
   settings.dont_touch_eeg=1;
   settings.pointdistance=eeg_distmatrix_stft_channel;
@@ -551,6 +569,9 @@ SettingsHierarchicalDTW init_dtw_hierarchical( const EEGdata_trials *eeg ){
   settings.sigma=0.2;
   settings.channels=NULL;
   settings.num_channels = -1;
+  settings.m = 10;
+  settings.tau = 15;
+  settings.FAN = (int)0.05*eeg->nsamples;
   settings.progress = NULL;
   _settings_guess_from_eegtrials( eeg, &settings );
   return settings;
@@ -572,10 +593,13 @@ void  print_settings_hierarchicaldtw( FILE *out, SettingsHierarchicalDTW s ){
 			  "  winlength      = %i\n"
 			  "  N_freq         = %i\n"
 			  "  N_time         = %i\n"
+			  "  m              = %i\n"
+			  "  tau            = %i\n"
+			  "  FAN            = %i\n"
 			  "  channels       = {", &s, s.regularize, s.sigma, s.linkage,
 			  s.dont_touch_eeg, s.pointdistance, s.theta1, s.theta2,
 			  s.corner_freqs[0], s.corner_freqs[1], s.sampling_rate, 
-			  s.winfct, s.winlength, s.N_freq, s.N_time );
+			  s.winfct, s.winlength, s.N_freq, s.N_time, s.m, s.tau, s.FAN );
   for( i=0; i<s.num_channels; i++ ){
 	 fprintf( out, "%i, ", s.channels[i] );
   }

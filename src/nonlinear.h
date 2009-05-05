@@ -31,6 +31,7 @@
 #ifndef NONLINEAR_H
 # define NONLINEAR_H
 #include "mathadd.h"
+#include "distances.h"
 #include "definitions.h"
 
 #ifdef __cplusplus
@@ -40,6 +41,12 @@ extern "C" {
   /**\ingroup nonlinear
 	*\{
 	*/ 
+
+  int         phspace_estimate_timelag_mutual( PhaseSpace *p, long partitions, long corrlength, double *mutual );
+  int         phspace_estimate_timelag_autocorr( PhaseSpace *p );
+  int         phspace_estimate_dimension( double Rtol, int m_start, int m_end );
+  double      phspace_fnn_ratio( PhaseSpace *p, double Rtol, double Atol );
+  double      phspace_attractor_size( PhaseSpace *p );
 
   PhaseSpace* phspace_init ( int m, int tau, double *x, int n );
   void        phspace_free ( PhaseSpace *p );

@@ -24,9 +24,6 @@
 #ifndef HELPER_H
 # define HELPER_H
 
-/* #define HAVE_PLOTLIB */
-/*#define HAVE_MATLAB*/
-
 #include <stdarg.h>
 #include <string.h> /* memcpy */
 #include <stdlib.h>
@@ -37,7 +34,6 @@
 #include <limits.h>
 #include <float.h>
 #include <stdint.h>
-
 
 #define _WITH_ANSI_ESCAPE_CODES /* necessary for the esc-codes to show up */
 #include "escape_codes.h"

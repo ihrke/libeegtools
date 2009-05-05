@@ -1,9 +1,9 @@
-AM_CPPFLAGS = -I$(build_dir)/src -I$(top_srcdir)/src `@GSL_CONFIG@ --cflags`
+AM_CPPFLAGS = -I../src -I$(top_srcdir)/src `@GSL_CONFIG@ --cflags`
 AM_LDFLAGS = `@GSL_CONFIG@ --libs`
 
 METASOURCES = AUTO
 
-noinst_PROGRAMS = t_nonlin t_padtw t_test
+noinst_PROGRAMS = t_nonlin #t_padtw t_test t_gapstat
 #t_denoise t_denoisestat t_gapstat \
 # t_readeeglab t_testfilter t_rawreadertest t_clustering t_gapstat \
 #t_dtw t_padtw t_adtw_markers t_timefreq t_test t_filterdesign 
@@ -28,13 +28,13 @@ noinst_PROGRAMS = t_nonlin t_padtw t_test
 # t_clustering_LDADD = $(top_builddir)/src/libeegtools.la
 
 # t_gapstat_SOURCES = t_gapstat.c
-# t_gapstat_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`
-# t_gapstat_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
+# t_gapstat_CFLAGS = `@PLOTTER_CONFIG_CFLAGS@`
+# t_gapstat_LDFLAGS = `@PLOTTER_CONFIG_LDFLAGS@`
 # t_gapstat_LDADD = $(top_builddir)/src/libeegtools.la
 
 t_nonlin_SOURCES = t_nonlin.c
-t_nonlin_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`
-t_nonlin_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
+t_nonlin_CFLAGS =  @PLOTTER_CFLAGS@
+t_nonlin_LDFLAGS = @PLOTTER_LDFLAGS@
 t_nonlin_LDADD = $(top_builddir)/src/libeegtools.la
 
 # t_testfilter_SOURCES = t_testfilter.c 
@@ -54,10 +54,10 @@ t_nonlin_LDADD = $(top_builddir)/src/libeegtools.la
 # t_dtw_LDADD = $(top_builddir)/src/libeegtools.la
 
 
-t_padtw_SOURCES = t_padtw.c
-t_padtw_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`
-t_padtw_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
-t_padtw_LDADD = $(top_builddir)/src/libeegtools.la
+# t_padtw_SOURCES = t_padtw.c
+# t_padtw_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`
+# t_padtw_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
+# t_padtw_LDADD = $(top_builddir)/src/libeegtools.la
 
 # t_adtw_markers_SOURCES = t_adtw_markers.c
 # t_adtw_markers_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`
@@ -69,7 +69,7 @@ t_padtw_LDADD = $(top_builddir)/src/libeegtools.la
 # t_timefreq_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
 # t_timefreq_LDADD = $(top_builddir)/src/libeegtools.la
 
-t_test_SOURCES = t_test.c
-t_test_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`
-t_test_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
-t_test_LDADD = $(top_builddir)/src/libeegtools.la
+# t_test_SOURCES = t_test.c
+# t_test_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`
+# t_test_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
+# t_test_LDADD = $(top_builddir)/src/libeegtools.la

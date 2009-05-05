@@ -1,5 +1,5 @@
 # set the include path found by configure
-AM_CPPFLAGS =  -I$(build_dir)/src $(all_includes) --std=gnu99 -Wall @DEBUG_FLAGS@ `@GSL_CONFIG@ --cflags`
+AM_CPPFLAGS =  -Isrc $(all_includes) --std=gnu99 -Wall @DEBUG_FLAGS@ `@GSL_CONFIG@ --cflags`
 
 # the library search path.
 lib_LTLIBRARIES = libeegtools.la

@@ -32,7 +32,8 @@
 
 
 /* optional args for recurrence plots */
-#define RPLOT_FAN 1
+#define RPLOT_NONE 0
+#define RPLOT_FAN  1
 /* #define RPLOT_DIST 2 */
 
 #ifdef __cplusplus
@@ -52,8 +53,11 @@ extern "C" {
   /**\addtogroup los
 	*\{
 	*/
-  WarpPath* recplot_los_marwan( RecurrencePlot *R, int dx, int dy );
-  WarpPath* recplot_los_dtw   ( RecurrencePlot *R );
+  WarpPath* recplot_los_marwan       ( const RecurrencePlot *R, int dx, int dy );
+  WarpPath* recplot_los_dtw          ( const RecurrencePlot *R );
+  WarpPath* recplot_los_dtw_markers  ( const RecurrencePlot *R, int **markers, int nmarkers );
+  WarpPath* recplot_los_disttransform( const RecurrencePlot *R );
+  WarpPath* recplot_los_dtw_noise    ( const RecurrencePlot *R );
   /*\}*/
 
   /*\}*/

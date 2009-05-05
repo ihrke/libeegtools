@@ -64,7 +64,7 @@ extern "C" {
 
 
   void      free_cluster(Clusters *c);
-  void      print_cluster(const Clusters *c);
+  void      print_cluster(FILE *out, const Clusters *c);
   Clusters* init_cluster(int K, int maxN);
   void      copy_cluster(Clusters *dest, const Clusters *src);
   int       compare_clusters(const Clusters *c1, const Clusters *c2);
@@ -85,7 +85,8 @@ extern "C" {
   
   double** gap_get_reference_distribution_simple( const double **X, int n, int p, double **Xr );
   double** gap_get_reference_distribution_svd   ( const double **X, int n, int p, double **Xr );
-  double   get_within_scatter(const double **d, int N, const Clusters *c);
+  double   get_within_scatter (const double **d, int N, const Clusters *c);
+  double   get_between_scatter(const double **d, int N, const Clusters *c);
   /** \} */
 
 

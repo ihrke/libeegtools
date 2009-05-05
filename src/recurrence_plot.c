@@ -38,7 +38,7 @@ RecurrencePlot* recplot_init( int m, int n, double epsilon, int flags ){
   R->nepsilon = 0;
   R->epsilon = NULL;
   R->fixed_epsilon = -1;
-  R->fan = -1;
+  R->fan = 0;
 
   if( flags & RPLOT_FAN ){
 	 R->fan = (int) epsilon;
@@ -184,8 +184,8 @@ void recplot_calculate( RecurrencePlot *R, PhaseSpace *p1,
 	 5. (i,j) = (i^,j^), goto 2.
 	 \endcode
  */
-WarpPath* recplot_los_marwan( RecurrencePlot *R, int dx, int dy ){
-  WarpPath *P;
+WarpPath* recplot_los_marwan( const RecurrencePlot *R, int dx, int dy ){
+  WarpPath *P,*P2;
   int ii, ij,   /* current LOS-point */
 	 xcont,ycont,/* continue in x/y direction flag */
 	 deltawi, deltawj, /* addition in x/y direction to (wi,wj) */
@@ -294,9 +294,33 @@ WarpPath* recplot_los_marwan( RecurrencePlot *R, int dx, int dy ){
 	 P->t2[pidx]=ij;
 	 pidx++;
   } /* while !reached_border */
-  P->n = pidx;
+  P->t1[pidx]=R->m;
+  P->t2[pidx]=R->n;
+  P->n = ++pidx;
 
-  return P;
+  /* fill gaps with bresenham */
+  P2 = init_warppath( NULL, R->m, R->n );
+  pidx = 0;
+  int nump;
+  int *line;
+  line = (int*)malloc( R->m*R->n*2*sizeof(int)); /* much too much */
+
+  for( i=0; i<P->n-1; i++ ){
+	 nump = bresenham_howmany_points( P->t1[i], P->t2[i], P->t1[i+1], P->t2[i+1] );
+	 line = bresenham( P->t1[i], P->t2[i], P->t1[i+1], P->t2[i+1], line );
+	 dprintf(" (%i,%i)->(%i,%i)\n", P->t1[i], P->t2[i], P->t1[i+1], P->t2[i+1] );
+	 for( j=0; j<nump; j++ ){
+		dprintf(" line=(%i,%i)\n", line[(2*j)+0], line[(2*j)+1]);
+		P2->t1[pidx++]=line[(2*j)+0];
+		P2->t2[pidx  ]=line[(2*j)+1];
+	 }
+  }
+  P2->n = pidx;
+
+  free_warppath( P );
+  free( line );
+
+  return P2;
 }
 
 /** Calculate the Line-Of-Synchrony of a Cross-Recurrence-Plot using 
@@ -311,14 +335,11 @@ WarpPath* recplot_los_marwan( RecurrencePlot *R, int dx, int dy ){
 	 \endcode
 	 (see \ref dtw for details)
  */
-WarpPath* recplot_los_dtw( RecurrencePlot *R ){
+WarpPath* recplot_los_dtw( const RecurrencePlot *R ){
   double **d;
   WarpPath *P;
 
-  /* if( R->m != R->n ){ */
-  /* 	 errprintf(" Sorry, right now, we can only handle square matrices, got (%i,%i)\n", R->m, R->n ); */
-  /* 	 return NULL; */
-  /* } */
+
   d = matrix_init( R->m, R->n );
   matrix_copy( (const double**)R->R, d, R->m, R->n ); 
 
@@ -330,6 +351,165 @@ WarpPath* recplot_los_dtw( RecurrencePlot *R ){
   dtw_cumulate_matrix( d, R->m, R->n );
   //matrix_normalize_by_max( D, R->m, R->n );
   P = dtw_backtrack( (const double**) d, R->m, R->n, NULL );
+
+  matrix_free( d, R->m );
+
+  return P;
+}
+
+/** Calculate the Line-Of-Synchrony of a Cross-Recurrence-Plot using 
+	 a regularized dynamic time-warping strategy.
+
+	 Algorithm:
+	 \code
+	 Input: RecurrencePlot R (1 where recurrence, 0 otherwise)
+	 1. calculate d = 1-R;
+	 2. get the regularization function G that is the distance transform of the
+	    linear interpolation between corresponding points in time 
+	 3. d = d*G;
+	 4. cumulate d, such that D[jk] = min{ D[j-1k], D[jk-1], D[j-1k-1] }
+	 5. Backtrack
+	 \endcode
+	 (see \ref dtw for details)
+
+	 \param R the recurrence plot
+	 \param markers 2xnmarkers array; markers[0] is markers of 1st signal,
+	                markers[1] for second; if NULL, { {0,n-1}, {0,n-1} } is used
+	 \param nmarkers number of markers
+	 \return the warping function
+ */
+WarpPath* recplot_los_dtw_markers( const RecurrencePlot *R, int **markers, int nmarkers ){
+  double **d, **G;
+  WarpPath *P;
+  int mflag=0;
+  int n;
+
+  n = R->m;
+  d = matrix_init( R->m, R->n );
+  matrix_copy( (const double**)R->R, d, R->m, R->n ); 
+
+  /* flip binary matrix */
+  scalar_minus_matrix( 1.0, d, R->m, R->n );
+
+  /* add a bias such that f is preferred */
+  if( !markers ){
+	 mflag = 1;
+	 markers = (int**)malloc( 2*sizeof( int* ) );
+	 markers[0] = (int*)malloc( 2*sizeof( int ) );
+	 markers[1] = (int*)malloc( 2*sizeof( int ) );
+	 markers[0][0] = 0; markers[1][0] = 0;
+	 markers[0][1] = n-1; markers[1][1] = n-1;
+  }
+  G = regularization_linear_points( markers[0], markers[1], nmarkers, R->m, ALLOC_IN_FCT );
+  matrix_normalize_by_max( G, R->m, R->n );
+
+  /* apply */
+  matrix_add_matrix( d, G, R->m, R->n );
+  
+  /* dtw */
+  dtw_cumulate_matrix( d, R->m, R->n );
+  P = dtw_backtrack( (const double**) d, R->m, R->n, NULL );
+
+  /* clean */
+  matrix_free( d, R->m );
+  matrix_free( G, R->m );
+  if( mflag ){
+	 free( markers[0] );
+	 free( markers[1] );
+	 free( markers );
+  }
+
+  return P;
+}
+
+/** Calculate the Line-Of-Synchrony of a Cross-Recurrence-Plot using 
+	 an algorithm based on the distance transform of the plot.
+
+	 Algorithm:
+	 \code
+	 Input: RecurrencePlot R (1 where recurrence, 0 otherwise)
+	 1. calculate d = DT(R) \ref disttransform
+	 2. cumulate d, such that D[jk] = min{ D[j-1k], D[jk-1], D[j-1k-1] }
+	 3. Backtrack
+	 \endcode
+	 (see \ref dtw for details)
+
+	 \param R the recurrence plot
+	 \return the warping function
+ */
+WarpPath* recplot_los_disttransform( const RecurrencePlot *R ){
+  WarpPath *P;
+  int **I;
+  double **d;
+  int i,j;
+
+  /* dummy, needed for distance transform */
+  I = (int**) malloc( R->m*sizeof( int* ) );
+  for( i=0; i<R->m; i++ ){
+	 I[i] = (int*) malloc( R->n*sizeof( int ) );
+	 for( j=0; j<R->n; j++ ){
+		I[i][j] = 0;
+		if( R->R[i][j]>0 ){
+		  I[i][j] = 1;
+		}
+	 }
+  }
+
+  d = disttransform_deadreckoning( I, R->m, R->n, ALLOC_IN_FCT );
+  dtw_cumulate_matrix( d, R->m, R->n );
+  P = dtw_backtrack( (const double**) d, R->m, R->n, NULL );
+
+  /* free */
+  matrix_free( d, R->m );
+  for( i=0; i<R->m; i++ )
+	 free( I[i] );
+  free( I );
+
+  return P;
+}
+
+/** Calculate the Line-Of-Synchrony of a Cross-Recurrence-Plot using 
+	 a dynamic time-warping strategy.
+
+	 Algorithm:
+	 \code
+	 Input: RecurrencePlot R (1 where recurrence, 0 otherwise)
+	 1. calculate d = 2-R;
+	 2. add a small amount of noise:
+	     if d_jk = 1, d_jk = d_jk + epsilon
+	 2. cumulate d, such that D[jk] = min{ D[j-1k], D[jk-1], D[j-1k-1] }
+	 3. Backtrack
+	 \endcode
+	 (see \ref dtw for details)
+ */
+WarpPath* recplot_los_dtw_noise( const RecurrencePlot *R ){
+  double **d;
+  WarpPath *P;
+  double noise;
+  double noiseamp = 0.01;
+  int i,j;
+
+  srand((long)time(NULL));
+  d = matrix_init( R->m, R->n );
+  matrix_copy( (const double**)R->R, d, R->m, R->n ); 
+
+  /* flip binary matrix */
+  scalar_minus_matrix( 2.0, d, R->m, R->n );
+  
+  /* add small amount of noise */
+  for( i=0; i<R->m; i++ ){
+	 for( j=0; j<R->n; j++ ){
+		noise = noiseamp*(((double)rand()) / RAND_MAX);		
+		if( d[i][j]<2 )
+		  d[i][j] += noise;
+	 }
+  }
+  
+  dtw_cumulate_matrix( d, R->m, R->n );
+
+  P = dtw_backtrack( (const double**) d, R->m, R->n, NULL );
+
+  matrix_free( d, R->m );
 
   return P;
 }

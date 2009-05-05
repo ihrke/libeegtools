@@ -16,9 +16,13 @@
 #include "helper.h"
 #include "clustering.h"
 #include "warping.h"
+
+#ifdef PLOTTER
 #include <libplotter/cplotter.h>
+#endif 
+
 #include <gsl/gsl_spline.h>
-#define PL(code)
+
 
 /* ---------------------------------------------------------------------------- 
    -- main routine                                                           -- 
@@ -61,9 +65,11 @@ int interpolation_test(int argc, char **argv){
 
   s2 = resample_gsl( s1, n, newn, ALLOC_IN_FCT, gsl_interp_cspline );
 
+#ifdef PLOTTER
   plot_format( NULL, s1, n, "r-");
   plot_format( NULL, s2, newn, "b.");
   plot_show();
+#endif
 
   return 0;
 }
@@ -94,12 +100,14 @@ int padtw_test(int argc, char **argv){
   eegtrials_dtw_hierarchical( eeg, Delta, N, new, settings );
   write_eegdata_ascii_file( "test.out", new );
 
+
+#ifdef PLOTTER
   for( i=0; i<N; i++ ){
 	 plot_format( eeg->times, eeg->data[i]->d[0], n, "g");
   }
   plot_format( eeg->times, new->d[0], n, "r");
-
   plot_show(); 
+#endif
 
   /* cleaning up */
   free_eegdata_trials( eeg );

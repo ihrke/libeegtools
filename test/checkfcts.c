@@ -13,6 +13,15 @@
 
 #include "checkfcts.h"
 
+/** Compare two doubles to a certain precision.
+ * cmpdouble()
+ *
+ * \param precision to which position after comma it is compared
+ * \return 
+ *   - -1 if d1<d2
+ *   - 0 if d1==d2
+ *   - 1 if d1>d2
+ */
 int cmpdouble(double d1, double d2, int precision){
   double epsilon;
   epsilon = pow(10, -1*precision);
@@ -23,27 +32,49 @@ int cmpdouble(double d1, double d2, int precision){
   else if(d1<d2) return -1;
   else return 1;
 }
-
+/** Compares two double arrays.
+ * isequal_doublearray()
+ *
+ * \param precision \see cmpdouble()
+ * \return
+ *   - 0 equal they are
+ *   - 1 otherwhise
+ * \todo implement it
+ */
 int isequal_doublearray(const double *d1, const double *d2, int n, int precision){
-
+  int i, res;
+  for( i=0; i<n; i++ ){
+	 res=cmpdouble(d1[i], d2[i], precision);
+	 if( res )
+		return res;
+  }
+  return 0;
 }
 
+/** Compare an array of doubles to doubles stored binary file.
+ * The data must be stored in 32 bit floats
+ *
+ * \param precision to which position after comma it is compared
+ * \return 
+ *   - 0 if everything is equal
+ *   - 1 if there is an element that is not equal
+ * \todo check it, does not seem to work properly
+ */
 int isequal_doublearray_binfile(double *d, int n, const char *filename, int precision){
   FILE *f;
   double *d2;
   int i, flag=1;
 
   d2 = (double*)malloc(n*sizeof(double));
-  if((f=fopen(filename, "rb"))==NULL) return -1;
-  if(fread(d, n*sizeof(double), 1, f)<n) return -1;
+  if((f=fopen(filename, "rb"))==NULL){
+	 errprintf("opening file '%s' failed\n", filename);
+	 return -1;
+  }
+
+  ffread(d2, sizeof(double), n, f);
   fclose(f);
 
-  for(i=0; i<n; i++){
-    printf("d[%i]=%.10f, d2[%i]=%.10f\n", i, d[i], i, d2[i]);
-    if(cmpdouble(d[i], d2[i], precision)!=0){
-      flag=0; break;
-    }
-  }
+  flag = isequal_doublearray( d, d2, n, precision );
   free(d2);
   return flag;
 }

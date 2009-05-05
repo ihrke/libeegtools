@@ -27,25 +27,40 @@
 	 \param f distance function
 	 \param X data (nxp)
 	 \param D output matrix or NULL -> own memory allocation
+	 \param progress NULL or a progressbar
+	 \return the distance matrix between all columns in X
  */
 double** vectordist_distmatrix( VectorDistanceFunction f, 
 										  const double **X, int n, int p, double **D, 
+										  ProgressBarFunction progress,
 										  void *userdata ){
   int i,j;
+  int idx;
   
   if( D==ALLOC_IN_FCT ){
 	 warnprintf(" allocating matrix in fct\n");
 	 D = matrix_init( n, n );
   }
+  if( progress ){
+	 progress( PROGRESSBAR_INIT, n*(n-1)/2 );
+  }
   
+  idx=1;
   for( i=0; i<n; i++ ){
 	 for( j=i+1; j<n; j++ ){
+		if( progress ){
+		  progress( PROGRESSBAR_CONTINUE_LONG, idx );
+		}
 		D[i][j] = f( (double*)X[i], (double*)X[j], p, userdata );
 		D[j][i] = D[i][j];
 		if( isnan( D[j][i] ) ){
 		  errprintf("D[%i][%i] is nan\n", j, i);
 		}
+		idx++;
 	 }
+  }
+  if( progress ){
+	 progress( PROGRESSBAR_FINISH, 0 );
   }
 
   return D;
@@ -67,28 +82,104 @@ double vectordist_euclidean( double *x1, double *x2, int p, void *userdata ){
 
   return d;
 }
+/** Euclidean distance between normalized vector x1 and x2.
+	 Normalization is defined by
+	 \f[
+	 \hat{x}_i = \frac{x_i-\langle x_i \rangle_i}{\sqrt{\langle x_i^2\rangle_i}}
+	 \f]
 
-/** compute the cumulated sum along the regularized warping path.
+	 \param x1, x2 vectors of size p
+	 \param userdata is ignored
+ */
+double   vectordist_euclidean_normalized( double *x1, double *x2, int p, void *userdata ){
+  int i;
+  double d;
+  double avg1, avg2,
+	 rms1=0, rms2=0;
+  double norm1,norm2; /* normalized signal at time t */
+	 
+  avg1 = gsl_stats_mean(x1, 1, p);
+  avg2 = gsl_stats_mean(x2, 1, p);
+  
+  for(i=0; i<p; i++){
+	 rms1 += SQR( x1[i] );
+	 rms2 += SQR( x2[i] );
+  }
+  
+  rms1 = sqrt(rms1/(double)p);
+  rms2 = sqrt(rms2/(double)p);
+
+  d=0.0;
+  for( i=0; i<p; i++ ){
+	 norm1 = (x1[i]-avg1)/rms1;
+	 norm2 = (x2[i]-avg2)/rms2;
+
+	 d += SQR( norm1-norm2 );
+  }
+  d = sqrt( d );
+
+  return d;
+}
+/** Distance which sums the absolute deviation from the main 
+	 diagonal of the dtw-warp-path computed on x1 and x2.
+	 \param x1, x2 vectors of size p
+	 \param userdata is (PointwiseDistanceFunction, userdata for distfunction)
+ */
+double   vectordist_dtw( double *x1, double *x2, int p, void *userdata ){
+  double d;
+  double **D;
+  PointwiseDistanceFunction f;
+  WarpPath *P;
+  double diag1[2], diag2[2], path[2];
+  int i;
+
+  f = *((PointwiseDistanceFunction)userdata);
+  userdata += sizeof(PointwiseDistanceFunction);
+
+  D = f( x1, p, x2, p, NULL, userdata );
+  dtw_cumulate_matrix( D, p, p );
+  P = dtw_backtrack( D, p, p, NULL );
+
+  d = 0;
+  diag1[0] = 0;   
+  diag1[1] = 0;
+  diag2[0] = p;
+  diag2[0] = p; /* line through (0,0), (p,p) */
+  for( i=0; i<P->n; i++ ){
+	 path[0] = (double)P->t1[i];
+	 path[1] = (double)P->t2[i];
+	 d += dist_point_line( path, diag1, diag2 );
+  }
+
+  matrix_free( D, p );
+  free_warppath( P );
+
+  return d;
+}
+
+/** \todo
+	 compute the cumulated sum along the regularized warping path.
 	 \param userdata (int)userdata[0] is nmarkers; 
 	       ((int)userdata)[1] and following is an 2 x nmarkers matrix 
 			 given the corresponding markers in the signals.
  */
 double   vectordist_regularized_dtw( double *x1, double *x2, int p, void *userdata ){
-  int nmarkers;
-  int **markers;
-  double **G, **D;
-  double maxsigma;
-  double Djk;
+  /* int nmarkers; */
+  /* int **markers; */
+  /* double **G, **D; */
+  /* double maxsigma; */
+  /* double Djk; */
 
-  nmarkers = *((int*)userdata);
-  userdata = ((int*)userdata)+1;
-  maxsigma = *((double*)userdata);
-  userdata = ((double*)userdata)+1;
-  markers = (int**)userdata;
+  /* nmarkers = *((int*)userdata); */
+  /* userdata = ((int*)userdata)+1; */
+  /* maxsigma = *((double*)userdata); */
+  /* userdata = ((double*)userdata)+1; */
+  /* markers = (int**)userdata; */
   
-  G = regularization_gaussian_line( markers[0], markers[1], nmarkers, p, maxsigma, NULL );
+  /* G = regularization_gaussian_line( markers[0], markers[1], nmarkers, p, maxsigma, NULL ); */
   /** TODO **/
-  return Djk;
+  errprintf("Not implemented yet, HUA, HUA!\n");
+  return -1;
 }
 
 
@@ -244,6 +335,10 @@ double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, do
   sp2 = spectrogram_stft( d2, n2, sample_frequency,
 								  window, winlength, N_freq, N_time,
 								  corner_freqs, ALLOC_IN_FCT );
+  if( !sp1 || !sp2 ){
+	 errprintf("Spectrogram broken\n");
+	 return NULL;
+  }
   spectrogram_compute_powerspectrum( sp1 );
   spectrogram_compute_powerspectrum( sp2 );
 
@@ -373,6 +468,44 @@ double** eeg_distmatrix_stft_channel( const EEGdata *s1, const EEGdata *s2,
   return d;
 }
 
+double** eeg_distmatrix_recplot_losdtwnoise_channel( const EEGdata *s1,const  EEGdata *s2, 
+																	  int channel, double **d, void *params ){
+  int i,j; 
+  double noise;
+  double noiseamp = 0.01;
+  RecurrencePlot *R;
+  PhaseSpace *p1, *p2;
+  SettingsHierarchicalDTW *settings;
+  settings = (SettingsHierarchicalDTW*)params;
+
+  if( d==ALLOC_IN_FCT ){
+	 d=matrix_init( s1->n, s2->n );
+  }
+  srand((long)time(NULL));
+  p1 = phspace_init( settings->m, settings->tau, s1->d[channel], s1->n );
+  p2 = phspace_init( settings->m, settings->tau, s2->d[channel], s2->n );
+
+  R = recplot_init( s1->n, s2->n, settings->FAN, RPLOT_FAN );
+  recplot_calculate( R, p1, p2 );
+
+  matrix_copy( (const double**)R->R, d, R->m, R->n ); 
+  
+  /* flip binary matrix */
+  scalar_minus_matrix( 2.0, d, R->m, R->n );
+  
+  /* add small amount of noise */
+  for( i=0; i<R->m; i++ ){
+	 for( j=0; j<R->n; j++ ){
+		noise = noiseamp*(((double)rand()) / RAND_MAX);		
+		if( d[i][j]<2 )
+		  d[i][j] += noise;
+	 }
+  }
+
+  return d;
+}
+
+
 /** compute trial-to-trial distance matrix for all trials in eeg-struct.
 	 \todo implement that the called distance function incorporates time-markers or whatever is needed
 	 via the userdata
@@ -380,8 +513,9 @@ double** eeg_distmatrix_stft_channel( const EEGdata *s1, const EEGdata *s2,
 	 \param f the function used to compare two ERPs
 	 \param channel which electrode-channel
 	 \param d user allocated memory, or NULL -> own memory is alloc'ed
+	 \param userdata userdata is passed to the vectordist_*() function
  */
-double** eegtrials_distmatrix_channel( EEGdata_trials *eeg, VectorDistanceFunction f, int channel, double **d ){
+double** eegtrials_distmatrix_channel( EEGdata_trials *eeg, VectorDistanceFunction f, int channel, double **d, void *userdata ){
   int i,j;
 
   if( d==ALLOC_IN_FCT ){
@@ -390,9 +524,10 @@ double** eegtrials_distmatrix_channel( EEGdata_trials *eeg, VectorDistanceFuncti
   }
   
   for( i=0; i<eeg->ntrials; i++ ){
+	 d[i][i] = 0.0;
 	 for( j=i+1; j<eeg->ntrials; j++ ){
 		d[i][j] = f( (eeg->data[i]->d[channel]), 
-						 (eeg->data[j]->d[channel]), eeg->nsamples, NULL );
+						 (eeg->data[j]->d[channel]), eeg->nsamples, userdata );
 		d[j][i] = d[i][j];
 		if( isnan( d[j][i] ) ){
 		  errprintf("D[%i][%i] is nan\n", j, i);
@@ -405,4 +540,84 @@ double** eegtrials_distmatrix_channel( EEGdata_trials *eeg, VectorDistanceFuncti
 
 double pointdist_euclidean(double x, double y){
   return fabs(x-y);
+}
+
+/** Compute distance from point p to the line through points x and y. 
+	 \code
+	 d = abs(det([y-x;p-x]))/norm(y-x);
+	 \endcode
+
+	 \param p point in question (x,y)-plane
+	 \param x,y points specify the line x=(x_1,x_2), y=(y_1, y_2)
+ */
+double   dist_point_line(double *p, double *x, double *y){
+  double det;
+  double d;
+  det = ((y[0]-x[0])*(p[1]-x[1])) - ((y[1]-x[1])*(p[0]-x[0]));
+  //dprintf("det=%f\n", det);
+  d = (double)ABS( det ) / (double)sqrt( SQR(y[0]-x[0]) + SQR(y[1]-x[1]) );
+
+  return d;
+}
+
+/** computes the distance between two warping-functions. 
+	 It is assumed that both pathes have the same starting and endpoint.
+
+	 Algorithm:
+	 \code
+	 1. compute distance transform for p1
+	 2. line-integral of p2 through DT(p1) 
+	 \endcode
+ */
+double   pathdist_euclidean_dt(WarpPath *p1, WarpPath *p2){
+  int **I;
+  int n,m,
+	 i,j;
+  double dist;
+  double **d;
+  
+  n = p1->t1[p1->n-1]+1;
+  m = p1->t2[p1->n-1]+1;
+
+  dprintf("calculate distance with (%i x %i) points\n", n, m );
+
+  I = (int**)malloc( n*sizeof(int*) );
+  for( i=0; i<n; i++){
+	 I[i] = (int*)malloc( m*sizeof(int) );
+	 for( j=0; j<m; j++ ){
+		I[i][j] = 0;
+	 }
+  }
+
+  for( i=0; i<p1->n; i++ ){
+	 //dprintf(" (%i , %i)\n", p1->t1[i], p1->t2[i] );
+	 I[p1->t1[i]][p1->t2[i]]=1;
+  }
+  
+  dprintf(" init done \n");
+	 
+  d = disttransform_deadreckoning( I, n, m, ALLOC_IN_FCT );
+  matrix_divide_scalar( d, n, m, matrix_max( d, n, m, NULL, NULL ) );
+  dprintf(" dt done \n");
+
+  dist = 0.0;
+  for( i=0; i<p2->n; i++ ){
+	 //	 dprintf(" (%i , %i)\n", p2->t1[i], p2->t2[i] );
+	 if(  p2->t1[i]>=n ||  p2->t2[i]>=n ){
+		warnprintf("points in P2 do not fall in P1,  (%i , %i) -> ignored\n", p2->t1[i], p2->t2[i] );
+	 } else {
+		dist += d[p2->t1[i]][p2->t2[i]];
+	 }
+  }
+  
+  //  dist /= (double)n*m;
+  dprintf(" dist=%f compute done \n", dist);
+ 
+  for( i=0; i<n; i++ ){
+	 free( I[i] );
+  }
+  free(I); 
+  //matrix_free( d, m );
+
+  return dist;
 }
