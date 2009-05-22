@@ -1,3 +1,4 @@
+
 /*
 ** check_all.h
 ** 
@@ -19,5 +20,6 @@
 Suite * init_denoising_suite (void);
 Suite * init_checkfct_suite  (void);
 Suite * init_distance_suite  (void);
+Suite * init_hmm_suite  (void);
 
 #endif 	    /* !CHECK_ALL_H_ */

@@ -38,6 +38,7 @@
 #include "helper.h"
 #include "mathadd.h"
 #include "distances.h"
+#include "fidlib/fidlib.h"
 
 
 #ifdef __cplusplus
@@ -109,14 +110,21 @@ extern "C" {
 
  /* ------------------------------ 
 	  -- Bandpass filter design  --
-	  ------------------------------ */
+	  ------------------------------ */ 
+ /** \ingroup frequence_filter
+	*\{
+	*/
+  void eeg_filter_fidlib( EEGdata *eeg, double sampling_rate, const char *spec );
+  /** \} */
+
+  /**\cond OBSOLETE */
   /** \ingroup filter_design
 	*\{
 	*/
   void butterworth_design_bandpass( int order, double sampling_rate, double passband[2],
 												double *bcoeff, double *acoeff );
   /** \} */
-
+  /**\endcond */
 
 #ifdef __cplusplus
 }

@@ -229,6 +229,25 @@ double vector_min( double *v, int n, int *idx ){
 
   return min;
 }
+/** find max element in vector.
+	 \param v vector of length n
+	 \param idx the index in v where v[i] is max
+	 \return v[i]
+ */
+double vector_max( double *v, int n, int *idx ){
+  int i;
+  double max=DBL_MIN;
+  *idx=-1;
+
+  for( i=0; i<n; i++ ){
+	 if( v[i] > max ){
+		max = v[i];
+		*idx = i;
+	 }
+  }
+
+  return max;
+}
 
 /** create a random permutation of the elements in permut.
 	 This is crude and simple, the function graps n pairs of indices and swaps them.

@@ -3,7 +3,7 @@ AM_LDFLAGS = `@GSL_CONFIG@ --libs`
 
 METASOURCES = AUTO
 
-noinst_PROGRAMS = t_nonlin #t_padtw t_test t_gapstat
+noinst_PROGRAMS = t_hmm t_testfilter #t_nonlin t_padtw t_test t_gapstat
 #t_denoise t_denoisestat t_gapstat \
 # t_readeeglab t_testfilter t_rawreadertest t_clustering t_gapstat \
 #t_dtw t_padtw t_adtw_markers t_timefreq t_test t_filterdesign 
@@ -32,15 +32,20 @@ noinst_PROGRAMS = t_nonlin #t_padtw t_test t_gapstat
 # t_gapstat_LDFLAGS = `@PLOTTER_CONFIG_LDFLAGS@`
 # t_gapstat_LDADD = $(top_builddir)/src/libeegtools.la
 
-t_nonlin_SOURCES = t_nonlin.c
-t_nonlin_CFLAGS =  @PLOTTER_CFLAGS@
-t_nonlin_LDFLAGS = @PLOTTER_LDFLAGS@
-t_nonlin_LDADD = $(top_builddir)/src/libeegtools.la
+# t_nonlin_SOURCES = t_nonlin.c
+# t_nonlin_CFLAGS =  @PLOTTER_CFLAGS@
+# t_nonlin_LDFLAGS = @PLOTTER_LDFLAGS@
+# t_nonlin_LDADD = ..//src/libeegtools.la
 
-# t_testfilter_SOURCES = t_testfilter.c 
-# t_testfilter_CFLAGS =  `@PLOTTER_CONFIG@ --with-capi --cflags`
-# t_testfilter_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
-# t_testfilter_LDADD = $(top_builddir)/src/libeegtools.la 
+t_hmm_SOURCES = t_hmm.c
+t_hmm_CFLAGS =  @PLOTTER_CFLAGS@
+t_hmm_LDFLAGS = @PLOTTER_LDFLAGS@
+t_hmm_LDADD = ../src/libeegtools.la
+
+t_testfilter_SOURCES = t_testfilter.c 
+t_testfilter_CFLAGS =  @PLOTTER_CFLAGS@
+t_testfilter_LDFLAGS = @PLOTTER_LDFLAGS@
+t_testfilter_LDADD = ../src/libeegtools.la 
 
 
 # t_filterdesign_SOURCES = t_filterdesign.c 

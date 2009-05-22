@@ -171,7 +171,7 @@ AM_CONDITIONAL([BUILD_CHECKS], [test "x$with_unittest" = xyes] )
   ### config files
 # ----------------------------------------------------------------------
 AM_CONFIG_HEADER([config.h])
-AC_OUTPUT(Makefile src/Makefile misc/Makefile progs/Makefile)
+AC_OUTPUT(Makefile src/Makefile misc/Makefile programs/Makefile examples/Makefile)
 AC_OUTPUT(src/definitions.h matlab/Makefile)
 AC_OUTPUT(test/Makefile eeglab_plugin/Makefile scipy/Makefile)
 

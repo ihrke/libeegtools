@@ -9,4 +9,4 @@ noinst_HEADERS = clusterplot.R paramplot.R paramscan.py channels.R clusterplot.R
 rawplot_SOURCES = rawplot.c
 rawplot_CFLAGS = @PLOTTER_CFLAGS@
 rawplot_LDFLAGS = @PLOTTER_LDFLAGS@
-rawplot_LDADD = $(top_builddir)/src/libeegtools.la
+rawplot_LDADD = ../src/libeegtools.la

@@ -38,6 +38,9 @@ double* simple_average_2v(const double *s1, const double *s2, int n, double *avg
 	 \f[
 	 \hat{s}(t) = \frac{1}{N}\sum_{i=1}^{N}s_i(t)
 	 \f]
+	 \param s - data N x n (trials x samples)
+	 \param N trials
+	 \param n samples
  * \param avg - user-allocated memory of length n; if NULL, the function 
  *              allocates the memory
  */
@@ -48,7 +51,7 @@ double* simple_average_nv(const double **s, int N, int n, double *avg){
   for(i=0; i<n; i++) {
 	 avg[i] = 0;
 	 for( j=0; j<N; j++ ){
-		avg[i] += s[i][j];
+		avg[i] += s[j][i];
 	 }
 	 avg[i] /= (double) N;
   }

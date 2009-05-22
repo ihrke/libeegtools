@@ -165,6 +165,7 @@ extern "C" {
 		\{
   */
   double  vector_min( double *v, int n, int *idx );
+  double  vector_max( double *v, int n, int *idx );
   double* vector_init( double *v, int n,  double val );
   void    vector_minus_scalar( double *v, int n, double val );
   double* vector_complex_to_real( const Complex *vc, double *vr, int n );

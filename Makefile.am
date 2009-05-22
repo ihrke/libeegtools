@@ -3,6 +3,6 @@
 AUTOMAKE_OPTIONS = foreign 1.4
 
 
-SUBDIRS = src progs misc test matlab eeglab_plugin scipy
+SUBDIRS = src misc test matlab eeglab_plugin scipy examples programs
 
 

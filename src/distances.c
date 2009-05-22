@@ -225,9 +225,14 @@ double** signaldist_euclidean_derivative( const double *s1, int n1, const double
 	 norm1p,norm2p;    /* normalized signal at time t-1 */
   double theta1,theta2;
 
-  theta1 = *((double*)userdata);
-  userdata = ((double*)userdata)+1;
-  theta2 = *((double*)userdata);
+  if( !userdata ){
+	 theta1=1.0;
+	 theta2=1.0;
+  } else {
+	 theta1 = *((double*)userdata);
+	 userdata = ((double*)userdata)+1;
+	 theta2 = *((double*)userdata);
+  }
 
   if( d==ALLOC_IN_FCT ){
 	 d=matrix_init( n1, n2 );
@@ -397,10 +402,15 @@ double** eeg_distmatrix_euclidean_derivative_channel( const EEGdata *s1, const E
 																		void *params ){ 
   /* get params from void pointer */
   SettingsHierarchicalDTW *settings;
-  settings = (SettingsHierarchicalDTW*)params;
   double theta[2];
-  theta[0]=settings->theta1;
-  theta[1]=settings->theta2;
+  settings = (SettingsHierarchicalDTW*)params;
+  if( !settings ){
+	 theta[0]=1.0;
+	 theta[1]=1.0;
+  } else {
+	 theta[0]=settings->theta1;
+	 theta[1]=settings->theta2;
+  }
 
   if( eegdata_cmp_settings( s1, s2 ) ){
 	 errprintf(" ERROR: two EEGdata sets are not similar enough\n");

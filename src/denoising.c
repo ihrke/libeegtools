@@ -366,6 +366,184 @@ void eeg_wavelet_denoise( EEGdata *eeg, int L,
   }
 }
 
+/** Filters EEG data using Fidlib from Jim Peters (http://uazu.net/fidlib/). 
+	 Filtering is done in place.
+	 \param eeg
+	 \param sampling_rate in Hz
+	 \param spec filter-specification as given in Fidlib
+	 \code
+	 The spec consists of a series of letters usually followed by the order
+	 of the filter and then by any other parameters required, preceded by
+	 slashes.  For example:
+	 
+	 LpBu4/20.4    Lowpass butterworth, 4th order, -3.01dB at 20.4Hz
+	 BpBu2/3-4     Bandpass butterworth, 2nd order, from 3 to 4Hz
+	 BpBu2/=3-4    Same filter, but adjusted exactly to the range given
+	 BsRe/1000/10  Bandstop resonator, Q=1000, frequency 10Hz
+	 
+	 Note that filter frequencies should be specified in the same units as
+	 the sampling rate, i.e. normally in Hz.  However, all filters work
+	 internally with the ratio of freq/sampling_rate, so you can use a
+	 sampling rate of 1.0 and frequency values of 0 to 0.5 (Nyquist) if you
+	 prefer.
+
+	 The auto-adjust option, selected by prefixing the frequency or frequency
+	 range with '=', automatically adjusts the -3.01dB points to the given
+	 frequencies with a kind of binary search.  
+	 This might be useful with some lower-order filters where the
+	 -3.01dB points don't come out quite right otherwise.
+	 \endcode
+	 Available Filters:
+	 \code
+	 BpRe/<value>/<freq>
+    Bandpass resonator, Q=<value> (0 means Inf), frequency <freq>
+	 BsRe/<value>/<freq>
+    Bandstop resonator, Q=<value> (0 means Inf), frequency <freq>
+	 ApRe/<value>/<freq>
+    Allpass resonator, Q=<value> (0 means Inf), frequency <freq>
+	 Pi/<freq>
+    Proportional-integral filter, frequency <freq>
+	 PiZ/<freq>
+    Proportional-integral filter, matched z-transform, frequency <freq>
+	 LpBe<order>/<freq>
+    Lowpass Bessel filter, order <order>, -3.01dB frequency <freq>
+	 HpBe<order>/<freq>
+    Highpass Bessel filter, order <order>, -3.01dB frequency <freq>
+	 BpBe<order>/<range>
+    Bandpass Bessel filter, order <order>, -3.01dB frequencies <range>
+	 BsBe<order>/<range>
+    Bandstop Bessel filter, order <order>, -3.01dB frequencies <range>
+	 LpBu<order>/<freq>
+    Lowpass Butterworth filter, order <order>, -3.01dB frequency <freq>
+	 HpBu<order>/<freq>
+    Highpass Butterworth filter, order <order>, -3.01dB frequency <freq>
+	 BpBu<order>/<range>
+    Bandpass Butterworth filter, order <order>, -3.01dB frequencies <range>
+	 BsBu<order>/<range>
+    Bandstop Butterworth filter, order <order>, -3.01dB frequencies <range>
+	 LpCh<order>/<value>/<freq>
+    Lowpass Chebyshev filter, order <order>, passband ripple <value>dB,
+	 -3.01dB frequency <freq>
+	 HpCh<order>/<value>/<freq>
+    Highpass Chebyshev filter, order <order>, passband ripple <value>dB,
+	 -3.01dB frequency <freq>
+	 BpCh<order>/<value>/<range>
+    Bandpass Chebyshev filter, order <order>, passband ripple <value>dB,
+	 -3.01dB frequencies <range>
+	 BsCh<order>/<value>/<range>
+    Bandstop Chebyshev filter, order <order>, passband ripple <value>dB,
+	 -3.01dB frequencies <range>
+	 LpBeZ<order>/<freq>
+    Lowpass Bessel filter, matched z-transform, order <order>, -3.01dB
+	 frequency <freq>
+	 HpBeZ<order>/<freq>
+    Highpass Bessel filter, matched z-transform, order <order>, -3.01dB
+	 frequency <freq>
+	 BpBeZ<order>/<range>
+    Bandpass Bessel filter, matched z-transform, order <order>, -3.01dB
+	 frequencies <range>
+	 BsBeZ<order>/<range>
+    Bandstop Bessel filter, matched z-transform, order <order>, -3.01dB
+	 frequencies <range>
+	 LpBuZ<order>/<freq>
+    Lowpass Butterworth filter, matched z-transform, order <order>, -3.01dB
+	 frequency <freq>
+	 HpBuZ<order>/<freq>
+    Highpass Butterworth filter, matched z-transform, order <order>, -3.01dB
+	 frequency <freq>
+	 BpBuZ<order>/<range>
+    Bandpass Butterworth filter, matched z-transform, order <order>, -3.01dB
+	 frequencies <range>
+	 BsBuZ<order>/<range>
+    Bandstop Butterworth filter, matched z-transform, order <order>, -3.01dB
+	 frequencies <range>
+	 LpChZ<order>/<value>/<freq>
+    Lowpass Chebyshev filter, matched z-transform, order <order>, passband
+	 ripple <value>dB, -3.01dB frequency <freq>
+	 HpChZ<order>/<value>/<freq>
+    Highpass Chebyshev filter, matched z-transform, order <order>, passband
+	 ripple <value>dB, -3.01dB frequency <freq>
+	 BpChZ<order>/<value>/<range>
+    Bandpass Chebyshev filter, matched z-transform, order <order>, passband
+	 ripple <value>dB, -3.01dB frequencies <range>
+	 BsChZ<order>/<value>/<range>
+    Bandstop Chebyshev filter, matched z-transform, order <order>, passband
+	 ripple <value>dB, -3.01dB frequencies <range>
+	 LpBuBe<order>/<value>/<freq>
+    Lowpass Butterworth-Bessel <value>% cross, order <order>, -3.01dB
+	 frequency <freq>
+	 LpBq<optional-order>/<value>/<freq>
+    Lowpass biquad filter, order <order>, Q=<value>, -3.01dB frequency <freq>
+	 HpBq<optional-order>/<value>/<freq>
+    Highpass biquad filter, order <order>, Q=<value>, -3.01dB frequency
+	 <freq>
+	 BpBq<optional-order>/<value>/<freq>
+    Bandpass biquad filter, order <order>, Q=<value>, centre frequency <freq>
+	 BsBq<optional-order>/<value>/<freq>
+    Bandstop biquad filter, order <order>, Q=<value>, centre frequency <freq>
+	 ApBq<optional-order>/<value>/<freq>
+    Allpass biquad filter, order <order>, Q=<value>, centre frequency <freq>
+	 PkBq<optional-order>/<value>/<value>/<freq>
+    Peaking biquad filter, order <order>, Q=<value>, dBgain=<value>,
+	 frequency <freq>
+	 LsBq<optional-order>/<value>/<value>/<freq>
+    Lowpass shelving biquad filter, S=<value>, dBgain=<value>, frequency
+	 <freq>
+	 HsBq<optional-order>/<value>/<value>/<freq>
+    Highpass shelving biquad filter, S=<value>, dBgain=<value>, frequency
+	 <freq>
+	 LpBl/<freq>
+    Lowpass Blackman window, -3.01dB frequency <freq>
+	 LpHm/<freq>
+    Lowpass Hamming window, -3.01dB frequency <freq>
+	 LpHn/<freq>
+    Lowpass Hann window, -3.01dB frequency <freq>
+	 LpBa/<freq>
+    Lowpass Bartlet (triangular) window, -3.01dB frequency <freq>
+
+	 \endcode
+*/
+void eeg_filter_fidlib( EEGdata *eeg, double sampling_rate, const char *spec ){
+  int len;
+  int i,j;
+  FidFilter *filt;
+  char *filtspec, *orgspec;
+  FidRun *run;
+  FidFunc *funcp;
+  void **fbuf;
+  
+  fbuf = (void**) malloc( eeg->nbchan*sizeof(void*));
+
+  filtspec = (char*) malloc( (strlen(spec)+10)*sizeof(char));
+  orgspec = filtspec;
+  memset( filtspec, 0, (strlen(spec)+10)*sizeof(char));
+  strcpy( filtspec, spec );
+  fid_parse( sampling_rate, &filtspec, &filt);
+  run= fid_run_new(filt, &funcp);
+
+  len= fid_run_bufsize(run);
+  for( i=0; i<eeg->nbchan; i++ ){
+	 fbuf[i]= fid_run_newbuf(run);
+  }
+  dprintf("Buffer initialized\n");
+  for( i=0; i<eeg->n; i++ ){
+	 for( j=0; j<eeg->nbchan; j++ ){
+		//		dprintf("Sample %i, channel %i\n", i, j );
+		eeg->d[j][i] = funcp( fbuf[j], eeg->d[j][i] );
+	 }
+  }
+  for( i=0; i<eeg->nbchan; i++ ){
+	 fid_run_freebuf(fbuf[i]);
+  }
+  free( fbuf );
+  fid_run_free(run);
+  free( filt );
+  free( orgspec ) ;
+}
+
+
+/* -------------------------------------------------------------------*/
+/**\cond OBSOLETE */
 
 /**\todo Not 100% certain that it works!
 
@@ -559,3 +737,5 @@ void estimate_kaiseralpha_bandpass( double passband[2], double A, double samplin
 double* fir_bandpass_design_window_method(  ){
   return NULL;
 }
+
+/**\endcond */

@@ -14,17 +14,7 @@
 #include "definitions.h"
 #include "helper.h"
 #include "denoising.h"
-
-#include "config.h"
-#ifdef HAVE_LIBPLOTTER
-#include <libplotter/cplotter.h>
-#define PL(code) (code)
-#else
-#define PL(code)
-#endif
-double fct(double x){
-  return x*x;
-}
+#include "writer.h"
 
 /* ---------------------------------------------------------------------------- 
    -- main routine                                                           -- 
@@ -32,31 +22,17 @@ double fct(double x){
 int main(int argc, char **argv){
   FILE *f;
   int i, j;
-
-  double *x, *y;
-  int n;
-  n=100;
-  x = (double*)malloc(n*sizeof(double));
-  y = (double*)malloc(n*sizeof(double));
-  for(i=0; i<n; i++){
-	 x[i] = (double)i/(double)n;
-	 y[i] = fct(x[i]);
+  EEGdata_trials *eeg;
+  
+  /* get data */
+  eeg=read_eegtrials_from_raw(argv[1]);
+  print_eegdata_trials(stderr, eeg);
+  
+  for( i=0; i<eeg->ntrials; i++ ){
+	 eeg_filter_fidlib( eeg->data[i], eeg->sampling_rate, "BpBu4/10-20" );
   }
-  
 
-  PL( plot_format(x, y, n, "b.") );
-  moving_average( y, n, 20 );
-  /*running_median( y, n, 20 );*/
-  PL( plot_format(x, y, n, "r.") );
-
-  /*  plot_fct(-10, 10, 0.1, fct, "--g");*/
-  /*      plot_newplot();*/
-  
-  
-  PL( plot_show() );
-  printf("Freeing memory\n");
-  free(x);
-  free(y);
+  write_eegtrials_to_raw_file( eeg, "out.raw");
 
   return 0;
 }

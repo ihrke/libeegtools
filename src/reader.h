@@ -76,6 +76,7 @@ extern "C" {
   EEGdata_trials* read_eegtrials_from_raw(const char *file);
   double*         read_double_vector_ascii( const char *fname, int N, double *v );
 
+
   char* read_line( FILE *f, char *line );
   ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans );
 
