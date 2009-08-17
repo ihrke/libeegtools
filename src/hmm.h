@@ -21,6 +21,8 @@
 /**\file hmm.h
  \brief Hidden Markov Models.
 
+ \warning For now this is only experimental but plans are to complete this file.
+
  Implements the continuous profile model from:
 
  Listgarten et al. Multiple alignment of continuous time
