@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I../src `@GSL_CONFIG@ --cflags` # -I/home/ihrke/local/include
+AM_CPPFLAGS = -I../src -I$(top_srcdir)/src `@GSL_CONFIG@ --cflags` # -I/home/ihrke/local/include
 AM_LDFLAGS = `@GSL_CONFIG@ --libs`
 
 METASOURCES = AUTO

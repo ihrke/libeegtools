@@ -17,3 +17,8 @@ pkginclude_HEADERS = averaging.h denoising.h helper.h mathadd.h \
 	fidlib/fidrf_jit.h som.h
 
 libeegtools_la_LDFLAGS =  `@GSL_CONFIG@ --libs`
+
+## own rules are ok
+tag:
+	$(shell CURDIR=`pwd`)
+	cd $(top_srcdir)/src; find . -name "*.[chCH][chCH]" -print | etags -; cd $(CURDIR);

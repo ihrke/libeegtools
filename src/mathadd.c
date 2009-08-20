@@ -330,7 +330,7 @@ void     matrix_normalize_by_max( double **m, int M, int N ){
   double max; 
 
   max = matrix_max( m, M, N, NULL, NULL );
-  matrix_divide_scalar( m, M, N, max );
+  matrix_divide_scalar( m, M, N, max);
 }
 
 /** Delete a row in a matrix. Memory remains allocated and the row pointer

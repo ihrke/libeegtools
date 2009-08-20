@@ -4,6 +4,9 @@
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+
 /* replaced by autoconf */
 #define @DEF_DEBUG@
 #define @DEF_PLOTTER@
@@ -214,7 +217,53 @@ extern "C" {
 											    steps it is called with PROGRESSBAR_CONTINUE_SHORT.
 											    If NULL, nothing is done. */
   } SettingsHierarchicalDTW;
-  
+
+  /*-----------------------------------------------------------
+	 - Self-Organizing Maps (SOM)
+	 ---------------------------------------------------------*/
+  /** This is: distance = f( location of node i, location of node j, the model, current time );
+	*/
+  typedef double(*NeighbourhoodFunction)(int,int,struct som_struct*, int t);
+
+  /**     giving the dimension/structure of the SOM:
+   - 1D_LINEAR - 1-dimensional line, like 1<->2<->3<->...<->n
+   - \todo 2D_GRID - grid-like structure such that each node has 8 neighbours
+   - \todo 2D_HEXAGONAL
+   - \todo CUSTOM - you can define a custom connectivit matrix, where each entry [i,j]
+              gives the distance between node i and j
+  */
+  typedef enum {
+    ONED_LINEAR,
+    TWOD_GRID,
+    TWOD_HEXAGONAL,
+    CUSTOM
+  } SOMConnectivityType;
+
+  /** Struct for 1-dimensional SOM with trivial topology 
+		(neighbouring nodes).
+	*/
+  typedef struct som_struct {
+	 double  **m; /**< code-book vectors */
+	 int     dimension; /**< dimension of code-book vector (corresponds to data-dimensionality) */
+	 int     n; /**< how many code-book vectors? */
+	 VectorDistanceFunction distancefct; /**< distance measure between data and codebook-vectors */
+	 void    *distancefct_parameters; /**< optional; pointer to parameters for some 
+													 of the VectorDistanceFunction s */
+	 
+	 int     nruns; /**< number of runs to convergence */
+	 int     initial_runs; /**< number of runs with large flexibility (ordering phase) after
+									  which it is more restricted; e.g. 0.1*nruns */
+	 NeighbourhoodFunction neighbourhoodfct; /**< neighbourhood function  */
+	 SOMConnectivityType connectivity; /**< giving the dimension/structure of the SOM */
+	 double **custom_connectivity; /**< custom connectivity matrix that can implement
+												 an arbitrary topology for the SOM-network */
+
+	 gsl_rng_type *random_number_type; /**< GSL-random number generator type */
+	 gsl_rng *rng; /**< the GSL random number generator */
+
+	 ProgressBarFunction progress; 
+  } Som;
+
 
 #ifdef __cplusplus
 }

@@ -30,55 +30,35 @@
 #ifndef SOM_H
 # define SOM_H
 
-#include "mathadd.h"
 #include "definitions.h"
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
   
-  /** This is: distance = f( location of node i, location of node j, the model );
-	*/
-  typedef double(*NeighbourhoodFunction)(int,int);
-
-  double neighbourhood_gaussian( int x, int m );
-
-  /**     giving the dimension/structure of the SOM:
-   - 1D_LINEAR - 1-dimensional line, like 1<->2<->3<->...<->n
-   - \todo 2D_GRID - grid-like structure such that each node has 8 neighbours
-   - \todo 2D_HEXAGONAL
-   - \todo CUSTOM - you can define a custom connectivit matrix, where each entry [i,j]
-              gives the distance between node i and j
-  */
-  typedef enum {
-    ONED_LINEAR,
-    TWOD_GRID,
-    TWOD_HEXAGONAL,
-    CUSTOM
-  } SOMConnectivityType;
-
-  /** Struct for 1-dimensional SOM with trivial topology 
-		(neighbouring nodes).
-	*/
-  typedef struct{
-	 double  **m; /**< code-book vectors */
-	 int     dimension; /**< dimension of code-book vector (corresponds to data-dimensionality) */
-	 int     n; /**< how many code-book vectors? */
-	 VectorDistanceFunction *d; /**< distance measure between data and codebook-vectors */
-	 
-	 int     nruns; /**< number of runs to convergence */
-	 int     initial_runs; /**< number of runs with large flexibility (ordering phase) after
-									  which it is more restricted; e.g. 0.1*nruns */
-	 NeighbourhoodFunction h; /**< neighbourhood function on the line */
-	 SOMConnectivityType connectivity; /**< giving the dimension/structure of the SOM */
-	 double **custom_connectivity;
-  } Som;
-
-
-  Som* som_init( int dimension, int n );
+  /**\ingroup som_help 
+	\{ */
+  Som* som_init( int dimension, int n, int nruns, SOMConnectivityType connectivity );
   void som_free( Som *s );
+  void som_print( FILE *f, Som *s );
+  /** \} */
 
+  /**\ingroup som_initialize
+	\{ */ 
+  void som_initialize_random( Som *s, double min, double max );
+  void som_initialize_random_samples( Som *s, double **X, int dim, int nsamples );
+  /** \} */
+
+  /**\ingroup som_neighbourhood
+	\{ */
+  double som_neighbourhood_gaussian( int x, int bmu, struct som_struct *s, int t);
+  /** \} */
+
+  /**\ingroup som_train
+	\{ */
+  void som_train_from_data( Som *s, double **X, int dim, int nsamples );
+  /** \} */
+  
 #ifdef __cplusplus
 }
 #endif
