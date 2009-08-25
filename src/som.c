@@ -24,10 +24,85 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
+/** generate a connectivity matrix of type type. 
+	 The (i,j)th entry gives the distance between nodes i and j in
+	 number of nodes.
+
+	 type:
+	 - ONED_LINEAR: \f$ m_{i,j} = | i-j | \f$
+	 - TWOD_GRID: n should be a square number and \f$ m_{i,j} = \f$
+	 - TWOD_HEXAGONAL: 
+
+	 \param type 
+	 \param m if NULL or ALLOC_IN_FCT, allocate own memory.
+	 \param n number of nodes
+ */
+double** som_generate_connectivity_matrix( SOMConnectivityType type, double **m, int n ){
+  int i,j;
+  int sqrtn;
+  if( m==ALLOC_IN_FCT) {
+	 m = matrix_init( n,n );
+  }
+  switch( type ){
+  case ONED_LINEAR:
+	 for( i=0; i<n; i++ ){
+		for( j=i; j<n; j++ ){
+		  m[i][j] = ABS( i-j );
+		  m[j][i] = m[i][j];
+		}
+	 }
+	 break;
+  case TWOD_GRID:
+	 if( SQR( sqrtn=sqrt((double)n)) != n ){
+		warnprintf("for a 2D-grid, n should be the square of an integer\n");
+	 }
+	 int ix,iy;
+	 int jx,jy;
+	 for( i=0; i<n; i++ ){
+		ix=i/sqrtn;
+		iy=i-sqrtn*ix;
+		for( j=i; j<n; j++ ){
+		  jx = j/sqrtn;
+		  jy = j-jx*sqrtn;
+		  m[i][j] = sqrt( SQR(ix-jx)+SQR(iy-jy) );
+		  m[j][i] = m[i][j];
+		}
+	 }	 
+	 break; 
+  case TWOD_HEXAGONAL:
+	 int ix,iy;
+	 int jx,jy; 
+	 double ret, diff;
+	 for( i=0; i<n; i++ ){
+		ix=i/sqrtn;
+		iy=i-sqrtn*ix;
+		for( j=i; j<n; j++ ){
+		  jx = j/sqrtn;
+		  jy = j-jx*sqrtn;
+		  diff = ix-jx;
+		  if( (iy-jy)%2 != 0 ){
+			 if( iy%2 == 0 )
+				diff -= 0.5;
+			 else 
+				diff += 0.5;
+		  }
+		  m[i][j] = SQR( diff );
+		  diff = iy-jy;
+		  m[i][j] += 0.75*SQR( diff );
+		  m[i][j] = sqrt( m[i][j] );
+		  m[j][i] = m[i][j];
+		}
+	 }	 
+	 break; 
+  default:
+	 errprintf( "Do not know type '%i'\n", type );
+  }
+  return m;
+}
 
 /** allocate the Som-struct 
  */
-Som* som_init( int dimension, int n, int nruns, SOMConnectivityType connectivity ){
+Som* som_init( int dimension, int n, int nruns, SOMConnectivityType connectivity_type ){
   Som *s;
   int i;
   s=(Som*)malloc(sizeof(Som));
@@ -40,13 +115,13 @@ Som* som_init( int dimension, int n, int nruns, SOMConnectivityType connectivity
 	 s->m[i] = (double*)malloc( dimension*sizeof(double));
   }
   s->distancefct = vectordist_euclidean;
+  s->time_decay = som_time_decay_linear;
   s->initial_runs = 0.1*nruns;
   s->neighbourhoodfct = som_neighbourhood_gaussian;
-  s->connectivity = connectivity;
-  if( s->connectivity==CUSTOM ){
-	 s->custom_connectivity = (double**) malloc( n*sizeof(double*) );
-	 for( i=0; i<n; i++ )
-		s->custom_connectivity[i] = (double*) malloc( n*sizeof(double) );
+  s->connectivity_type = connectivity_type;
+  if( s->connectivity_type!=CUSTOM ){
+	 s->connectivity = som_generate_connectivity_matrix( s->connectivity_type, 
+																		  ALLOC_IN_FCT, s->n );
   } 
   s->distancefct_parameters=NULL;  
 
@@ -63,31 +138,48 @@ void   som_free( Som *s ){
 	 free( s->m[i] );
   }
   free( s->m );
-  if(  s->connectivity==CUSTOM ){
+  if(  s->connectivity_type==CUSTOM ){
 	 for( i=0; i<s->n; i++ )
-		free( s->custom_connectivity[i] );
-	 free( s->custom_connectivity ) ;
+		free( s->connectivity[i] );
+	 free( s->connectivity ) ;
   }
   free( s );
 }
 
+
+/** Linear time-decay function between 0 and 1.
+	 \f[
+	 f(t/\mbox{nruns}) = \begin{cases}
+	 x & \mbox{if}\\
+	 y & \mbox{otherwise}
+	 \end{cases}
+	 \f]
+
+ */
+double som_time_decay_linear( int t, int nruns, int initial_runs ){
+  double alpha;
+
+  if( t<=initial_runs ){
+	 alpha = 0.9*(1-(double)t/(double)(initial_runs));
+  } else {
+	 alpha = 0.02*(1-(double)t/(double)nruns);
+  }
+  return alpha;
+}
+
+
+/** Gaussian neighbourhood (std shrinks exponentially with t).
+	 
+ */
 double som_neighbourhood_gaussian( int x, int bmu, struct som_struct *s, int t ){
-  double sigma, alpha;	  
+  double sigma;	  
   double h;
+
   /* sigma shrinks with runs, fast during initial phase, then slower */
   sigma = exp(-(double)t/(double)s->initial_runs)*(s->n/2) + 1;
   
-  if(t<=s->initial_runs)
-	 alpha = 0.9*(1-(double)t/(double)(s->initial_runs));
-  else
-	 alpha = 0.02*(1-(double)t/(double)s->nruns);
-  
-  if( s->connectivity==ONED_LINEAR ){
-	 h = alpha * exp(-pow( ABS(x-bmu), 2.0)/(double)(2.0*pow(sigma, 2.0)));
-  } else if( s->connectivity!=ONED_LINEAR ) {
-	 errprintf("Other topologies than ONED_LINEAR are not implemented yet!\n");
-	 return -1;
-  }
+  h =  exp(-pow( s->connectivity[x][bmu], 2.0)/(double)(2.0*pow(sigma, 2.0)));
+
   return h;
 }
 
@@ -103,6 +195,7 @@ void som_train_from_data( Som *s, double **X, int dim, int nsamples ){
   double h, tmp; 
   double bmu_score; /* best matching unit score */
   double *input;
+  double alpha;
 
   if( dim != s->dimension ){
 	 errprintf( "Data dimension and SOM-dimension do not match... exit\n");
@@ -136,8 +229,9 @@ void som_train_from_data( Som *s, double **X, int dim, int nsamples ){
 		}
 
 		h = s->neighbourhoodfct( i, bmu, s, t );
+		alpha = s->time_decay( t,s->nruns,s->initial_runs );
 		for( j=0; j<dim; j++ ){
-		  s->m[i][j] += h*(input[j]-s->m[i][j]);
+		  s->m[i][j] += alpha*h*(input[j]-s->m[i][j]);
 		}
 	 }
   }

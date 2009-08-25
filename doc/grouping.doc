@@ -1,0 +1,118 @@
+/**
+	\defgroup libeegtools LibEEGTools
+	\{
+
+	\defgroup denoising Denoising Routines 
+	\{
+   	\defgroup wavelet Wavelet-Denoising
+		\{
+         \defgroup thresholding Thresholding Functions
+         \defgroup select_thresh Threshold selection Functions
+      \}
+      \defgroup robust_filtering Robust-Filtering
+		\defgroup filter_design Filter Design (Bandpass)
+      \defgroup other_filtering Other Filtering
+   \}
+ 
+	\defgroup clustering Clustering functions
+	\{
+      \defgroup distances Distance measures
+		\defgroup gap Gap-statistic
+		\defgroup dendrogram Dendrogram (Hierarchical Clustering)
+	\} 
+
+   \defgroup averaging Averaging functions
+	\{
+	   \defgroup otheravg Other Averaging functions
+	\}
+	
+	\defgroup distance Distance Metrics/Measures
+	\{
+	   \defgroup signaldist Pointwise distance between signals
+		\defgroup eegdist Pointwise distance between two ERPs
+		\defgroup vectordist Distance between two vectors
+		\defgroup otherdist Other Distance Functions
+	\}	
+	
+	\defgroup warping Warping functions
+   \{
+      \defgroup dtw Dynamic Time-Warping
+		\defgroup warpaveraging Averaging timewarped signals
+		\defgroup hierarchical Hierarchical combination of Trials
+		\defgroup structwarppath WarpPath Functions
+		\defgroup otherwarp Other Warping functions
+	\}
+
+   \defgroup helper Helper functions
+   \{
+		\defgroup helperorg Organizing Helper functions
+		\defgroup helperio I/O functions
+		\defgroup helperstruct Struct handling
+		\defgroup helperplot Plotting Functions
+		\defgroup progressbar Progress-Bar Display-Functions
+	\}
+
+	\defgroup io IO-Functions
+	\{
+	   \defgroup reader Reader Functions (Import)
+	   \defgroup writer Writer Functions (Export)
+	\}
+
+	\defgroup regularization Regularization of Warping Paths
+	\{
+	\}
+
+	\defgroup helpermath Mathematical functions
+	\{
+  	   \defgroup complex Complex Arithmetic
+		\defgroup sigext Signal Extension Functions 
+		      Signal extension schemes to extend signal of length n to length 2^j
+				with 2^j being the closest power of 2 to n.
+				The extension functions return a pointer to the former data[0],
+				because this is where the unextended signal began;\n
+
+				Example:
+				\code
+				sigext([1 2 3 - - - -]) -> [0 0 1 2 3 0 0] 
+				                                ^ ptr
+			   \endcode
+				Assumptions (not for full generality!):
+				-# ns <= n
+				-# n <= 2*ns
+		\defgroup interp Interpolation and resampling
+		\defgroup vectorops Vector Operations
+		\defgroup matrixops Matrix operations
+	\}
+
+	\defgroup recplots Recurrence Plots
+	\{
+      \defgroup los Line-of-Synchrony-computation
+	\}
+
+	\defgroup spectgram Spectrogram (Time-Frequency Representations)
+	\{
+  	   \defgroup windows Windowing Functions
+	   \defgroup spectspect Spectrogram Algorithms (TFR)
+	   \defgroup specthelp Spectrogram Convenience
+	\}
+
+	\defgroup nonlinear Nonlinear Embedding
+	\{
+	\}
+
+	\defgroup som
+	\{
+		  \defgroup som_help
+		  \defgroup som_initialize
+		  \defgroup som_neighbourhood
+		  \defgroup som_train
+	\}		  
+
+	\defgroup tools Some Other Tools
+	\{
+
+	\}
+
+
+	\} 
+*/

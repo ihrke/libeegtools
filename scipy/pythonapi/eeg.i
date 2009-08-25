@@ -25,22 +25,23 @@ typedef struct{
 } EEGdata_trials;
 
 
-  EEGdata*        init_eegdata(int nbchan, int nsamples, int nmarkers);
-  void            reset_eegdata( EEGdata* eeg );
-  EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, 
-												  int nbchan, int nbsamples, double *times);
- 
-  
-  /* destructors */
-  void    free_eegdata(EEGdata *eeg);
-  void    free_eegdata_trials(EEGdata_trials *eeg);
+EEGdata*        init_eegdata(int nbchan, int nsamples, int nmarkers);
+void            reset_eegdata( EEGdata* eeg );
+EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, 
+												int nbchan, int nbsamples, double *times);
 
-  /* convenience functions for structs */
-  int       eegdata_cmp_settings( const EEGdata *s1, const EEGdata *s2 );
-  int       copy_similar_eegdata( EEGdata *dest, const EEGdata *source );
-  EEGdata_trials*      clone_eegdata_trials( const EEGdata_trials *source );
 
-  /**\}*/
+/* destructors */
+void    free_eegdata(EEGdata *eeg);
+void    free_eegdata_trials(EEGdata_trials *eeg);
+
+/* convenience functions for structs */
+int       eegdata_cmp_settings( const EEGdata *s1, const EEGdata *s2 );
+
+EEGdata_trials* clone_eegdata_trials( const EEGdata_trials *source );
+EEGdata*        clone_eegdata( const EEGdata *source );
+
+
 
 %extend EEGdata_trials{
   EEGdata_trials(int nbtrials, int markers_per_trial, 
@@ -48,6 +49,25 @@ typedef struct{
 	 return init_eegdata_trials( nbtrials,  markers_per_trial, 
 										  nbchan, nbsamples, NULL);
   }
+
+  EEGdata_trials* clone(){
+	 return clone_eegdata_trials( self );
+  }
+
+  EEGdata* get_trial( int i ){
+	 if( i>=0 || i<self->ntrials ){
+		return self->data[i];
+	 } else {
+		return NULL;
+	 }
+  }
+
+  PyObject* get_times(){
+	 PyObject *l;
+	 l = doubleptr_to_pythonlist( self->times, self->nsamples );
+	 return l;
+  }
+
   char* __str__(){
 	 static char buf[512];
 	 char *tmp;
@@ -90,6 +110,36 @@ typedef struct{
   }
   void reset(){
 	 reset_eegdata(self);
+  }
+ 
+  EEGdata* clone(){
+	 return clone_eegdata( self );
+  }
+
+  PyObject* get_chan( int chan ){
+	 if( chan<0 || chan>=self->nbchan ){
+		PyErr_SetString(PyExc_TypeError,"channel not available");
+		return NULL;
+	 }
+	 PyObject *l = PyList_New( self->n );
+	 int i;
+	 for( i=0; i<self->n; i++ ){
+		PyList_SetItem( l, i, PyFloat_FromDouble( self->d[chan][i] ));
+	 }
+	 return l;
+  }
+
+  PyObject* get_data( ){
+	 PyObject *o, *l = PyList_New( self->nbchan );
+	 int i,j;
+	 for( i=0; i<self->nbchan; i++ ){
+		o = PyList_New( self->n );	  
+		for( j=0; j<self->n; j++ ){
+		  PyList_SetItem( o, j, PyFloat_FromDouble( self->d[i][j] ));
+		}
+		PyList_SetItem( l, i, o );
+	 }
+	 return l;
   }
 
   char* __str__(){

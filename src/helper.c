@@ -66,7 +66,17 @@ int      copy_similar_eegdata( EEGdata *dest, const EEGdata *source ){
   return 0;
 }
 
-
+/** Deep-copy everything from source to a freshly allocated struct;
+	 
+	 \params source
+	 \return dest
+ */
+EEGdata*         clone_eegdata( const EEGdata *source ){
+  EEGdata *eeg;
+  eeg = init_eegdata( source->nbchan, source->n, source->nmarkers );
+  copy_similar_eegdata( eeg, source );
+  return eeg;
+}
 /** Deep-copy everything from source to a freshly allocated struct;
 	 
 	 \params source

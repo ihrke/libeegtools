@@ -28,52 +28,6 @@ import_array();
 #include "helper.h"
 #include "definitions.h"
 
-#define MAX(a,b) ((a) > (b) ? (a):(b))
-#define MIN(a,b) ((a) < (b) ? (a):(b))
-#define SQR(a) ((a)*(a))
-#define ABS(a) ( ((a)<0) ? (-1*(a)) : (a) )
-#define ISODD(x)        ((((x)%2)==0)? (0) : (1))
-
-#define PI           3.14159265358979323846  /* pi */
-#define nullptr  NULL
-
-  typedef struct {
-	 double re;
-	 double im;
-  } Complex;
-   
-  Complex complex_add ( Complex a, Complex b );
-//  Complex complex_add_dbl ( Complex a, double b );  
-  Complex complex_sub ( Complex a, Complex b );
-  Complex complex_mul ( Complex a, Complex b );
-  Complex complex_mul_double( Complex a, double b );
-  double  complex_abs ( Complex a );
-  Complex complex_exp ( Complex a );
-  Complex complex_conj( Complex a );
-  Complex complex_neg ( Complex a );
-  Complex complex_div ( Complex a, Complex b);
-  Complex complex_sqrt( Complex x );
-  Complex complex_bilinear_transform(Complex pz);
-
-
-%extend Complex {
-  Complex( double re, double im ){
-	 Complex *x;
-	 x = (Complex*)malloc(sizeof(Complex));
-	 x->re=re;
-	 x->im=im;
-	 return x;
-  }
-  double abs(){
-	 return complex_abs( *self );
-  }
-  char* __str__(){
-	 static char str[100];
-	 sprintf( str, "%f + i%f", self->re, self->im );
-	 return str;
-  }
-};
-
 
 double  mad(const double *data, int n); 
 int     sgn(int x);
@@ -89,9 +43,6 @@ int*    linspace(int first, int last);
 int     bresenham_howmany_points( int xstart,int ystart,int xend,int yend );
 int*    bresenham(int xstart,int ystart,int xend,int yend, int *points);
 
-
-double* flip_array( double *v, int n );
-
 double  gaussian( double x, double sigma, double mu );
 
 double** disttransform_deadreckoning(int **I, int X, int Y, double **d);
@@ -103,13 +54,6 @@ Complex* expand_polynomial_from_roots( const Complex *roots, int n, Complex *coe
 
 void fft(double *data,  unsigned long nn, int isign);
   
-
-double* sigext_zeros(double *data, int ns, int n);
-double* sigext_zerosr(double *data, int ns, int n);
-double* sigext_sym(double *data, int ns, int n);
-double* sigext_smooth(double *data, int ns, int n);
-
-
 
 double  drawsample_nearest_neighbour( const double *v, int n, double x );
 double* resample_linear( const double *s, int n, int newn, double *news );

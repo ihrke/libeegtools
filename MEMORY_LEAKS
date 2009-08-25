@@ -1,0 +1,47 @@
+==3588== 
+==3588== ERROR SUMMARY: 61 errors from 1 contexts (suppressed: 10 from 1)
+==3588== malloc/free: in use at exit: 564,584 bytes in 81 blocks.
+==3588== malloc/free: 272,498 allocs, 272,417 frees, 1,510,905,740 bytes allocated.
+==3588== For counts of detected errors, rerun with: -v
+==3588== searching for pointers to 81 not-freed blocks.
+==3588== checked 4,378,504 bytes.
+==3588== 
+==3588== 
+==3588== 64 bytes in 2 blocks are definitely lost in loss record 7 of 14
+==3588==    at 0x4C265AE: malloc (vg_replace_malloc.c:207)
+==3588==    by 0x608948B: dgram_init (clustering.c:419)
+==3588==    by 0x60892A1: agglomerative_clustering (clustering.c:384)
+==3588==    by 0x608EA7C: eegtrials_PADTW (warping.c:655)
+==3588==    by 0x4010B5: main (padtw.c:101)
+==3588== 
+==3588== 
+==3588== 80 bytes in 5 blocks are definitely lost in loss record 8 of 14
+==3588==    at 0x4C265AE: malloc (vg_replace_malloc.c:207)
+==3588==    by 0x6084CA6: init_eegdata (helper.c:197)
+==3588==    by 0x6084DF0: init_eegdata_trials (helper.c:226)
+==3588==    by 0x60866FD: read_eegtrials_from_raw (reader.c:228)
+==3588==    by 0x400E93: main (padtw.c:65)
+==3588== 
+==3588== 
+==3588== 17,600 bytes in 2 blocks are definitely lost in loss record 10 of 14
+==3588==    at 0x4C265AE: malloc (vg_replace_malloc.c:207)
+==3588==    by 0x6084D79: init_eegdata_trials (helper.c:220)
+==3588==    by 0x60866FD: read_eegtrials_from_raw (reader.c:228)
+==3588==    by 0x400E93: main (padtw.c:65)
+==3588== 
+==3588== 
+==3588== 546,240 (40 direct, 546,200 indirect) bytes in 1 blocks are definitely lost in loss record 11 of 14
+==3588==    at 0x4C265AE: malloc (vg_replace_malloc.c:207)
+==3588==    by 0x6084CE9: init_eegdata_trials (helper.c:212)
+==3588==    by 0x608457D: clone_eegdata_trials (helper.c:79)
+==3588==    by 0x608EB07: eegtrials_PADTW (warping.c:659)
+==3588==    by 0x4010B5: main (padtw.c:101)
+==3588== 
+==3588== LEAK SUMMARY:
+==3588==    definitely lost: 17,784 bytes in 10 blocks.
+==3588==    indirectly lost: 546,200 bytes in 69 blocks.
+==3588==      possibly lost: 0 bytes in 0 blocks.
+==3588==    still reachable: 600 bytes in 2 blocks.
+==3588==         suppressed: 0 bytes in 0 blocks.
+==3588== Reachable blocks (those to which a pointer was found) are not shown.
+==3588== To see them, rerun with: --leak-check=full --show-reachable=yes

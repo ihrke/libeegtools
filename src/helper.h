@@ -164,7 +164,8 @@ extern "C" {
   /* convenience functions for structs */
   int       eegdata_cmp_settings( const EEGdata *s1, const EEGdata *s2 );
   int       copy_similar_eegdata( EEGdata *dest, const EEGdata *source );
-  EEGdata_trials*      clone_eegdata_trials( const EEGdata_trials *source );
+  EEGdata*         clone_eegdata( const EEGdata *source );
+  EEGdata_trials*  clone_eegdata_trials( const EEGdata_trials *source );
 
   /* printing-functions */
   void    print_eegdata_trials(FILE *out, const EEGdata_trials *eeg);

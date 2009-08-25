@@ -1,0 +1,63 @@
+digraph Usage {
+	/* general settings */
+	/*bgcolor="transparent";*/
+	node [fontsize=10,shape=record];
+	size="8,8";
+	rankdir="LR"; /* left to right */
+	ranksep=1.5;		  
+	nodesep=0.4;
+
+
+	/* introducing nodes */
+	libeegtools [shape=Mrecord,style=filled,color=".2.7.7",fontcolor=yellow,
+					fontsize=20,fontname="Times-Bold"];
+	{
+		  rank=same;		
+
+		  {"Functionality" [shape=plaintext,fontsize=20,fontname="Times-Italic"]};
+		  denoise    [label="Denoising\n Functions|-Wavelets\n-Bandpass\n-Median-Based",
+		  				  URL="group__denoising.html"];
+		  averaging  [label="Trial\n Averaging"];
+		  warping    [label="Warping|-Dynamic Time-Warping\n-Response-Time Corrected"];
+		  clustering [label="Trial\n Clustering|-Hierarchical\n-K-Medoids"];
+		  distances  [label="Distances|-between Trials\n-between Signals"];
+		  timefreq   [label="Time-Frequency-\nRepresentation"];
+		  recplots   [label="Recurrence\n Plots"];
+		  nonlin     [label="Nonlinear\n Embedding"];
+		  io         [label="IO Functions|-Import\n-Export"];
+	}
+
+	{ 
+		 rank=same;
+		 {"Application" [shape=plaintext,fontsize=20,fontname="Times-Italic"]};
+		 node [shape=plaintext,fontsize=12];
+	  	 appsingletrial [label = "Single-Trial Estimation"];
+		 appnonlin      [label = "Nonlinear-System Analysis"];
+		 appclass       [label = "Trial-Classification"];
+		 apptempdist    [label = "Remove temporal distortion"];
+		 appimport		 [label = "Import/Export EEG-Data\n into LibEEGTools"];
+		 apptfr         [label = "Simultaneous Time-Frequency\n Analysis"];
+	}
+
+	/* connections */
+	libeegtools -> denoise;
+	libeegtools -> recplots;
+	libeegtools -> nonlin;
+	libeegtools -> averaging;
+	libeegtools -> clustering;
+	libeegtools -> io;
+	libeegtools -> timefreq;
+	libeegtools -> distances;
+	libeegtools -> warping;
+
+
+	denoise -> appsingletrial;
+	nonlin  -> appnonlin;
+	recplots-> appnonlin;
+	clustering -> appclass;
+	distances -> appclass;
+	warping -> apptempdist;
+	averaging -> apptempdist;
+	io -> appimport;
+	timefreq -> apptfr;
+}

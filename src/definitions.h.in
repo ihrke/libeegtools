@@ -25,6 +25,11 @@
 extern "C" {
 #endif
 
+  typedef enum {
+	 FALSE=0,
+	 TRUE
+  } Boolean;
+
   /*-----------------------------------------------------------
 	 - EEG-Data -
 	 ---------------------------------------------------------*/
@@ -225,11 +230,15 @@ extern "C" {
 	*/
   typedef double(*NeighbourhoodFunction)(int,int,struct som_struct*, int t);
 
+  /** This is: alpha = f( t, nruns, nruns in initial_phase )
+	*/
+  typedef double(*TimeDecayFunction)(int,int,int);
+
   /**     giving the dimension/structure of the SOM:
    - 1D_LINEAR - 1-dimensional line, like 1<->2<->3<->...<->n
-   - \todo 2D_GRID - grid-like structure such that each node has 8 neighbours
-   - \todo 2D_HEXAGONAL
-   - \todo CUSTOM - you can define a custom connectivit matrix, where each entry [i,j]
+   - 2D_GRID - grid-like structure such that each node has 8 neighbours
+   - 2D_HEXAGONAL
+   - CUSTOM - you can define a custom connectivit matrix, where each entry [i,j]
               gives the distance between node i and j
   */
   typedef enum {
@@ -253,10 +262,13 @@ extern "C" {
 	 int     nruns; /**< number of runs to convergence */
 	 int     initial_runs; /**< number of runs with large flexibility (ordering phase) after
 									  which it is more restricted; e.g. 0.1*nruns */
+
 	 NeighbourhoodFunction neighbourhoodfct; /**< neighbourhood function  */
-	 SOMConnectivityType connectivity; /**< giving the dimension/structure of the SOM */
-	 double **custom_connectivity; /**< custom connectivity matrix that can implement
-												 an arbitrary topology for the SOM-network */
+	 TimeDecayFunction     time_decay; /**< function giving the decay of the 
+													  learning rate */
+	 SOMConnectivityType connectivity_type; /**< giving the dimension/structure of the SOM */
+	 double **connectivity; /**< custom connectivity matrix that can implement
+										an arbitrary topology for the SOM-network */
 
 	 gsl_rng_type *random_number_type; /**< GSL-random number generator type */
 	 gsl_rng *rng; /**< the GSL random number generator */

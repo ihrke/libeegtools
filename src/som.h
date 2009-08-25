@@ -23,7 +23,65 @@
 
  \warning For now this is only experimental but plans are to complete this file.
 
- Kohonen, T. 1995. Self-Organizing Maps. Springer.
+
+\section somalg SOM Algorithm
+Self-Organizing Feature Maps are extensively described in 
+
+Kohonen, T. 1995. Self-Organizing Maps. Springer.
+
+We have a set of n neurons \f$ W = \{ \vec{w}_1,\ldots, \vec{w}_n\} \f$ that
+are of dimension m: \f$ \vec{w}_i \in \mathcal{R}^m \f$. The neurons
+are arranged on a bidirectional, connected graph, such that there
+exists a distance between two neurons \f$ d(\vec{w}_i,\vec{w}_j) \f$.
+
+Using input data \f$ \vec{x}_1,\ldots, \vec{x}_n\f$, of dimension m, 
+we find the best-matching unit (BMU) 
+\f[
+w_{\mbox{bmu}} = \mbox{argmin}_{w\in W} || x - w ||^2.
+\]
+(we can use any other metric as well - many metrices are implemented
+in LibEEGTools).
+
+Then, we update each neuron by the learning rule
+\f[
+w_i(t+1) = w_i(t) + \alpha(t)h(t)[ x - m_i(t) ]
+\f]
+where \f$\alpha\f$ is a time-decaying function, h(t) is a 
+neighbourhood function centered on the BMU (e.g. gaussian) which 
+narrows down with increasing time.
+
+In this implementation, we divide the training phase into an initial 
+and a fine-tuning phase. During the initial phase, $\alpha$ takes on rather 
+large values and the neighbourhood is wide such that an initial 
+arrangement may take place. Later, both parameters are narrowed down to enable
+fine-tuning.
+
+All of the parameters can be conveniently manipulated in the implementation.
+
+\section somimpl SOM Implementation 
+
+The implementation given here is quite general but not very efficient. 
+Topology of the network of neurons is implemented in terms of distance
+matrices between two neurons (in terms of their ''physical'' distance D
+on the graph) \f$ \mathbf{M} = m_{ij} = D(i,j)\f$.
+
+The user can either supply this matrix directly or generate such a matrix
+using our convenience function som_generate_connectivity_matrix(). 
+
+
+\section somusage Usage
+
+First, you need to initialize a Som-struct using som_init(). You need to 
+supply a value of SOMConnectivityType. If it is not CUSTOM, the function will 
+allocate a connectivity matrix.
+
+\code
+Som *S;
+S = som_init( 2, 1000, 1e6, ONED_LINEAR );
+\endcode
+
+\section sompython Python Usage
+
 
  \todo generalize metric (need to solve Eq. 3.40 (from Kohonen, 1995) for each metric)
  */
@@ -47,12 +105,15 @@ extern "C" {
 	\{ */ 
   void som_initialize_random( Som *s, double min, double max );
   void som_initialize_random_samples( Som *s, double **X, int dim, int nsamples );
+  double** som_generate_connectivity_matrix( SOMConnectivityType type, double **m, int n );
   /** \} */
 
   /**\ingroup som_neighbourhood
 	\{ */
   double som_neighbourhood_gaussian( int x, int bmu, struct som_struct *s, int t);
   /** \} */
+
+  double som_time_decay_linear( int t, int nruns, int initial_runs );
 
   /**\ingroup som_train
 	\{ */
