@@ -3,7 +3,7 @@
  * This is libEEGTools. Please explore the functionality via the 
  * Modules page (link above). 
  *
- * The official Homepage is http://pinguin.uni-psych.gwdg.de/~ihrke/wiki/index.php/LibEEGTools 
+ * The official Homepage is http://libeegtools.sf.net
  *
  * \section synopsis Synopsis:
 
@@ -86,6 +86,12 @@ Thanks Guys!
 \par History:
 \code
  * $Log$
+ * Revision 1.8  2009/09/02 09:47:22  mihrke
+ * There is going to be major restructuring of the API.
+ * Most EEG-functions will be called differently or get different arguments,
+ * because the main structs are going to change.
+ * We will move to 0.5 after this.
+ *
  * Revision 1.7  2009/05/22 13:37:53  mihrke
  * implemented Fidlib support
  *

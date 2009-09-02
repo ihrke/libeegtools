@@ -3,7 +3,7 @@ AM_LDFLAGS = `@GSL_CONFIG@ --libs`
 
 METASOURCES = AUTO
 
-noinst_PROGRAMS = t_hmm t_som t_testfilter #t_nonlin t_padtw t_test t_gapstat
+noinst_PROGRAMS = t_hmm t_som t_testfilter t_readeeglab #t_nonlin t_padtw t_test t_gapstat
 #t_denoise t_denoisestat t_gapstat \
 # t_readeeglab t_testfilter t_rawreadertest t_clustering t_gapstat \
 #t_dtw t_padtw t_adtw_markers t_timefreq t_test t_filterdesign 
@@ -14,8 +14,8 @@ noinst_PROGRAMS = t_hmm t_som t_testfilter #t_nonlin t_padtw t_test t_gapstat
 # t_denoisestat_SOURCES = argspec.c argspec.h t_denoisestat.c
 # t_denoisestat_LDADD = $(top_builddir)/src/libeegtools.la 
 
-# t_readeeglab_SOURCES = t_readeeglab.c
-# t_readeeglab_LDADD = $(top_builddir)/src/libeegtools.la
+t_readeeglab_SOURCES = t_readeeglab.c
+t_readeeglab_LDADD = $(top_builddir)/src/libeegtools.la
 
 # t_rawreadertest_SOURCES = t_rawreadertest.c
 # t_rawreadertest_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`

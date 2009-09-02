@@ -1,6 +1,6 @@
 %{
-#include "definitions.h"
-#include "helper.h"
+#include <libeegtools/definitions.h>
+#include <libeegtools/helper.h>
 %}
 
 

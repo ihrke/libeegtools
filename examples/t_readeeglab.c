@@ -20,11 +20,9 @@
 int main(int argc, char **argv){
   FILE *f;
   int i, j;
-  EEGdata_trials *eeg;
+  EEG *eeg;
 
-  eeg=read_segmented_eeg_from_eeglabset(argv[1]);
-  print_eegdata_trials(stderr, eeg);
+  eeg=read_eeglab_file( "/scratch.local/ihrke/data/eegtast_19_epoched.set" );
 
-  free_eegdata_trials(eeg);
   return 0;
 }

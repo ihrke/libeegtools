@@ -77,6 +77,13 @@ extern "C" {
   double*         read_double_vector_ascii( const char *fname, int N, double *v );
 
 
+#ifdef MATIO
+  /* eeglab/matlab file reader functions if matio library is installed */
+  EEG* read_eeglab( FILE *f );  
+  EEG* read_eeglab_file( const char *file );
+#endif
+
+
   char* read_line( FILE *f, char *line );
   ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans );
 

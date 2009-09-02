@@ -1,5 +1,5 @@
 %{
-#include "denoising.h"
+#include <libeegtools/denoising.h>
 %}
 
 %typemap(in) (double *d, int n){

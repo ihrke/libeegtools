@@ -25,14 +25,46 @@
 extern "C" {
 #endif
 
+  /*-----------------------------------------------------------
+	 - CONVENIENCE -
+	 ---------------------------------------------------------*/
   typedef enum {
 	 FALSE=0,
 	 TRUE
   } Boolean;
 
   /*-----------------------------------------------------------
+	 - EEG-CHANNELS -
+	 ---------------------------------------------------------*/
+
+  typedef struct{
+	 int    num;
+	 int    num_chans;
+	 char   label[MAX_LABEL_LENGTH];
+	 double x;
+	 double y;
+	 double z;
+  } ChannelInfo;
+
+
+  /*-----------------------------------------------------------
 	 - EEG-Data -
 	 ---------------------------------------------------------*/
+
+  //  typedef ChannelData (**double);
+
+  typedef struct{
+	 char         filename[255];
+	 char         *comment;
+	 unsigned int nbchan;
+	 unsigned int trials;
+	 unsigned int n;
+    double       sampling_rate;
+	 double       *times;
+	 ChannelInfo  *chaninfo;
+
+	 //	 ChannelData  *data;
+  } EEG;
 
   typedef struct{
 	 unsigned int nbchan;    /**< number of channels */
@@ -97,21 +129,6 @@ extern "C" {
   } RecurrencePlot;
 
 
-  /*-----------------------------------------------------------
-	 - EEG-CHANNELS -
-	 ---------------------------------------------------------*/
-
-  typedef struct{
-	 int    num;
-	 int    num_chans;
-	 char   label[MAX_LABEL_LENGTH];
-	 double x;
-	 double y;
-	 double z;
-  } ChannelInfo;
-
-
-  
 
   /*-----------------------------------------------------------
 	 - CLUSTERING -

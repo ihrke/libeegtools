@@ -1,5 +1,5 @@
 %{
-#include "mathadd.h"
+#include <libeegtools/mathadd.h>
 %}
 /*%include "numpy.i" 
 
@@ -25,8 +25,8 @@ import_array();
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
-#include "helper.h"
-#include "definitions.h"
+#include <libeegtools/helper.h>
+#include <libeegtools/definitions.h>
 
 
 double  mad(const double *data, int n); 

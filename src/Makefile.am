@@ -1,5 +1,6 @@
 # set the include path found by configure
-AM_CPPFLAGS =  -DT_LINUX -Isrc $(all_includes) --std=gnu99 -Wall @DEBUG_FLAGS@ `@GSL_CONFIG@ --cflags`
+AM_CPPFLAGS =  -DT_LINUX -Isrc $(all_includes) -fPIC --std=gnu99 -Wall @MATIO_CFLAGS@ @DEBUG_FLAGS@ `@GSL_CONFIG@ --cflags`
+
 
 # the library search path.
 lib_LTLIBRARIES = libeegtools.la
@@ -16,7 +17,7 @@ pkginclude_HEADERS = averaging.h denoising.h helper.h mathadd.h \
 	fidlib/fidlib.h fidlib/fidmkf.h fidlib/fidrf_combined.h fidlib/fidrf_cmdlist.h \
 	fidlib/fidrf_jit.h som.h
 
-libeegtools_la_LDFLAGS =  `@GSL_CONFIG@ --libs`
+libeegtools_la_LDFLAGS =  `@GSL_CONFIG@ --libs` @MATIO_LIBS@
 
 ## own rules are ok
 tag:

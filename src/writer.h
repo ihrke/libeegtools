@@ -64,6 +64,12 @@ extern "C" {
   EEGdata_trials* eegtrials_from_double( double *stream, int n );
   /** \} */
 
+
+#ifdef MATIO
+  /* eeglab/matlab file writer functions if matio library is installed */
+  
+#endif
+
 #ifdef __cplusplus
 }
 #endif

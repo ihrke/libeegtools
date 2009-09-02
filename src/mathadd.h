@@ -24,7 +24,11 @@
 
 #ifndef MATH_ADD_H
 # define MATH_ADD_H
+
+#ifndef _ISOC99_SOURCE
 #define _ISOC99_SOURCE
+#endif
+
 #include <stdlib.h>
 #include <limits.h>
 #include <float.h>

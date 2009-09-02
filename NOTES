@@ -11,3 +11,23 @@ $ cvs update -r 1.5 oldfile
 
 # and maybe revert to most recent work
 $ cvs up -A oldfile
+
+
+/usr/lib64 problem with t_som wrapper script:
+---------------------------------------------
+LD_LIBRARY_PATH="./src/.libs/:$LD_LIBRARY_PATH" && ./examples/.libs/t_som ~/sloc/data/artdata1.raw
+
+
+
+# migrating cvs from pinguin to sf.net
+#
+pinguin     $ tar cvfz libeegtools_repo.tar.gz /home/share/bccn/cvsroot/libeegtools/
+workstation $ scp mihrke@pinguin.uni-psych.gwdg.de:/home/share/bccn/cvsroot/libeegtools_repo.tar.gz .
+workstation $ scp libeegtools_repo.tar.gz mihrke@shell.sf.net:/home/users/m/mi/mihrke/.
+workstation $ ssh -t mihrke,libeegtools@shell.sourceforge.net create
+shell.sf.net$ adminrepo --checkout cvs
+shell.sf.net$ cd /cvsroot/libeegtools
+shell.sf.net$ cp /home/users/m/mi/mihrke/libeegtools_repo.tar.gz .
+shell.sf.net$ tar xvfz libeegtools_repo.tar.gz
+shell.sf.net$ cd ; adminrepo --save cvs
+

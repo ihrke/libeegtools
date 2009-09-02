@@ -68,7 +68,7 @@ double* python_list_to_doubleptr( PyObject *p ){
 %include eeg.i
 %include eegio.i
 %include denoising.i
-%include som.i
+ /*%include som.i*/
 
 
 %include pythonfunctions.i

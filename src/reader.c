@@ -1,5 +1,36 @@
 #include "reader.h"
 #include "helper.h"
+#include <matio.h>
+
+EEG* read_eeglab_file( const char *file ){
+  mat_t *mat;
+  matvar_t *meeg; /* contains the struct 'EEG' from EEGlab */
+  matvar_t *tmp;  
+  int nfields; 
+  int i;
+
+  dprintf("Reading file: '%s'\n", file);
+  mat = Mat_Open( file, MAT_ACC_RDONLY);
+  if( !mat ){
+	 errprintf("Error opening MATLAB file '%s'\n", file );
+	 return NULL;
+  }
+  meeg = Mat_VarRead( mat, "EEG" );
+  if( meeg->class_type!=MAT_C_STRUCT ){
+	 errprintf("EEG does not appear to be a struct\n", file );
+	 return NULL;
+  }
+  nfields = Mat_VarGetNumberOfFields( meeg );
+  dprintf( "There are %i fields in the EEG struct\n", nfields );
+  for( i=1; i<=nfields; i++ ){ /* MATLAB 1-relative indices */
+	 tmp = Mat_VarGetStructField( meeg, &i, BY_INDEX, 0 );
+	 dprintf("Found field: '%s'\n", tmp->name);
+  }
+  
+  //  Mat_VarPrint( meeg, 1 );
+}
+
+
 
 /** reads from FILE* until '\n' and puts it into line.
 	 '\0' is added to line.

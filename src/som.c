@@ -40,6 +40,9 @@
 double** som_generate_connectivity_matrix( SOMConnectivityType type, double **m, int n ){
   int i,j;
   int sqrtn;
+  int ix,iy;
+  int jx,jy;	
+  double ret, diff;
   if( m==ALLOC_IN_FCT) {
 	 m = matrix_init( n,n );
   }
@@ -56,8 +59,6 @@ double** som_generate_connectivity_matrix( SOMConnectivityType type, double **m,
 	 if( SQR( sqrtn=sqrt((double)n)) != n ){
 		warnprintf("for a 2D-grid, n should be the square of an integer\n");
 	 }
-	 int ix,iy;
-	 int jx,jy;
 	 for( i=0; i<n; i++ ){
 		ix=i/sqrtn;
 		iy=i-sqrtn*ix;
@@ -70,9 +71,6 @@ double** som_generate_connectivity_matrix( SOMConnectivityType type, double **m,
 	 }	 
 	 break; 
   case TWOD_HEXAGONAL:
-	 int ix,iy;
-	 int jx,jy; 
-	 double ret, diff;
 	 for( i=0; i<n; i++ ){
 		ix=i/sqrtn;
 		iy=i-sqrtn*ix;

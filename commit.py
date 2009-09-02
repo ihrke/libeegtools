@@ -51,3 +51,9 @@ cmd = "cvs commit"
 sys.stdin.readline();
 print cmd;
 os.system(cmd);
+
+
+print "Uploading API documentation";
+cmd = "sh upload_documentation.sh";
+print cmd;
+os.system(cmd);
