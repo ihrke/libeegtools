@@ -3,7 +3,7 @@ AM_LDFLAGS = `@GSL_CONFIG@ --libs`
 
 METASOURCES = AUTO
 
-noinst_PROGRAMS = t_hmm t_som t_testfilter t_readeeglab #t_nonlin t_padtw t_test t_gapstat
+noinst_PROGRAMS = t_readeeglab # t_hmm t_som t_testfilter t_nonlin t_padtw t_test t_gapstat
 #t_denoise t_denoisestat t_gapstat \
 # t_readeeglab t_testfilter t_rawreadertest t_clustering t_gapstat \
 #t_dtw t_padtw t_adtw_markers t_timefreq t_test t_filterdesign 
@@ -37,20 +37,20 @@ t_readeeglab_LDADD = $(top_builddir)/src/libeegtools.la
 # t_nonlin_LDFLAGS = @PLOTTER_LDFLAGS@
 # t_nonlin_LDADD = ..//src/libeegtools.la
 
-t_hmm_SOURCES = t_hmm.c
-t_hmm_CFLAGS =  @PLOTTER_CFLAGS@
-t_hmm_LDFLAGS = @PLOTTER_LDFLAGS@
-t_hmm_LDADD = ../src/libeegtools.la
+# t_hmm_SOURCES = t_hmm.c
+# t_hmm_CFLAGS =  @PLOTTER_CFLAGS@
+# t_hmm_LDFLAGS = @PLOTTER_LDFLAGS@
+# t_hmm_LDADD = ../src/libeegtools.la
 
-t_som_SOURCES = t_som.c
-t_som_CFLAGS =  @PLOTTER_CFLAGS@
-t_som_LDFLAGS = @PLOTTER_LDFLAGS@
-t_som_LDADD = ../src/libeegtools.la
+# t_som_SOURCES = t_som.c
+# t_som_CFLAGS =  @PLOTTER_CFLAGS@
+# t_som_LDFLAGS = @PLOTTER_LDFLAGS@
+# t_som_LDADD = ../src/libeegtools.la
 
-t_testfilter_SOURCES = t_testfilter.c 
-t_testfilter_CFLAGS =  @PLOTTER_CFLAGS@
-t_testfilter_LDFLAGS = @PLOTTER_LDFLAGS@
-t_testfilter_LDADD = ../src/libeegtools.la 
+# t_testfilter_SOURCES = t_testfilter.c 
+# t_testfilter_CFLAGS =  @PLOTTER_CFLAGS@
+# t_testfilter_LDFLAGS = @PLOTTER_LDFLAGS@
+# t_testfilter_LDADD = ../src/libeegtools.la 
 
 
 # t_filterdesign_SOURCES = t_filterdesign.c 

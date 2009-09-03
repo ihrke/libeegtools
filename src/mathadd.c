@@ -114,6 +114,10 @@ int maxeli(int *v, int n){
 }
 
 /** return index in vector that is closest to a value
+	 \param v vector to search
+	 \param n length of vector
+	 \param c value to look for
+	 \return index of the value closest to c in v
  */	  
 int closest_index(const double *v, int n, double c){
   int i, index=-1;

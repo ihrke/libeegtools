@@ -10,6 +10,7 @@
 /* replaced by autoconf */
 #define @DEF_DEBUG@
 #define @DEF_PLOTTER@
+#define @DEF_MATIO@
 
 #define ALLOC_IN_FCT NULL
 
@@ -51,19 +52,24 @@ extern "C" {
 	 - EEG-Data -
 	 ---------------------------------------------------------*/
 
-  //  typedef ChannelData (**double);
-
   typedef struct{
-	 char         filename[255];
+	 char         *filename;
 	 char         *comment;
-	 unsigned int nbchan;
-	 unsigned int trials;
-	 unsigned int n;
-    double       sampling_rate;
-	 double       *times;
-	 ChannelInfo  *chaninfo;
+	 unsigned int nbchan;  /**< number of channels */
+	 unsigned int ntrials; /**< number of trials = dim(eeg) */ 
+	 unsigned int n;       /**< number of samples */
+    double       sampling_rate; /**< in Hz */
+	 double       *times;  /**< times array; n-long */
+	 ChannelInfo  *chaninfo; /**< location and other information
+										 about the channels */
 
-	 //	 ChannelData  *data;
+	 double       ***data; /**< channels x trials x samples */
+
+	 unsigned int *nmarkers; /**< number of markers for each trial */
+	 unsigned int **markers; /**< trials x nmarkers[i] */
+	 char       ***marker_labels; /**< trials x nmarkers[i] x length(label) gives  a 
+											  label for each marker */
+
   } EEG;
 
   typedef struct{

@@ -144,34 +144,6 @@ extern "C" {
 
   /**\}*/
 
- /**\addtogroup helperstruct
-	*\ingroup helper
-	*\{*/
-  /* ---------------------------------------------------------------------------- 
-	  -- Helper functions (struct handling)                                     -- 
-	  ---------------------------------------------------------------------------- */
-  /* constructors */
-  EEGdata*        init_eegdata(int nbchan, int nsamples, int nmarkers);
-  void            reset_eegdata( EEGdata* eeg );
-  EEGdata_trials* init_eegdata_trials(int nbtrials, int markers_per_trial, 
-												  int nbchan, int nbsamples, double *times);
- 
-  
-  /* destructors */
-  void    free_eegdata(EEGdata *eeg);
-  void    free_eegdata_trials(EEGdata_trials *eeg);
-
-  /* convenience functions for structs */
-  int       eegdata_cmp_settings( const EEGdata *s1, const EEGdata *s2 );
-  int       copy_similar_eegdata( EEGdata *dest, const EEGdata *source );
-  EEGdata*         clone_eegdata( const EEGdata *source );
-  EEGdata_trials*  clone_eegdata_trials( const EEGdata_trials *source );
-
-  /* printing-functions */
-  void    print_eegdata_trials(FILE *out, const EEGdata_trials *eeg);
-  void    print_eegdata(FILE *out, const EEGdata *eeg);
-  void    print_channelinfo( FILE *out, const ChannelInfo *c );
-  /**\}*/
 
   /* ---------------------------------------------------------------------------- 
 	  -- Gobals                                                                 -- 

@@ -22,7 +22,7 @@ int main(int argc, char **argv){
   int i, j;
   EEG *eeg;
 
-  eeg=read_eeglab_file( "/scratch.local/ihrke/data/eegtast_19_epoched.set" );
-
+  eeg=read_eeglab_file( "/media/scratch.local/ihrke/data/vp19_tt.set");
+  eeg_print( stdout, eeg, 3 );
   return 0;
 }

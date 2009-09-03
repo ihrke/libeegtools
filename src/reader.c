@@ -2,12 +2,28 @@
 #include "helper.h"
 #include <matio.h>
 
+#ifdef MATIO
+double get_double_from_struct_field( matvar_t *eeg, const char *name, int struct_array_index );
+
+/** This reader uses MatIO to parse EEGlab files and construct
+	 a LibEEGTools EEG struct.
+	 It was developed with EEGlab version 6.01b.
+	 
+	 Currently, the EEGlab set must be "epoched", that means that the data must be
+	 three-dimensional with channels x n x trials. Continuous data is not yet supported
+	 and the reader will fail.
+
+	 \param eeglab .set file
+	 \return the EEG struct
+*/
 EEG* read_eeglab_file( const char *file ){
   mat_t *mat;
   matvar_t *meeg; /* contains the struct 'EEG' from EEGlab */
-  matvar_t *tmp;  
+  matvar_t *tmp, *tmp2, *event, *epoch;  
   int nfields; 
-  int i;
+  int c,i,j;
+  EEG *eeg;
+  int nbchan, ntrials, n;
 
   dprintf("Reading file: '%s'\n", file);
   mat = Mat_Open( file, MAT_ACC_RDONLY);
@@ -17,19 +33,144 @@ EEG* read_eeglab_file( const char *file ){
   }
   meeg = Mat_VarRead( mat, "EEG" );
   if( meeg->class_type!=MAT_C_STRUCT ){
-	 errprintf("EEG does not appear to be a struct\n", file );
+	 errprintf("EEG does not appear to be a struct\n" );
 	 return NULL;
   }
   nfields = Mat_VarGetNumberOfFields( meeg );
+#ifdef DEBUG
   dprintf( "There are %i fields in the EEG struct\n", nfields );
   for( i=1; i<=nfields; i++ ){ /* MATLAB 1-relative indices */
 	 tmp = Mat_VarGetStructField( meeg, &i, BY_INDEX, 0 );
 	 dprintf("Found field: '%s'\n", tmp->name);
   }
+#endif
+
+  /* dimensions */
+  nbchan = (int)get_double_from_struct_field( meeg, "nbchan",0 );
+  ntrials= (int)get_double_from_struct_field( meeg, "trials",0 );
+  n      = (int)get_double_from_struct_field( meeg, "pnts",0 );
+  eeg = eeg_init( nbchan, ntrials, n );
+
+  /* filename  */
+  eeg->filename=(char*)malloc( (strlen(file)+2)*sizeof(char) );
+  strcpy( eeg->filename, file );
+
+  /* comments */
+  tmp = Mat_VarGetStructField( meeg, "comments", BY_NAME, 0 );
+  eeg->comment=(char*)malloc( tmp->dims[0]*sizeof(char) );
+  for( i=0; i<tmp->dims[0]+1; i++ ){
+	 eeg->comment[i]='\0';
+  }
+  memcpy( eeg->comment, tmp->data, tmp->dims[0]*sizeof(char));
+
+  /* sampling rate */
+  eeg->sampling_rate = get_double_from_struct_field( meeg, "srate", 0);
+
+  /* times */
+  tmp = Mat_VarGetStructField( meeg, "times", BY_NAME, 0 );
+  if( tmp->dims[1]!=n ){
+	 errprintf("times-array should be of length n: %i != %i\n", tmp->dims[1], n );
+	 eeg_free( eeg );
+	 return NULL;
+  } 
+  if( tmp->data_size != sizeof(double) ){
+	 errprintf("times is not double format, %i!=%i\n", tmp->data_size, sizeof(double));
+	 eeg_free( eeg );
+	 return NULL;	 
+  }
+  eeg->times = (double*) malloc( n*sizeof(double) );
+  memcpy(eeg->times, tmp->data, n*sizeof(double) );
+
+  /* channel info */
+  eeg->chaninfo = (ChannelInfo*)malloc( nbchan*sizeof(ChannelInfo) );
+  tmp = Mat_VarGetStructField( meeg, "chanlocs", BY_NAME, 0 );
+  dprintf("chanlocs: %i,%i\n", tmp->dims[0], tmp->dims[1]);
   
-  //  Mat_VarPrint( meeg, 1 );
+  for( i=0; i<nbchan; i++ ){
+	 tmp2 = Mat_VarGetStructField( tmp, "labels", BY_NAME, i );
+	 eeg->chaninfo[i].num = i;
+	 eeg->chaninfo[i].num_chans = nbchan;
+	 strcpy(eeg->chaninfo[i].label, (char*)tmp2->data);
+	 eeg->chaninfo[i].x = get_double_from_struct_field( tmp, "X", i);
+	 eeg->chaninfo[i].y = get_double_from_struct_field( tmp, "Y", i);
+	 eeg->chaninfo[i].z = get_double_from_struct_field( tmp, "Z", i);
+  }
+  
+  
+  /* data */
+  tmp = Mat_VarGetStructField( meeg, "data", BY_NAME, 0 );
+  if( tmp->dims[0]!=nbchan || tmp->dims[1]!=n || tmp->dims[2]!=ntrials ){
+	 errprintf("(nbchan,ntrials,n)=(%i,%i,%), should be (%i,%i,%i)\n",
+				  tmp->dims[0], tmp->dims[2], tmp->dims[1], nbchan, ntrials, n );
+	 eeg_free( eeg );
+	 return NULL;
+  }
+  if( tmp->data_size != sizeof(float) ){
+	 errprintf("data is not in float format, sizeof(data)=%i, sizeof(float)=%i\n", 
+				  tmp->data_size, sizeof(float));
+	 eeg_free( eeg );
+	 return NULL;	 
+  } 
+  float x;
+  for( c=0; c<nbchan; c++ ){
+	 for( i=0; i<ntrials; i++ ){
+		for( j=0; j<n; j++ ){
+		  x=((float*)tmp->data)[ c*n*ntrials+i*n+j ];
+		  eeg->data[c][i][j] = (double)x;
+		}
+	 }
+  }
+  
+  /* markers */
+  epoch = Mat_VarGetStructField( meeg, "epoch", BY_NAME, 0 );
+  if( epoch->dims[0] == 0 || epoch->dims[1] < ntrials ){
+	 errprintf("no epoch field, or wrong dimensions (%i,%i)\n", 
+				  epoch->dims[0],epoch->dims[1]);
+	 eeg_free( eeg );
+	 return NULL;
+  }
+  eeg->nmarkers = (unsigned int*) malloc( ntrials*sizeof(unsigned int) );
+  eeg->markers = (unsigned int**) malloc( ntrials*sizeof(unsigned int*) );
+  eeg->marker_labels = (unsigned int***) malloc( ntrials*sizeof(unsigned int**) );
+
+  int event_idx;
+  for( i=0; i<ntrials; i++ ){
+	 tmp  = Mat_VarGetStructField( epoch, "eventlatency", BY_NAME, i );
+	 tmp2 = Mat_VarGetStructField( epoch, "eventtype", BY_NAME, i );
+	 dprintf("%i, %i\n", i, tmp->dims[1]);
+	 eeg->nmarkers[i] = tmp->dims[1];
+	 eeg->markers[i] = (unsigned int*) malloc( eeg->nmarkers[i]*sizeof(unsigned int) );
+	 eeg->marker_labels[i] = (unsigned int**) malloc( eeg->nmarkers[i]*sizeof(unsigned int*) );
+	 for( j=0; j<eeg->nmarkers[i]; j++ ){
+		/* label */
+		event = Mat_VarGetCell( tmp2, j ); /* MATLAB index */
+		eeg->marker_labels[i][j] = (char*)malloc( (strlen((char*)event->data)+1)*sizeof(char) );
+		strcpy( eeg->marker_labels[i][j], (char*)event->data );
+		/* latency */
+		event = Mat_VarGetCell( tmp, j ); /* MATLAB index */
+		eeg->markers[i][j] = closest_index( eeg->times, n, ((double*)event->data)[0] );
+	 }
+  }
+
+  dprintf("Finished reading '%s'\n", file );
+
+  return eeg;
 }
 
+
+double get_double_from_struct_field( matvar_t *eeg, const char *name, int struct_array_index ){
+  matvar_t *tmp; 
+
+  tmp = Mat_VarGetStructField( eeg, name, BY_NAME, struct_array_index );
+  if( tmp->rank != 1 && tmp->dims[0]<1 ){
+	 errprintf("field '%s' wrong, rank=%i,tmp->dims[0]=%i\n",name, tmp->rank,tmp->dims[0] );
+	 return -1;
+  }  
+  dprintf( "found: %s=%f\n", name, (((double*)tmp->data)[0]) );
+  return (((double*)tmp->data)[0]);
+}
+
+#endif /* MATIO */
 
 
 /** reads from FILE* until '\n' and puts it into line.
