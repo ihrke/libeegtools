@@ -32,13 +32,24 @@
 extern "C" {
 #endif
 
+#define EEG_CLONE_ALL        0     /**< clone everything */
+#define EEG_CLONE_NODATA     2<<1  /**< clone everything except 
+												  the eeg->data field */
+#define EEG_CLONE_NOMARKERS  2<<2  /**< clone everything except
+												  the eeg->markers, eeg->nmarkers
+												  eeg->marker_labels fields */
+#define EEG_CLONE_NOCHANINFO 2<<3  /**< clone everything except
+												  the eeg->chaninfo field */
+
 
   EEG* eeg_init            ( int nbchan, int ntrials, int nsamples );
-  EEG* eeg_extract_channels( EEG* eeg, int *channels, int nchannels, Boolean alloc );
-  EEG* eeg_extract_trials  ( EEG* eeg, int *trials,   int ntrials,   Boolean alloc );
+  EEG* eeg_extract_channels( EEG* eeg, const int *channels, int nchannels, Boolean alloc );
+  EEG* eeg_extract_trials  ( EEG* eeg, const int *trials,   int ntrials,   Boolean alloc );
 
-  void eeg_print( FILE *out,  EEG *eeg, int preview );
-  EEG* eeg_clone( EEG *eeg );
+  void eeg_append_comment( EEG *eeg, const char *comment );
+  void eeg_print( FILE *out,  const EEG *eeg, int preview );
+  EEG* eeg_clone( const EEG *eeg, int flags );
+  void eeg_free ( EEG *eeg );
 
  /**\addtogroup helperstruct
   *\ingroup helper

@@ -19,6 +19,55 @@
  ***************************************************************************/
 
 #include "averaging.h"
+#include "eeg.h"
+
+/** Calculate a simple, pointwise average across trials
+	 \f[
+	 \hat{s}(t) = \frac{1}{N}\sum_{i=1}^{N}s_i(t)
+	 \f]
+	 \param eeg input
+	 \return freshly allocate EEG-struct
+ */
+EEG*     eeg_simple_average( EEG *eeg ){
+  EEG *out;
+  int c;
+
+  out = eeg_init( eeg->nbchan, 1, eeg->n ); /* the average */
+  out->sampling_rate=eeg->sampling_rate;
+  if( eeg->times ){
+	 out->times = (double*) malloc( eeg->n*sizeof(double) );
+	 memcpy( out->times, eeg->times, eeg->n*sizeof(double) );
+  }
+  if( eeg->chaninfo ){
+	 out->chaninfo = (ChannelInfo*) malloc( eeg->nbchan*sizeof(ChannelInfo) );
+	 memcpy( out->chaninfo, eeg->chaninfo,  eeg->nbchan*sizeof(ChannelInfo) );
+  }
+  eeg_append_comment( out, "output from eegtrials_simple_average()\n" );
+  for( c=0; c<eeg->nbchan; c++ ){
+	 out->data[c][0] = simple_average_nv( eeg->data[c], eeg->ntrials, eeg->n, out->data[c][0] );
+  }
+  return out;
+}
+
+/** Calculate alternate average of n vectors
+	 \f[
+	 \hat{s}(t) = \frac{1}{N}\sum_{i=1}^{N} (-1)^{i-1}s_i(t)
+	 \f]
+	 \param eeg input
+	 \return freshly allocate EEG-struct
+ */
+EEG*     eeg_alternate_average( EEG *eeg ){
+  EEG *out;
+  int c;
+
+  out = eeg_init( eeg->nbchan, 1, eeg->n ); /* the average */
+  eeg_append_comment( out, "output from eegtrials_simple_average()\n" );
+  for( c=0; c<eeg->nbchan; c++ ){
+	 out->data[c][0] = alternate_average_nv( eeg->data[c], eeg->ntrials, eeg->n, out->data[c][0] );
+  }
+  return out;
+}
+
 
 /** Calculate a simple, pointwise average of two vectors. 
 	 \f[ \hat{s}(t) = \frac{(s_1(t)+s_2(t))}{2} \f]
@@ -76,44 +125,5 @@ double* alternate_average_nv(const double **s, int N, int n, double *avg){
 	 }
 	 avg[i] /= (double) N;
   }
-  return avg;
-}
-
-
-EEGdata* eegtrials_simple_average( EEGdata_trials *eeg, EEGdata *avg){
-  int c, nbchan, n;
-  
-  nbchan = eeg->data[0]->nbchan;
-  n = eeg->data[0]->n;
-  if( avg==NULL ){
-	 avg = init_eegdata( nbchan, n, 0 );
-  }
-  
-  for( c=0; c<nbchan; c++ ){
-	 eegtrials_simple_average_channel( eeg, c, avg->d[c] );
-  }
-
-  return avg;
-}
-
-double* eegtrials_simple_average_channel( EEGdata_trials *eeg, int channel, double *avg ){
-  int t, i,n, N;
-
-  n =  eeg->data[0]->n;
-  N = eeg->ntrials;
-
-  if( avg==NULL ){
-	 avg = (double*)malloc( n * sizeof(double) );
-  }
-
-  memset( avg, 0, n*sizeof(double) );
-
-  for( i=0; i<n; i++ ){
-	 for( t=0; t<N; t++ ){
-		avg[i] += eeg->data[t]->d[channel][i];
-	 }
-	 avg[i] = avg[i]/(double)N;
-  }
-
   return avg;
 }

@@ -18,63 +18,23 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/**\file denoising.h
- * \brief Contains functions used for signal denoising.
+/**\file wavelet.h
+ * \brief Contains functions used for wavelet-based signal denoising.
  *
- * Especially wavelet-based denoising. 
  */
 
-#ifndef DENOISING_H
-# define DENOISING_H
+#ifndef WAVELET_H
+# define WAVELET_H
 
-#include <gsl/gsl_wavelet.h>
-#include <gsl/gsl_statistics.h>
-#include <gsl/gsl_sort.h>
-#include <math.h>
-#include <float.h>
-#include <limits.h>
-#include <stdarg.h>
-#include <string.h> /* memcpy */
-#include "helper.h"
-#include "mathadd.h"
-#include "distances.h"
-#include "fidlib/fidlib.h"
+#include "definitions.h"
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-  /* ------------------------------ 
-	  -- Robust filtering methods  --
-	  ------------------------------ */
-
-  /** \ingroup robust_filtering
-		\{
-	*/
-  void    eeg_filter_running_median(EEGdata *s, int win);
-  double* running_median           (double *d, int n, int win);
-
-  void    eeg_filter_weighted_running_median(EEGdata *s, int win);
-  double* weighted_running_median           (double *d, int n, int win, 
-															PointDistanceFunction dist);
-
-  double  weighted_median_from_unsorted(const double *d, const double *w, int n);
-
-
-  /** \} */
-
-  /* ------------------------------ 
-	  -- Other filtering methods  --
-	  ------------------------------ */
-
-  /** \ingroup other_filtering
-		\{
-	*/
-  double* moving_average(double *s, int n, int win);
-  /** \} */
 
   /* ---------------------------------------------------------------------------- 
-	  -- Wavelet-based Denoising routines                                                     -- 
+	  -- Wavelet-based Denoising routines                                       -- 
 	  ---------------------------------------------------------------------------- */
   /** \ingroup thresholding
 		\{
@@ -108,25 +68,8 @@ extern "C" {
   double heuristic_sure                    ( const double *data, int n );
   /** \} */
 
- /* ------------------------------ 
-	  -- Bandpass filter design  --
-	  ------------------------------ */ 
- /** \ingroup frequence_filter
-	*\{
-	*/
-  void eeg_filter_fidlib( EEGdata *eeg, double sampling_rate, const char *spec );
-  /** \} */
-
-  /**\cond OBSOLETE */
-  /** \ingroup filter_design
-	*\{
-	*/
-  void butterworth_design_bandpass( int order, double sampling_rate, double passband[2],
-												double *bcoeff, double *acoeff );
-  /** \} */
-  /**\endcond */
 
 #ifdef __cplusplus
 }
 #endif
-#endif /* - DENOISING_H - */
+#endif /* - WAVELET_H - */

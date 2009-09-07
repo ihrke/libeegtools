@@ -86,10 +86,6 @@ extern "C" {
 
   char* read_line( FILE *f, char *line );
   ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans );
-
-  /* matlab readers not functional, yet */
-  EEGdata_trials* read_segmented_eeg_from_eeglabset(const char *file);
-  int is_compressed_format(uint32_t first, int swapflag);
   /** \} */
 #ifdef __cplusplus
 }

@@ -18,6 +18,47 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "mathadd.h"
+#include <stdlib.h>
+#include <time.h>
+
+/** Weighted Median computation.
+ * Formula:
+ *  \f[ WM = y_{(k)}\qquad k = \max\left\{h:\sum_{i=h}^n w_{(i)} \ge \frac{1}{2}\sum_{i=1}^{n} w_i\right\} \f]
+ * \param d - data
+ * \param w - corresponding weights (>=0)
+ */
+double weighted_median_from_unsorted(const double *d, const double *w, int n){
+  size_t *permut; 
+  double ref=0.0, refh;
+  int k;
+  int i, h, idx;
+
+  permut=(size_t*)malloc(n*sizeof(size_t));
+  gsl_sort_index(permut, d, 1, n);  
+/*   dprintf("i\tperm[i]\td[i]\td[permut[i]]\n"); */
+/*   for(i=0; i<n; i++){ */
+/* 	 dprintf("%i\t%i\t%.2f\t%.2f\n", i, permut[i], d[i], d[permut[i]]); */
+/*   } */
+
+  for(i=0; i<n; i++)
+    ref+=w[i];
+  ref /= 2.0;
+  
+  k=0;
+  for(h=n-1; h>0; h--){
+    refh = 0.0;
+    for(i=h; i<n; i++){ /* works because w_i>=0 */
+      refh += w[permut[i]];
+    }
+    if(refh>=ref){
+      k=h;
+      break;
+    }
+  }
+  idx = permut[k];
+  free(permut);
+  return d[idx];
+}
 
 /* ---------------------------------------------------------------------------- 
    -- Merit Measures                                                         -- 
@@ -154,7 +195,7 @@ double* sampled_line(double *ntimes, int n, double start, double end){
  */
 double* linspace_dbl(double first, double last, double step, double *v, int *n){
   int i;
-	massert(first>last, "first>last: %i>%i", first, last);
+	massert(first>last, "first>last: %f>%f", first, last);
 	*n = (int) round(((last-first)/step)+1);
 	if( v==ALLOC_IN_FCT ){
 	  v=(double*)malloc((*n)*sizeof(double));
@@ -333,7 +374,7 @@ double** matrix_rand( double **m, int N, int M, double lower, double upper ){
 void     matrix_normalize_by_max( double **m, int M, int N ){
   double max; 
 
-  max = matrix_max( m, M, N, NULL, NULL );
+  max = matrix_max( (const double**) m, M, N, NULL, NULL );
   matrix_divide_scalar( m, M, N, max);
 }
 

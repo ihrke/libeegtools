@@ -31,3 +31,8 @@ shell.sf.net$ cp /home/users/m/mi/mihrke/libeegtools_repo.tar.gz .
 shell.sf.net$ tar xvfz libeegtools_repo.tar.gz
 shell.sf.net$ cd ; adminrepo --save cvs
 
+
+Moving from EEGdata/EEGdata_trials to EEG:
+-----------------------------------------
+Files done:
+ averaging.h/.c

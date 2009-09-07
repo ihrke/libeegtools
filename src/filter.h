@@ -1,5 +1,5 @@
-/***************************************************************************
- *   Copyright (C) 2008 by Matthias Ihrke   *
+/* **************************************************************************
+ *   Copyright (C) 2009 by Matthias Ihrke   *
  *   mihrke@uni-goettingen.de   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,30 +18,50 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/**\file averaging.h
- * \brief Averaging functions.
+/**\file filter.h
+ * \brief Contains functions used for frequency-domain signal filtering.
+ *
  */
-#ifndef AVERAGING_H
-#define AVERAGING_H
-#include "mathadd.h"
+
+#ifndef FILTER_H
+# define FILTER_H
+
 #include "definitions.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/** \weakgroup otheravg
- *\{
- */
-  double*  simple_average_2v   ( const double *s1, const double *s2, int n, double *avg );
-  double*  simple_average_nv   ( const double **s, int N, int n, double *avg );
-  double*  alternate_average_nv( const double **s, int N, int n, double *avg );
+  /* ------------------------------ 
+	  -- Robust filtering methods  --
+	  ------------------------------ */
+  /** \ingroup robust_filtering\{	*/ 
+  double* running_median         ( double *d, int n, int win);
+  double* weighted_running_median( double *d, int n, int win, 
+											  PointDistanceFunction dist);
 
-  EEG*     eeg_simple_average   ( EEG *eeg );
-  EEG*     eeg_alternate_average( EEG *eeg );
-/** \} */
+  EEG*    eeg_filter_running_median(EEG *eeg, int win, Boolean alloc );
+  void    eeg_filter_weighted_running_median(EEGdata *s, int win);
+  /** \} */
+
+  /* ------------------------------ 
+	  -- Other filtering methods  --
+	  ------------------------------ */
+
+  /** \ingroup other_filtering\{	*/
+  double* moving_average(double *s, int n, int win);
+  /** \} */
+
+ /* ------------------------------ 
+	  -- Bandpass filter  --
+	  ------------------------------ */ 
+ /** \ingroup frequence_filter \{ */
+  void eeg_filter_fidlib( EEGdata *eeg, double sampling_rate, const char *spec );
+  /** \} */
+  
 #ifdef __cplusplus
 }
 #endif
+
 
 #endif

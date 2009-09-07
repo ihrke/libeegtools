@@ -14,23 +14,10 @@ noinst_PROGRAMS = t_readeeglab # t_hmm t_som t_testfilter t_nonlin t_padtw t_tes
 # t_denoisestat_SOURCES = argspec.c argspec.h t_denoisestat.c
 # t_denoisestat_LDADD = $(top_builddir)/src/libeegtools.la 
 
+t_readeeglab_CFLAGS = @PLOTTER_CFLAGS@
+t_readeeglab_LDFLAGS = @PLOTTER_LDFLAGS@
 t_readeeglab_SOURCES = t_readeeglab.c
 t_readeeglab_LDADD = $(top_builddir)/src/libeegtools.la
-
-# t_rawreadertest_SOURCES = t_rawreadertest.c
-# t_rawreadertest_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`
-# t_rawreadertest_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
-# t_rawreadertest_LDADD = $(top_builddir)/src/libeegtools.la
-
-# t_clustering_SOURCES = t_clustering.c
-# t_clustering_CFLAGS = `@PLOTTER_CONFIG@ --with-capi --cflags`
-# t_clustering_LDFLAGS = `@PLOTTER_CONFIG@ --with-capi --ldflags`
-# t_clustering_LDADD = $(top_builddir)/src/libeegtools.la
-
-# t_gapstat_SOURCES = t_gapstat.c
-# t_gapstat_CFLAGS = `@PLOTTER_CONFIG_CFLAGS@`
-# t_gapstat_LDFLAGS = `@PLOTTER_CONFIG_LDFLAGS@`
-# t_gapstat_LDADD = $(top_builddir)/src/libeegtools.la
 
 # t_nonlin_SOURCES = t_nonlin.c
 # t_nonlin_CFLAGS =  @PLOTTER_CFLAGS@

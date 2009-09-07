@@ -1,11 +1,34 @@
 /* helper.c
  *
- */	
+ */
 #include "helper.h"
 
 /* ---------------------------------------------------------------------------- 
    -- Helper functions                                                       -- 
    ---------------------------------------------------------------------------- */
+
+/** checks whether val is in a.
+ */
+Boolean  isin_intarray( const int *a, int n, int val ){
+  int i;
+  for( i=0; i<n; i++ ){
+	 if( val==a[i] )
+		return TRUE;
+  }
+  return FALSE;
+}
+
+/** checks whether p is the NULL pointer before freeing.
+	 \return 0 memory was freed, 1 no memory was freed
+ */
+int safer_free( void *p ){
+  if( p ){
+	 free( p );
+	 return 0;
+  } else {
+	 return 1;
+  }
+}
 
 /** returns a random integer in the range [from, from+1, ..., to]
  */
@@ -46,23 +69,6 @@ int stream_count_char( FILE* f, char c ){
   return numchar;
 }
 
-int v_printf(int v, char *format, ...){
-  extern int *verbosity;
-  int tmp;
-  if(!verbosity){
-	 tmp=0;
-	 verbosity=&tmp;
-  }
-  va_list arglist;
-
-  va_start(arglist,format);
-
-  if (v<=*verbosity)
-    vfprintf(stderr,format,arglist);
-  va_end(arglist);
-
-  return 0;
-}
 
 size_t  ffread(void *ptr, size_t size, size_t nmemb, FILE *stream){
   size_t bread;
@@ -202,7 +208,7 @@ int strcount( const char *s, char c ){
   }
   return count;
 }
-	
+
 
 /** displays a progress-bar like this
 	 \code

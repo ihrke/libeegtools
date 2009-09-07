@@ -92,9 +92,9 @@
 	 fprintf(stderr, ## __VA_ARGS__);												\
 	 fprintf(stderr, ESCAPE_RESET_STR); } while(0)
 
-#define warnprintf(...) do{ fprintf(stderr, ESCAPE_FGWHITE_STR ESCAPE_BOLD_STR\
-											  ESCAPE_BGBLUE_STR "WARNING: %s (%i), %s(): ", \
-											  __FILE__, __LINE__, __FUNCTION__);	\
+#define warnprintf(...) do{ fprintf(stderr, ESCAPE_FGWHITE_STR ESCAPE_BOLD_STR \
+												ESCAPE_BGBLUE_STR "WARNING: %s (%i), %s(): ", \
+												__FILE__, __LINE__, __FUNCTION__);	\
 	 fprintf(stderr, ## __VA_ARGS__);												\
 	 fprintf(stderr, ESCAPE_RESET_STR); } while(0)
 
@@ -119,12 +119,16 @@ extern "C" {
   void     wswap(void *ptr, int nmemb, int flag);
   int      is_little_endian();
 
+  Boolean  isin_intarray( const int *a, int n, int val );
+
   void     qsort_int_index( int *idx_idx, const int *idx, int n );
   int      compare_ints (const void *a, const void *b);
 
   int      randint( int from, int to );  
 
   int      strcount( const char *s, char c );
+
+  int      safer_free( void *p );
 
   double** copy_double_ptrptr(const double **s, int N, int n);
   /**\}*/
@@ -134,7 +138,6 @@ extern "C" {
   /* ---------------------------------------------------------------------------- 
 	  -- Helper functions (IO)                                                  -- 
 	  ---------------------------------------------------------------------------- */
-  int     v_printf(int v, char *format, ...);
   int     vprint_vector(const char* name, double *v, int n); 
 
   size_t  ffread(void *ptr, size_t size, size_t nmemb, FILE *stream);
@@ -156,7 +159,6 @@ extern "C" {
   void   progressbar_rotating( int flag, int num );
   /** \} */
 
-  static int *verbosity; 
 
 #ifdef __cplusplus
 }
