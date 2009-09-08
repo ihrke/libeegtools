@@ -28,7 +28,6 @@
 
 #include "definitions.h"
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -39,25 +38,9 @@ extern "C" {
   /** \ingroup thresholding
 		\{
   */
-  double eta_s(double d, double lambda);
-  double eta_h(double d, double lambda);
+  double soft_thresholding( double d, double lambda );
+  double hard_thresholding( double d, double lambda );
   /** \} */
-
-  /** \ingroup wavelet 
-		\{
-  */
-  int generic_denoising   ( double *data, int n, int L, 
-									 ThresholdSelectionFunction threshfct,
-									 ThresholdFunction etafct );
-  int extend_and_denoise  ( double *data, int n, int L, 
-									 ThresholdSelectionFunction threshfct,
-									 ThresholdFunction etafct, 
-									 SignalExtensionFunction sigextfct );
-  void eeg_wavelet_denoise( EEGdata *eeg, int L, 
-									 ThresholdSelectionFunction threshfct,
-									 ThresholdFunction etafct, 
-									 SignalExtensionFunction sigextfct );
-  /**\} */
 
   /** \ingroup select_thresh
 		\{
@@ -67,6 +50,15 @@ extern "C" {
   double sureshrink                        ( const double *data, int n );
   double heuristic_sure                    ( const double *data, int n );
   /** \} */
+
+  /** \ingroup wavelet 
+		\{
+  */
+  WaveletParameters wavelet_init();
+  int  wavelet_denoise           ( double *data, int n, WaveletParameters P );
+  int  wavelet_extend_and_denoise( double *data, int n, WaveletParameters P );
+  EEG* eeg_wavelet_denoise       ( EEG *eeg, WaveletParameters P, Boolean alloc );
+  /**\} */
 
 
 #ifdef __cplusplus

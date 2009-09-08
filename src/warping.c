@@ -445,48 +445,50 @@ EEGdata* eeg_warp_add_signals_by_path(const EEGdata *s1, const EEGdata *s2,
 	 averages obtained from different individuals.
 	 Warping takes place between stimulus-onset-marker and response-marker
 	 \param eeg_in input
-	 \param target or ALLOC_IN_FCT
 	 \param stmulus_marker gives the index indicating which of the markers within eeg_in  
 	                       is the stimulus-onset
 	 \param response_marker gives the index indicating which of the markers within eeg_in  
 	                       is the response-onset						  
 	 \param k parameter for gibbon's method
-	 \return pointer to target or newly allocated memory
-*/  
-EEGdata* eegtrials_gibbons( const EEGdata_trials *eeg, EEGdata *target, 
-									 int stimulus_marker, int response_marker, double k ){
+	 \return pointer to  newly allocated memory
+*/ 
+EEG* eeg_gibbons( EEG *eeg, int stimulus_marker, int response_marker, double k ){
   double *times, *new_times;
   double meanRT=0, curRT;
   double step;
   int n, N, i, j, l;
   int numchan, c;
-  int stim_onset, resp_onset;
+  int stim_onset=0, resp_onset=0;
+  EEG *eeg_out;
 
-  if( stimulus_marker>=eeg->nmarkers_per_trial ||
-		response_marker>=eeg->nmarkers_per_trial ||
-		stimulus_marker>=response_marker ){
-	 errprintf( "stimulus or response marker not correct (%i, %i), abort fct\n", 
-					 stimulus_marker, response_marker );
-	 return NULL;
+  for( i=0; i<eeg->ntrials; i++ ){
+	 if( stimulus_marker>=eeg->nmarkers[i] ||
+		  response_marker>=eeg->nmarkers[i] ||
+		  stimulus_marker>=response_marker ){
+		errprintf( "stimulus or response marker not correct (%i, %i) in trial %i, abort fct\n", 
+					  stimulus_marker, response_marker, i );
+		return NULL;
+	 }
   }
+
+  eeg_out = eeg_init( eeg->nbchan, 1, eeg->n );
+  eeg_out->sampling_rate=eeg->sampling_rate; 
+  if( eeg->times ){
+	 eeg_out->times = (double*) malloc( eeg->n*sizeof(double) );
+	 memcpy( eeg_out->times, eeg->times, eeg->n*sizeof(double) );
+  }
+  if( eeg->chaninfo ){
+	 eeg_out->chaninfo = (ChannelInfo*) malloc( eeg->nbchan*sizeof(ChannelInfo) );
+	 memcpy( eeg_out->chaninfo, eeg->chaninfo,  eeg->nbchan*sizeof(ChannelInfo) );
+  }
+  eeg_append_comment( eeg_out, "output from eeg_gibbons()\n");
+  eeg_init_markers( 2, eeg_out );
 
   /* for convenience */
   times = eeg->times;  
   N = eeg->ntrials;
-  n = eeg->nsamples;
-  numchan = eeg->data[0]->nbchan;
-
-
-  if( target==ALLOC_IN_FCT ){
-	 warnprintf(" allocating memory in fct\n");
-	 target = init_eegdata( numchan, n, eeg->nmarkers_per_trial );
-  } else {
-	 if( eegdata_cmp_settings( target, eeg->data[0] ) ){
-		errprintf( " target and input not similar enough\n" );
-		return NULL;
-	 }
-	 reset_eegdata( target );	  /* set to zero */
-  }
+  n = eeg->n;
+  numchan = eeg->nbchan;
 
   /* gsl interpolation allocation */
   gsl_interp_accel *acc = gsl_interp_accel_alloc ();
@@ -501,10 +503,11 @@ EEGdata* eegtrials_gibbons( const EEGdata_trials *eeg, EEGdata *target,
 
   /* compute warping for each trial */
   new_times = (double*) malloc( n*sizeof(double) );
-  memcpy( new_times, times, n*sizeof(double) ); /* copy times */
   for( i=0; i<N; i++ ){
+	 memcpy( new_times, times, n*sizeof(double) ); /* copy times */
 	 stim_onset = eeg->markers[i][stimulus_marker];
 	 resp_onset = eeg->markers[i][response_marker];
+	 dprintf("markers = (%i,%i)\n", stim_onset, resp_onset);
 	 curRT = times[resp_onset]-times[stim_onset];
 
 	 for( j=stim_onset; j<resp_onset; j++ ){
@@ -515,19 +518,24 @@ EEGdata* eegtrials_gibbons( const EEGdata_trials *eeg, EEGdata *target,
 	 step =(times[n-1]-curRT)/(double)(n-1-resp_onset);
 	 l = 0;
 	 for( j=resp_onset; j<n; j++ ){
-		new_times[j]=meanRT + l*step;
+		new_times[j]=meanRT + (l++)*step;
 	 }
 
 	 for( c=0; c<numchan; c++ ){ /* loop channels */
-		gsl_spline_init (spline, new_times, eeg->data[i]->d[c], n);
+		gsl_spline_init (spline, new_times, eeg->data[c][i], n);
 		for( j=0; j<n; j++ ){	  /* and samples */
-		  target->d[c][j] += gsl_spline_eval ( spline, times[j], acc );
+		  eeg_out->data[c][0][j] += gsl_spline_eval ( spline, times[j], acc );
 		}
 	 }
   }
+  eeg_out->markers[0][0] = stim_onset;
+  eeg_out->markers[0][1] = meanRT;
+  eeg_out->marker_labels[0][0] = create_string( "stimulus" );
+  eeg_out->marker_labels[0][1] = create_string( "response" );
+
   for( c=0; c<numchan; c++ ){
 	 for( j=0; j<n; j++ ){
-		target->d[c][j] /= (double)N; /* average */
+		eeg_out->data[c][0][j] /= (double)N; /* average */
 	 }
   }
   
@@ -536,7 +544,7 @@ EEGdata* eegtrials_gibbons( const EEGdata_trials *eeg, EEGdata *target,
   gsl_interp_accel_free (acc);
   free( new_times );
 
-  return target;
+  return eeg_out;
 }
 
 /** \cond PRIVATE */
@@ -669,329 +677,4 @@ void print_warppath( FILE *out, WarpPath *P ){
   }
   fprintf( out, "\n" );
 }
-  /* ------------------------------------------------------------------------------
-	  ------------------------------------------------------------------------------
-	  -----------------------OBSOLETE-----------------------------------------------
-	  ------------------------------------------------------------------------------
-	  ------------------------------------------------------------------------------ */
 
-/** \cond OBSOLETE */
-/** Construct the warppath from a square distance matrix.
-
-	 Algorithm:
-	 - cumulate the pointwise distance-matrix d by choosing
-	 \f[
-	 \mathbf{D}_{jk} = \mathbf{d}_{jk}+\min{\{\mathbf{D}_{j,k-1}, \mathbf{D}_{j-1,k}, \mathbf{D}_{j-1, k-1}\}}
-	 \f]
-	 \param d -  distance matrix 
-	 \param n - nxn matrix d
-	 \param path - pointer to WarpPath-struct of length (J+K) or NULL (allocated in function)
-	 \return WarpPath struct
-*/
-WarpPath* DTW_path_from_square_distmatrix(const double **d, int n, WarpPath *path){
-  int j,k;
-  int idx;
-  double left=0, down=0, downleft=0;
-  double **D;
-
-  if( path==NULL ){
-	 path = init_warppath(NULL, n, n);
-	 warnprintf( "allocating warppath in function\n");
-  }
-  dprintf("path=%p,path->n1=%i, path->n2=%i\n",path, path->n1, path->n2);
-  reset_warppath(path, n, n);
-  
-  D = matrix_init( n, n );
-  matrix_copy( d, D, n, n );
-
-  /* computing D_jk */
-  for(j=0; j<n; j++){
-    for(k=0; k<n; k++){
-      if(k==0 && j==0) ;
-      else if(k==0 && j>0)
-		  D[j][k] += D[j-1][k];
-      else if(k>0 && j==0)
-		  D[j][k] += D[j][k-1];
-      else /* j,k > 0 */
-		  D[j][k] += MIN(MIN(D[j][k-1], D[j-1][k]), D[j-1][k-1]);
-    }
-  }
-  dprintf("Djk = %f\n", D[n-1][n-1] );
-  /* Backtracking */
-  j=n-1; k=n-1;
-
-  idx = (j+k);
-  path->t1[idx] = j;
-  path->t2[idx] = k;
-  while( j>0 || k>0 ){
-	 if( k==0 ){ /* base cases */
-		j--;
-	 } else if( j==0 ){
-		k--;
-	 } else { /* min( d[j-1][k], d[j-1][k-1], d[j][k-1] ) */
-	  
-		left     = D[j-1][k  ];
-		down     = D[j  ][k-1];
-		downleft = D[j-1][k-1];
-		
-		(isnan( D[j-1][k  ] ) )?(left     = DBL_MAX):(left     = D[j-1][k  ]);
-		(isnan( D[j  ][k-1] ) )?(down     = DBL_MAX):(down     = D[j  ][k-1]);
-		(isnan( D[j-1][k-1] ) )?(downleft = DBL_MAX):(downleft = D[j-1][k-1]);
-
-		if( left<=downleft ){
-		  if( left <= down )
-			 j--;
-		  else
-			 k--;
-		} else {
-		  if( downleft <= down ){
-			 k--; j--;
-		  } else 
-			 k--;
-		}
-	 }
-	 
-	 /* if( left>=downleft && downleft<=down ){ /\* diagonal step *\/ */
-	 /* 	path->t1[idx] = j+1; */
-	 /* 	path->t2[idx] = k; */
-	 /* 	idx--; */
-	 /* 	path->t1[idx] = j; */
-	 /* 	path->t2[idx] = k; */
-	 /* } else { */
-		path->t1[idx] = j;
-		path->t2[idx] = k;
-	 /* } */
-	 idx--;
-	 /* dprintf("(j, k), idx = (%i,%i), %i\n", j, k, idx); */
-  }
-  dprintf("idx=%i, length(path)=%i\n", idx, 2*(n-1)-idx );
-
-  /* free */
-  matrix_free( D, n );
-
-  dprintf("leaving\n");
-  return path;
-}
-
-
-
-/** build the cumulated dissimilarity matrix D
-	 \param u,J 1st signal
-	 \param s,K 2nd signal
-	 \param R - restriction band ( in [0,1] )
-	 \param d -- if NULL, function allocates the memory
-	 \return pointer to JxK matrix D
- */
-double** DTW_build_restricted_cumdistmatrix(const double *u, int J, 
-														  const double *s, int K, 
-														  double R, double **d){ 
-  int j,k;
-  double avgu, avgs, rmsu=0.0, rmss=0.0;
-  double snorm, snormp; /* variable for a point of the normalized
-									signal and the preceding point */
-  double unorm, unormp;
-  int theta;
-  double left,down,downleft;
-
-  int *bham;
-
-  if( d==NULL ){
-	 d = (double**) malloc(J*sizeof(double*));
-	 for(j=0; j<J; j++)
-		d[j]=(double*)malloc(K*sizeof(double));
-  }
-
-  bham = (int*)malloc( MAX( J,K )*2*sizeof( int ) );
-  bresenham(0,0, J-1, K-1, bham);
-    
- 
-  if( R>1 ){
-	 dprintf("Restriction R=%f too large, using 1.0\n", R);
-	 R = 1.0;
-  } else if( R<0 ){
-	 dprintf("Restriction R=%f < 0, aborting\n", R);
-	 return d;
-  }
-
-  theta = (int)floor( R*MIN( K, J) );
-  /* theta = (int)floor( ( R*sqrt( SQR( J )+ SQR( K ) ) )/2.0 ); */
-  dprintf("theta=%i pixels\n", theta);
-
-  avgu = gsl_stats_mean(u, 1, J);
-  avgs = gsl_stats_mean(s, 1, K);
-  for(j=0; j<J; j++) rmsu += SQR( u[j] );
-  rmsu = sqrt(rmsu/(double)J);
-  for(k=0; k<K; k++) rmss += SQR( s[k] );
-  rmss = sqrt(rmss/(double)K);
-
-  for(j=0; j<J; j++){ // set everything to NAN for restrictions
-    for(k=0; k<K; k++){
-  		d[j][k] = NAN;
-  	 }
-  }
-
-  int b = 1;
-  if( K>J ) b=0;
-
-  int lower_corridor, upper_corridor;
-
-  /* computing d_jk */
-  for( j=0; j<MAX( J, K ); j++ ){ /* J>K */
-	 lower_corridor = MAX( 0, bham[(2*j)+b]-theta );
-	 upper_corridor = MIN( bham[(2*j)+b]+theta, K );
-	 /* dprintf("b=%i, bham=(%i,%i), j=%i, corridor: (%i, %i)\n", */
-	 /* 			b, bham[(2*j)+0], bham[(2*j)+1], j, lower_corridor, upper_corridor); */
-    for( k= lower_corridor; k<upper_corridor; k++ ){ /* corridor */
-      snorm = (s[k]-avgs)/rmss;
-      unorm = (u[j]-avgu)/rmsu;
-      (k==0) ? (snormp = 0) : (snormp = ((s[k-1]-avgs)/rmss));
-      (j==0) ? (unormp = 0) : (unormp = ((u[j-1]-avgu)/rmsu));
-
-		/* swapping necessary for K>J (reswapped after cumulation) */
-		if(K>J) swap2i(&j, &k);
-
-		d[j][k] = fabs(unorm - snorm) + fabs( (unorm-unormp) - (snorm-snormp) ); /* (1) */
-
-		/* cumulate matrix, NAN is treated as inf */
-		if(k==0 && j==0) ;
-      else if(k==0 && j>0) 
-		  d[j][k] += d[j-1][k];
-      else if(k>0 && j==0) 
-		  d[j][k] += d[j][k-1];
-      else { /* j,k > 0 */
-		  (isnan( d[j-1][k  ] ) )?(left     = DBL_MAX):(left     = d[j-1][k  ]);
-		  (isnan( d[j  ][k-1] ) )?(down     = DBL_MAX):(down     = d[j  ][k-1]);
-		  (isnan( d[j-1][k-1] ) )?(downleft = DBL_MAX):(downleft = d[j-1][k-1]);
-
-		  d[j][k] += MIN(MIN(left, down), downleft);
-		}
-
-		/* reswap */
-		if(K>J) swap2i(&j, &k);
-    }
-  }
- 
-  /* for( i=0; i<MAX( J,K ); i++ ){ */
-  /* 	 d[bham[(2*i)+0]][bham[(2*i)+1]] = NAN; */
-  /* } */
-  
-  free(bham);
-  return d;
-}
-
-/** build the cumulated dissimilarity matrix D
-	 \param u,J 1st signal
-	 \param s,K 2nd signal
-	 \param theta1/theta2 - weights for metric
-	 \param d -- if NULL, function allocates the memory
-	 \return pointer to JxK matrix D
- */
-double** DTW_build_cumdistmatrix(const double *u, int J, const double *s, int K, 
-											double theta1, double theta2, double **d){  
-  int j,k;
-  double avgu, avgs, rmsu=0.0, rmss=0.0;
-  double snorm, snormp; /* variable for a point of the normalized
-									signal and the preceding point */
-  double unorm, unormp;
-
-  if( d==NULL ){
-	 d = (double**) malloc(J*sizeof(double*));
-	 for(j=0; j<J; j++)
-		d[j]=(double*)malloc(K*sizeof(double));
-  }
-    
-  avgu = gsl_stats_mean(u, 1, J);
-  avgs = gsl_stats_mean(s, 1, K);
-  for(j=0; j<J; j++) rmsu += pow(u[j], 2);
-  rmsu = sqrt(rmsu/(double)J);
-  for(k=0; k<K; k++) rmss += pow(s[k], 2);
-  rmss = sqrt(rmss/(double)K);
-  
-  /* computing D_jk */
-  for(j=0; j<J; j++){
-    for(k=0; k<K; k++){
-      snorm = (s[k]-avgs)/rmss;
-      unorm = (u[j]-avgu)/rmsu;
-      (k==0) ? (snormp = 0) : (snormp = ((s[k-1]-avgs)/rmss));
-      (j==0) ? (unormp = 0) : (unormp = ((u[j-1]-avgu)/rmsu));
-      d[j][k] = theta1 * fabs(unorm - snorm) + theta2 * fabs( (unorm-unormp) - (snorm-snormp) ); /* (1) */
-      if(k==0 && j==0) ;
-      else if(k==0 && j>0)
-		  d[j][k] += d[j-1][k];
-      else if(k>0 && j==0)
-		  d[j][k] += d[j][k-1];
-      else /* j,k > 0 */
-		  d[j][k] += MIN(MIN(d[j][k-1], d[j-1][k]), d[j-1][k-1]);
-    }
-  }
-
-  return d;
-}  
-
-
-
-
-
-/** construct the warppath from distance matrix. Use DTW_build_cumdistmatrix() for that.
-	 \param d - cumulated distmatrix
-	 \param J,K - dims for d
-	 \param path - pointer to WarpPath-struct of length (J+K) or NULL (allocated in function)
-	 \return WarpPath struct
-*/
-WarpPath* DTW_path_from_cumdistmatrix(const double **d, int J, int K, WarpPath *path){
-  int j, k;
-  int idx;
-  double left, down, downleft;
-
-  if( path==NULL ){
-	 path = init_warppath(NULL, J, K);
-  }
-  dprintf("path=%p,path->n1=%i, path->n2=%i\n",path, path->n1, path->n2);
-  reset_warppath(path, J, K);
-
-
-  /* Backtracking */
-  j=J-1; k=K-1;
-
-  idx = 1;
-  path->t1[0] = j;
-  path->t2[0] = k;
-  while( j>0 || k>0 ){
-	 if( k==0 ){ /* base cases */
-		j--;
-	 } else if( j==0 ){
-		k--;
-	 } else { /* min( d[j-1][k], d[j-1][k-1], d[j][k-1] ) */
-	  
-		left     = d[j-1][k  ];
-		down     = d[j  ][k-1];
-		downleft = d[j-1][k-1];
-
-		(isnan( d[j-1][k  ] ) )?(left     = DBL_MAX):(left     = d[j-1][k  ]);
-		(isnan( d[j  ][k-1] ) )?(down     = DBL_MAX):(down     = d[j  ][k-1]);
-		(isnan( d[j-1][k-1] ) )?(downleft = DBL_MAX):(downleft = d[j-1][k-1]);
-
-		if( left<=downleft ){
-		  if( left <= down )
-			 j--;
-		  else
-			 k--;
-		} else {
-		  if( downleft <= down ){
-			 k--; j--;
-		  } else 
-			 k--;
-		}
-	 }
-
-	 
-	 path->t1[idx] = j;
-	 path->t2[idx] = k;
-	 idx++;
-	 /*dprintf("(j, k), idx = (%i,%i), %i\n", j, k, idx);*/
-  }
-  dprintf("leaving\n");
-  return path;
-}
-
-/** \endcond */

@@ -46,7 +46,7 @@ extern "C" {
   
   RecurrencePlot* recplot_init     ( int m, int n, double epsilon, int flags );
   void            recplot_free     ( RecurrencePlot *R );
-  void            recplot_print( FILE *out, RecurrencePlot *R );
+  void            recplot_print    ( FILE *out, RecurrencePlot *R );
 
   void            recplot_calculate( RecurrencePlot *R, 
 												 PhaseSpace *p1, PhaseSpace *p2 );

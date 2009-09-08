@@ -19,6 +19,7 @@
  ***************************************************************************/
 
 #include "filter.h"
+#include "eeg.h"
 #include "distances.h"
 #include "fidlib/fidlib.h"
 
@@ -36,7 +37,7 @@ EEG* eeg_filter_running_median(EEG *eeg, int win, Boolean alloc){
   EEG *s;
   int c,i;
   if( alloc ){
-	 s = eeg_clone( eeg );
+	 s = eeg_clone( eeg, EEG_CLONE_ALL  );
   } else {
 	 s = eeg;
   }
@@ -105,14 +106,27 @@ double* moving_average(double *s, int n, int win){
   return s;
 }
 
-/**  Weighted Running Median filter.
- * Is applied to each channel separately.
+/** Weighted  Running Median filter.
+ * Is applied to each channel and trial separately.
+ \param s input eeg
+ \param win the window size in which to calculate the median
+ \param alloc TRUE: a new struct is returned; FALSE: in-place modification
+ \return filtered EEG
  */
-void eeg_filter_weighted_running_median(EEGdata *s, int win){
-  int i;
-  for(i=0; i<s->nbchan; i++){
-    weighted_running_median(s->d[i], s->n, win, pointdist_euclidean);
+EEG* eeg_filter_weighted_running_median( EEG *eeg, int win, Boolean alloc){
+  EEG *s;
+  int c,i;
+  if( alloc ){
+	 s = eeg_clone( eeg, EEG_CLONE_ALL );
+  } else {
+	 s = eeg;
   }
+  for(c=0; c<s->nbchan; c++){
+	 for(i=0; i<s->ntrials; i++){
+		weighted_running_median(s->data[c][i], s->n, win, pointdist_euclidean );
+	 }
+  }
+  return s;
 }
 
 
@@ -153,10 +167,10 @@ double* weighted_running_median(double *d, int n, int win,
 
 
 /** Filters EEG data using Fidlib from Jim Peters (http://uazu.net/fidlib/). 
-	 Filtering is done in place.
+	 Filtering is done in place or on a copy of the struct (depending on alloc).
 	 \param eeg
-	 \param sampling_rate in Hz
 	 \param spec filter-specification as given in Fidlib
+	 \param alloc allocate or not allocate, that's the question
 	 \code
 	 The spec consists of a series of letters usually followed by the order
 	 of the filter and then by any other parameters required, preceded by
@@ -289,40 +303,52 @@ double* weighted_running_median(double *d, int n, int win,
 
 	 \endcode
 */
-void eeg_filter_fidlib( EEGdata *eeg, double sampling_rate, const char *spec ){
+EEG* eeg_filter_fidlib( EEG *eeg, const char *spec, Boolean alloc ){
   int len;
-  int i,j;
+  int c,i,j;
   FidFilter *filt;
   char *filtspec, *orgspec;
   FidRun *run;
   FidFunc *funcp;
   void **fbuf;
-  
-  fbuf = (void**) malloc( eeg->nbchan*sizeof(void*));
+
+  EEG *eeg_out;
+  if( alloc ){
+	 eeg_out = eeg_clone( eeg, EEG_CLONE_ALL );
+  } else {
+	 eeg_out = eeg;
+  }
+
+  fbuf = (void**) malloc( eeg->ntrials*sizeof(void*));
 
   filtspec = (char*) malloc( (strlen(spec)+10)*sizeof(char));
   orgspec = filtspec;
   memset( filtspec, 0, (strlen(spec)+10)*sizeof(char));
   strcpy( filtspec, spec );
-  fid_parse( sampling_rate, &filtspec, &filt);
+  fid_parse( eeg_out->sampling_rate, &filtspec, &filt);
   run= fid_run_new(filt, &funcp);
 
   len= fid_run_bufsize(run);
-  for( i=0; i<eeg->nbchan; i++ ){
+  for( i=0; i<eeg_out->ntrials; i++ ){
 	 fbuf[i]= fid_run_newbuf(run);
   }
-  dprintf("Buffer initialized\n");
-  for( i=0; i<eeg->n; i++ ){
-	 for( j=0; j<eeg->nbchan; j++ ){
-		//		dprintf("Sample %i, channel %i\n", i, j );
-		eeg->d[j][i] = funcp( fbuf[j], eeg->d[j][i] );
+  dprintf("Buffer initialized\n");\
+  for( c=0; c<eeg_out->nbchan; c++ ){
+	 for( i=0; i<eeg_out->ntrials; i++ ){
+		for( j=0; j<eeg_out->n; j++ ){
+		  //		dprintf("Sample %i, channel %i\n", i, j );
+		  eeg_out->data[c][i][j] = funcp( fbuf[i], eeg_out->data[c][i][j] );
+		}
+		fid_run_zapbuf( fbuf[i] );
 	 }
   }
-  for( i=0; i<eeg->nbchan; i++ ){
+  for( i=0; i<eeg_out->ntrials; i++ ){
 	 fid_run_freebuf(fbuf[i]);
   }
   free( fbuf );
   fid_run_free(run);
   free( filt );
   free( orgspec ) ;
+
+  return eeg_out;
 }

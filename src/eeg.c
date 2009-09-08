@@ -33,6 +33,22 @@ EEG* eeg_init            ( int nbchan, int ntrials, int nsamples ){
 
   return eeg;
 }
+/** allocate memory for markers.
+	 \param nmarkers_per_trial
+	 \param eeg
+ */
+EEG* eeg_init_markers    ( int nmarkers_per_trial, EEG *eeg ){
+  int i;
+  eeg->nmarkers= (unsigned int*) malloc( eeg->ntrials*sizeof(unsigned int) );
+  eeg->markers = (unsigned int**)malloc( eeg->ntrials*sizeof(unsigned int*) );
+  eeg->marker_labels=(char***)   malloc(eeg->ntrials*sizeof(char***) );
+  for( i=0; i<eeg->ntrials; i++ ){
+	 eeg->nmarkers[i] = nmarkers_per_trial;
+	 eeg->markers[i] = (unsigned int*) malloc( nmarkers_per_trial*sizeof(unsigned int) );
+	 eeg->marker_labels[i] = (char**)  malloc( nmarkers_per_trial*sizeof(char*) );
+  }
+  return eeg;
+}
 
 /** append text to the comment-field in the EEG-struct.
 	 \param eeg the input struct

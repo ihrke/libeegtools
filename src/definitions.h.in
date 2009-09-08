@@ -6,6 +6,7 @@
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include <gsl/gsl_wavelet.h>
 
 /* replaced by autoconf */
 #define @DEF_DEBUG@
@@ -246,6 +247,18 @@ extern "C" {
 											    If NULL, nothing is done. */
   } SettingsHierarchicalDTW;
 
+  /*-----------------------------------------------------------
+	 - Wavelet-Denoising
+	 ---------------------------------------------------------*/
+  typedef struct {
+	 int first_thresholding_level; /**< level to start thresholding on */
+	 gsl_wavelet_type *wavelet;         /**< GSL-specification of wavelet */
+	 int vanishing_moments;        /**< number of vanishing moments of the wavelet */
+	 ThresholdSelectionFunction threshselfct; /**< function to select the threshold */
+	 ThresholdFunction threshfct;             /**< hard/soft thresholding */
+	 SignalExtensionFunction sigextfct;       /**< how to extend the signal to 2^K */
+  } WaveletParameters;
+  
   /*-----------------------------------------------------------
 	 - Self-Organizing Maps (SOM)
 	 ---------------------------------------------------------*/

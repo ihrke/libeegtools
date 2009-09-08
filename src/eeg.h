@@ -43,6 +43,7 @@ extern "C" {
 
 
   EEG* eeg_init            ( int nbchan, int ntrials, int nsamples );
+  EEG* eeg_init_markers    ( int nmarkers_per_trial, EEG *eeg );
   EEG* eeg_extract_channels( EEG* eeg, const int *channels, int nchannels, Boolean alloc );
   EEG* eeg_extract_trials  ( EEG* eeg, const int *trials,   int ntrials,   Boolean alloc );
 

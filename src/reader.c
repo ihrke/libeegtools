@@ -14,7 +14,10 @@ double get_double_from_struct_field( matvar_t *eeg, const char *name, int struct
 	 three-dimensional with channels x n x trials. Continuous data is not yet supported
 	 and the reader will fail.
 
-	 \param eeglab .set file
+	 The reader currently works only if the storage is in single .set file (as opposed to a 
+	 pair of .set and .dat file).
+
+	 \param file eeglab .set file
 	 \return the EEG struct
 */
 EEG* read_eeglab_file( const char *file ){
@@ -50,7 +53,9 @@ EEG* read_eeglab_file( const char *file ){
   nbchan = (int)get_double_from_struct_field( meeg, "nbchan",0 );
   ntrials= (int)get_double_from_struct_field( meeg, "trials",0 );
   n      = (int)get_double_from_struct_field( meeg, "pnts",0 );
+  dprintf("dim=(%i,%i,%i)\n", nbchan,ntrials,n);
   eeg = eeg_init( nbchan, ntrials, n );
+  dprintf("eeg=%p\n", eeg);
 
   /* filename  */
   eeg->filename=(char*)malloc( (strlen(file)+2)*sizeof(char) );
@@ -69,18 +74,21 @@ EEG* read_eeglab_file( const char *file ){
 
   /* times */
   tmp = Mat_VarGetStructField( meeg, "times", BY_NAME, 0 );
-  if( tmp->dims[1]!=n ){
+  if( tmp->dims[1]==0 && ntrials == 1){ // continuous data
+	 dprintf("Continuous data, skipping times-array\n");
+  } else if( tmp->dims[1]!=n ){
 	 errprintf("times-array should be of length n: %i != %i\n", tmp->dims[1], n );
 	 eeg_free( eeg );
 	 return NULL;
-  } 
-  if( tmp->data_size != sizeof(double) ){
-	 errprintf("times is not double format, %i!=%li\n", tmp->data_size, sizeof(double));
-	 eeg_free( eeg );
-	 return NULL;	 
+  } else {
+	 if( tmp->data_size != sizeof(double) ){
+		errprintf("times is not double format, %i!=%li\n", tmp->data_size, sizeof(double));
+		eeg_free( eeg );
+		return NULL;	 
+	 }
+	 eeg->times = (double*) malloc( n*sizeof(double) );
+	 memcpy(eeg->times, tmp->data, n*sizeof(double) );
   }
-  eeg->times = (double*) malloc( n*sizeof(double) );
-  memcpy(eeg->times, tmp->data, n*sizeof(double) );
 
   /* channel info */
   eeg->chaninfo = (ChannelInfo*)malloc( nbchan*sizeof(ChannelInfo) );
@@ -100,7 +108,14 @@ EEG* read_eeglab_file( const char *file ){
   
   /* data */
   tmp = Mat_VarGetStructField( meeg, "data", BY_NAME, 0 );
-  if( tmp->dims[0]!=nbchan || tmp->dims[1]!=n || tmp->dims[2]!=ntrials ){
+  if( ntrials==1 ) { // continuous data 
+	 if( tmp->dims[0]!=nbchan || tmp->dims[1]!=n ){
+		errprintf("(nbchan,n)=(%i,%i), should be (%i,%i)\n",
+					 tmp->dims[0], tmp->dims[1], nbchan, n );
+		eeg_free( eeg );
+		return NULL;
+	 }
+  } else  if( tmp->dims[0]!=nbchan || tmp->dims[1]!=n || tmp->dims[2]!=ntrials ){
 	 errprintf("(nbchan,ntrials,n)=(%i,%i,%i), should be (%i,%i,%i)\n",
 				  tmp->dims[0], tmp->dims[2], tmp->dims[1], nbchan, ntrials, n );
 	 eeg_free( eeg );
@@ -116,7 +131,7 @@ EEG* read_eeglab_file( const char *file ){
   for( c=0; c<nbchan; c++ ){
 	 for( i=0; i<ntrials; i++ ){
 		for( j=0; j<n; j++ ){
-		  x=((float*)tmp->data)[ c*n*ntrials+i*n+j ];
+		  x=((float*)tmp->data)[ c + (j*nbchan) + (i*n*nbchan) ];
 		  eeg->data[c][i][j] = (double)x;
 		}
 	 }
@@ -125,33 +140,31 @@ EEG* read_eeglab_file( const char *file ){
   /* markers */
   epoch = Mat_VarGetStructField( meeg, "epoch", BY_NAME, 0 );
   if( epoch->dims[0] == 0 || epoch->dims[1] < ntrials ){
-	 errprintf("no epoch field, or wrong dimensions (%i,%i)\n", 
+	 warnprintf("no epoch field, or wrong dimensions (%i,%i), skipping...\n", 
 				  epoch->dims[0],epoch->dims[1]);
-	 eeg_free( eeg );
-	 return NULL;
-  }
-  eeg->nmarkers = (unsigned int*) malloc( ntrials*sizeof(unsigned int) );
-  eeg->markers = (unsigned int**) malloc( ntrials*sizeof(unsigned int*) );
-  eeg->marker_labels = (char***) malloc( ntrials*sizeof(char**) );
-
-  for( i=0; i<ntrials; i++ ){
-	 tmp  = Mat_VarGetStructField( epoch, "eventlatency", BY_NAME, i );
-	 tmp2 = Mat_VarGetStructField( epoch, "eventtype", BY_NAME, i );
-	 dprintf("%i, %i\n", i, tmp->dims[1]);
-	 eeg->nmarkers[i] = tmp->dims[1];
-	 eeg->markers[i] = (unsigned int*) malloc( eeg->nmarkers[i]*sizeof(unsigned int) );
-	 eeg->marker_labels[i] = (char**) malloc( eeg->nmarkers[i]*sizeof(char*) );
-	 for( j=0; j<eeg->nmarkers[i]; j++ ){
-		/* label */
-		event = Mat_VarGetCell( tmp2, j ); /* MATLAB index */
-		eeg->marker_labels[i][j] = (char*)malloc( (strlen((char*)event->data)+1)*sizeof(char) );
-		strcpy( eeg->marker_labels[i][j], (char*)event->data );
-		/* latency */
-		event = Mat_VarGetCell( tmp, j ); /* MATLAB index */
-		eeg->markers[i][j] = closest_index( eeg->times, n, ((double*)event->data)[0] );
+  } else {
+	 eeg->nmarkers = (unsigned int*) malloc( ntrials*sizeof(unsigned int) );
+	 eeg->markers = (unsigned int**) malloc( ntrials*sizeof(unsigned int*) );
+	 eeg->marker_labels = (char***) malloc( ntrials*sizeof(char**) );
+	 
+	 for( i=0; i<ntrials; i++ ){
+		tmp  = Mat_VarGetStructField( epoch, "eventlatency", BY_NAME, i );
+		tmp2 = Mat_VarGetStructField( epoch, "eventtype", BY_NAME, i );
+		dprintf("%i, %i\n", i, tmp->dims[1]);
+		eeg->nmarkers[i] = tmp->dims[1];
+		eeg->markers[i] = (unsigned int*) malloc( eeg->nmarkers[i]*sizeof(unsigned int) );
+		eeg->marker_labels[i] = (char**) malloc( eeg->nmarkers[i]*sizeof(char*) );
+		for( j=0; j<eeg->nmarkers[i]; j++ ){
+		  /* label */
+		  event = Mat_VarGetCell( tmp2, j ); /* MATLAB index */
+		  eeg->marker_labels[i][j] = (char*)malloc( (strlen((char*)event->data)+1)*sizeof(char) );
+		  strcpy( eeg->marker_labels[i][j], (char*)event->data );
+		  /* latency */
+		  event = Mat_VarGetCell( tmp, j ); /* MATLAB index */
+		  eeg->markers[i][j] = closest_index( eeg->times, n, ((double*)event->data)[0] );
+		}
 	 }
   }
-
   dprintf("Finished reading '%s'\n", file );
 
   return eeg;
@@ -340,20 +353,16 @@ double* read_double_vector_ascii( const char *fname, int N, double *v ){
  * \param C - number of channels
  * \param n - number of samples per channel
  */
-EEGdata* read_continuous_eeg_from_binfile(const char *file, int C, int n){
-  int i;
-  EEGdata *eeg;
+EEG* read_continuous_eeg_from_binfile(const char *file, int C, int n){
+  int c;
+  EEG *eeg;
   FILE *f;
   
   if((f = fopen(file, "rb"))==NULL) return NULL;
 
-  eeg = (EEGdata*)malloc(sizeof(EEGdata));
-  eeg->nbchan=C;
-  eeg->n=n;
-  eeg->d=(double**)malloc(C*sizeof(double*));
-  for(i=0; i<C; i++){
-	 eeg->d[i]=(double*)malloc(n*sizeof(double));
-	 if(fread(eeg->d[i], sizeof(double), n, f)<n){
+  eeg = eeg_init( C, 1, n );
+  for(c=0; c<C; c++){
+	 if(fread(eeg->data[c][0], sizeof(double), n, f)<n){
 		dprintf("ERROR: read less bytes than requested\n");
 	 }
   }
@@ -378,8 +387,8 @@ EEGdata* read_continuous_eeg_from_binfile(const char *file, int C, int n){
 	  \endcode
 \param file - name of file
 */
-EEGdata_trials* read_eegtrials_from_raw(const char *file){
-  EEGdata_trials* eeg;
+EEG* read_eeg_from_raw(const char *file){
+  EEG* eeg;
   FILE *f;
   int i, j, c;
   double nbchan_d, ntrials_d, nsamples_d, nmarkers_d;
@@ -399,7 +408,10 @@ EEGdata_trials* read_eegtrials_from_raw(const char *file){
   dprintf("(nbchan, ntrials, nsamples, nmarkers) = (%i,%i,%i,%i)\n", nbchan, ntrials, nsamples, nmarkers);
 
   /* allocating all memory */
-  eeg = init_eegdata_trials(ntrials, nmarkers, nbchan, nsamples, NULL);
+  eeg = eeg_init( nbchan, ntrials, nsamples );
+  eeg->times = (double*) malloc( nsamples*sizeof(double) );
+  eeg->filename = (char*) malloc( strlen( file )*sizeof(char) );
+  strcpy( eeg->filename, file );
 
   /* read times-array */
   ffread(eeg->times, sizeof(double), nsamples, f);
@@ -408,13 +420,17 @@ EEGdata_trials* read_eegtrials_from_raw(const char *file){
   /* read markers */
   double *tmp;
   tmp = (double*) malloc( nmarkers * sizeof(double) );
+  eeg->nmarkers = (unsigned int*) malloc( eeg->ntrials*sizeof(unsigned int) );
+  eeg->markers  = (unsigned int**)malloc( eeg->ntrials*sizeof(unsigned int*) );
+
   for( i=0; i<ntrials; i++ ){
+	 eeg->nmarkers[i] = nmarkers;
+	 eeg->markers[i] = (unsigned int*) malloc( nmarkers*sizeof(unsigned int) );
 	 ffread(tmp, sizeof(double), nmarkers, f);
 	 /* dprintf("tmp[0]=%f, tmp[1]=%f\n", tmp[0], tmp[1]); */
 	 for( j=0; j<nmarkers; j++){
-		eeg->markers[i][j] = (unsigned long)tmp[j];
-	 } 
-	 memcpy( eeg->data[i]->markers, eeg->markers[i], nmarkers*sizeof(unsigned long) );
+		eeg->markers[i][j] = (unsigned int)tmp[j];
+	 }
   }
   free(tmp);
 
@@ -422,7 +438,7 @@ EEGdata_trials* read_eegtrials_from_raw(const char *file){
   for( c=0; c<nbchan; c++ ){
 	 for( i=0; i<ntrials; i++ ){
 		/*		dprintf("eeg->data[%i]->n = %i\n", i, eeg->data[i]->n);*/
-		ffread( eeg->data[i]->d[c], sizeof( double ), nsamples, f );
+		ffread( eeg->data[c][i], sizeof( double ), nsamples, f );
 	 }
   }
 

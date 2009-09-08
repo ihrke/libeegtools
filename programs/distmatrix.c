@@ -1,5 +1,5 @@
 /** \file distmatrix.c
- *
+ * CURRENTLY DISCONTINUED
  * \brief Takes a .raw input file and computes the distance matrix between
           the trials. Storage as ascii-file.
 */

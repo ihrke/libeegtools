@@ -80,7 +80,7 @@ int main(int argc, char **argv){
     /* signal extension if necessary */
     dptr = args.sigextfct(data, args.n, (int)pow(2,J));
     
-    generic_denoising(data, (int)pow(2,J), args.L, args.cleanfct, args.eta);
+    wavelet_denoising(data, (int)pow(2,J), args.L, args.cleanfct, args.eta);
     
     v_printf(10, " Successfully finished denoising function\n");
     if(fwrite(dptr, sizeof(double), args.n, g)<args.n)

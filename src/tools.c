@@ -19,45 +19,46 @@
  ***************************************************************************/
 
 #include "tools.h"
+#include "eeg.h"
+#include "mathadd.h"
 
 /** Remove baseline from eeg-data. Computes the average of the eeg-values 
 	 in the given time-window and substracts it from the all data.
-	 \param eeg - the struct is overwritten
-	 \param times - eeg->n long; indicates which values in eeg->d corresponds 
-	                a which time
+	 \param eeg - the struct 
 	 \param win_from - the time-window in ms (starting from)
 	 \param win_to - the time-window in ms (until)
-	 \note both win_from and win_to must be in the times-array
+	 \note both win_from and win_to must be in the times-array of eeg->times
+	 
 */
-void eeg_remove_baseline( EEGdata *eeg, const double *times, 
-								  double win_from, double win_to ){
-  int lim[2], chan;
+EEG* eeg_remove_baseline( EEG *eeg, double win_from, double win_to, Boolean alloc ){
+  int lim[2], c, i;
   double mean;
+  EEG *eeg_out;
 
-  lim[0] = closest_index( times, eeg->n, win_from );
-  lim[1] = closest_index( times, eeg->n, win_to );
+  if( !eeg->times ){
+	 errprintf("Need times-array, aborting...\n");
+	 return NULL;
+  }
+
+  if( alloc ){
+	 eeg_out = eeg_clone( eeg, EEG_CLONE_ALL );
+  } else {
+	 eeg_out = eeg;
+  }
+
+  lim[0] = closest_index( eeg->times, eeg->n, win_from );
+  lim[1] = closest_index( eeg->times, eeg->n, win_to );
   if( lim[1]<=lim[0] ){
 	 errprintf( "The specified limits are funny: %.2f-%.2f (results in %i-%i)\n", 
 					win_from, win_to, lim[0], lim[1] );
   }
-  for( chan=0; chan<eeg->nbchan; chan++ ){
-	 mean = gsl_stats_mean( eeg->d[chan]+lim[0], 1, lim[1]-lim[0] );
-	 // printf(" mean=%f\n", mean);
-	 vector_minus_scalar( eeg->d[chan], eeg->n, mean );
+  for( c=0; c<eeg->nbchan; c++ ){
+	 for( i=0; i<eeg->ntrials; i++ ){
+		mean = gsl_stats_mean( eeg->data[c][i]+lim[0], 1, lim[1]-lim[0] );
+		// printf(" mean=%f\n", mean);
+		vector_minus_scalar( eeg->data[c][i], eeg->n, mean );
+	 }
   }
-}
 
-/** Remove baseline from eeg-data. Computes the average of the eeg-values 
-	 in the given time-window and substracts it from the all data. It's done
-	 for all trials in the struct calling  eeg_remove_baseline().
-	 \param win_from - the time-window in ms (starting from)
-	 \param win_to - the time-window in ms (until)
-	 \note both win_from and win_to must be in the times-array of eeg
-*/
-void eegtrials_remove_baseline( EEGdata_trials *eeg, double win_from, double win_to ){
-  int t;
-  for( t=0; t<eeg->ntrials; t++ ){
-	 dprintf(" Baseline for trial %i\n", t );
-	 eeg_remove_baseline( eeg->data[t], eeg->times, win_from, win_to );
-  }
+  return eeg_out;
 }

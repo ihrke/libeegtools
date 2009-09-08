@@ -29,6 +29,7 @@
 #include <string.h> /* memcpy */
 #include "helper.h"
 #include "mathadd.h"
+#include "eeg.h"
 
 
 /** Wavelet estimation of single trial ERP's using Wang et al.'s
@@ -121,29 +122,27 @@ double sureshrink(const double *data, int n){
 
 /** Generic Denoising: compute DWT of signal, call the thresholding
    function 'threshfct' for each resolution level and IDWT the signal */
-int generic_denoising   ( double *data, int n, int L, 
-								  ThresholdSelectionFunction threshfct,
-								  ThresholdFunction etafct ) {
+int wavelet_denoise   ( double *data, int n, WaveletParameters P ){
   gsl_wavelet *w;
   gsl_wavelet_workspace *work;
   int j, J, k, offset;
   double lambda; /* population sd, threshold */
   dprintf("Db: generic_denoising\n");
+  
+  w = gsl_wavelet_alloc( P.wavelet, P.vanishing_moments );
+  work = gsl_wavelet_workspace_alloc( n );
 
-  w = gsl_wavelet_alloc(gsl_wavelet_daubechies, 20);
-  work = gsl_wavelet_workspace_alloc(n);
-
-  gsl_wavelet_transform_forward(w, data, 1, n, work);
+  gsl_wavelet_transform_forward( w, data, 1, n, work );
 
   /* -- thresholding here -- */
   J = (int)round(glog((double)n, 2));
-  for(j=L; j<J; j++){ /* loop through levels */
+  for(j=P.first_thresholding_level; j<J; j++){ /* loop through levels */
     offset = (int)pow(2, j);
-    lambda = (*threshfct)(&(data[offset]), offset);
+    lambda = (*(P.threshselfct))(&(data[offset]), offset);
 
     for(k=offset; k<2*offset; k++){ /* loop through coefficients */
       /* soft or hard thresholding */
-      data[k]=(*etafct)(data[k], lambda);
+      data[k]=(*(P.threshfct))(data[k], lambda);
     }
   }
   /* -- thresholding end -- */
@@ -154,13 +153,23 @@ int generic_denoising   ( double *data, int n, int L,
   return 0;
 }
 
+/** set default parameters for a waveletParameters struct
+ */
+WaveletParameters wavelet_init(){
+  WaveletParameters P;
+  P.first_thresholding_level = 5;
+  P.wavelet = (gsl_wavelet_type*)gsl_wavelet_daubechies;
+  P.vanishing_moments = 10;
+  P.threshselfct = heuristic_sure;
+  P.threshfct = soft_thresholding;
+  P.sigextfct = sigext_smooth;
+  return P;
+}
+
 /** Extend data to length 2^j using sigextfct and denoise it.
  * \see generic_denoising()
  */
-int extend_and_denoise  ( double *data, int n, int L, 
-								  ThresholdSelectionFunction threshfct,
-								  ThresholdFunction etafct, 
-								  SignalExtensionFunction sigextfct ){
+int wavelet_extend_and_denoise  ( double *data, int n, WaveletParameters P ){
   int J;
   double *tmp, *dptr;
 
@@ -171,8 +180,8 @@ int extend_and_denoise  ( double *data, int n, int L,
 	    n, (int)pow(2,J));
   tmp = (double*)malloc((int)pow(2,J) * sizeof(double));
   tmp = memcpy(tmp, data, n*sizeof(double));
-  dptr=(*sigextfct)(tmp, n, (int)pow(2, J));
-  generic_denoising(tmp, (int)pow(2,J), L, threshfct, etafct);
+  dptr=(*(P.sigextfct))(tmp, n, (int)pow(2, J));
+  wavelet_denoise(tmp, (int)pow(2,J), P );
   
   data = memcpy(data, dptr, n*sizeof(double));
 
@@ -184,7 +193,7 @@ int extend_and_denoise  ( double *data, int n, int L,
  * Formula: \f$ \eta_s(\lambda, w)=\f$
  * \ingroup thresholding
  */
-double eta_s(double d, double lambda){
+double soft_thresholding(double d, double lambda){
   /* soft thresholding, formula (6) */
 /*   dprintf("Db: eta_s\n"); */
   if(fabs(d)<=lambda){
@@ -200,7 +209,7 @@ double eta_s(double d, double lambda){
  * Formula: \f$ \eta_h(\lambda, w)=\f$
  * \ingroup thresholding
  */
-double eta_h(double d, double lambda){
+double hard_thresholding(double d, double lambda){
   /* hard thresholding */
 /*   dprintf("Db: eta_h\n"); */
   if(fabs(d)<=lambda)
@@ -212,15 +221,25 @@ double eta_h(double d, double lambda){
 /** Extend data to length 2^j using sigextfct and denoise it.
  * \see generic_denoising()
  * \see extend_and_denoise()
- * data is directly written into the eegdata-struct
+ * data is directly written into the eegdata-struct or copied;
+
+ \param eeg input
+ \param P parameters
+ \param alloc allocate memory, or not
  */
-void eeg_wavelet_denoise( EEGdata *eeg, int L, 
-								  ThresholdSelectionFunction threshfct,
-								  ThresholdFunction etafct, 
-								  SignalExtensionFunction sigextfct ){
-  int c;
-  
-  for( c=0; c<eeg->nbchan; c++ ){
-	 extend_and_denoise( eeg->d[c], eeg->n, L, threshfct, etafct, sigextfct );
+EEG* eeg_wavelet_denoise( EEG *eeg, WaveletParameters P, Boolean alloc ){
+  int c, i;
+  EEG *eeg_out;
+  if( alloc ){
+	 eeg_out = eeg_clone( eeg, EEG_CLONE_ALL );
+  } else {
+	 eeg_out = eeg;
   }
+
+  for( c=0; c<eeg->nbchan; c++ ){
+	 for( i=0; i<eeg->ntrials; i++ ){
+		wavelet_extend_and_denoise( eeg->data[c][i], eeg->n, P );
+	 }
+  }
+  return eeg_out;
 }

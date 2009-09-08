@@ -20,6 +20,8 @@
 #include "mathadd.h"
 #include <stdlib.h>
 #include <time.h>
+#include <gsl/gsl_sort.h>
+#include <gsl/gsl_statistics.h>
 
 /** Weighted Median computation.
  * Formula:

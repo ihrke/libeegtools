@@ -156,7 +156,7 @@ double** regularization_gaussian_line( const int *markers1, const int *markers2,
 	 \f]
 	 where $f$ is piecwise linear (approximated with bresenham-alg) and the minimization
 	 is approximated with distance-transform (deadreckoning).
-	 \param s1,s2 
+	 \param eeg
 	 \param maxsigma
 	 \param d matrix or NULL (alloc'd in function)
 	 \return d or NULL (error)

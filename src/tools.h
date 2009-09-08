@@ -24,7 +24,7 @@
  */
 #ifndef TOOLS_H
 #define TOOLS_H
-#include "mathadd.h"
+
 #include "definitions.h"
 
 #ifdef __cplusplus
@@ -34,8 +34,7 @@ extern "C" {
 /** \addtogroup tools
  *\{
  */
-    void eeg_remove_baseline( EEGdata *eeg, const double *times, double win_from, double win_to );
-    void eegtrials_remove_baseline( EEGdata_trials *eeg, double win_from, double win_to );
+  EEG* eeg_remove_baseline      ( EEG *eeg, double win_from, double win_to, Boolean alloc );
 /** \} */
 
 #ifdef __cplusplus

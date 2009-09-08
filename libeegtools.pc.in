@@ -5,8 +5,8 @@ includedir=@includedir@
 
 Name: libeegtools
 Description: Library for analysis of EEG data.
-Requires: libgsl-1.11 
+Requires: 
 Version: @VERSION@
-Libs: -L${libdir} -leegtools -lgsl
-Cflags: -I${includedir}/ 
+Libs: -L${libdir} -leegtools `gsl-config --libs`
+Cflags: -I${includedir}/ `gsl-config --cflags`
 

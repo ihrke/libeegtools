@@ -1,4 +1,6 @@
-/** \cond plotter */
+/** 
+THIS IS CURRENTLY DISCONTINUED!
+\cond plotter */
 
 #include "definitions.h"
 

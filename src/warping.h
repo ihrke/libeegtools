@@ -130,34 +130,10 @@ extern "C" {
   /** \addtogroup otherwarp
 	*\{
 	*/  
-  EEGdata* eegtrials_gibbons( const EEGdata_trials *eeg_in, EEGdata *target, 
-										int stimulus_marker, int response_marker, double k );
+  EEG* eeg_gibbons( EEG *eeg, int stimulus_marker, int response_marker, double k );
   /** \} */
 
 
-  /* ------------------------------------------------------------------------------
-	  ------------------------------------------------------------------------------
-	  -----------------------OBSOLETE-----------------------------------------------
-	  ------------------------------------------------------------------------------
-	  ------------------------------------------------------------------------------ */
-  /** \cond OBSOLETE 
-		\addtogroup dtw
-		\{
-	*/
-  WarpPath* DTW_path_from_square_distmatrix(const double **d, int n, WarpPath *P);
-  WarpPath* DTW_path_from_cumdistmatrix(const double **d, int J, int K, WarpPath *P);
-  
-  double    DTW_distance_between_paths(const WarpPath *P1, const WarpPath *P2);
-  double**  DTW_build_cumdistmatrix(const double *u, int J, const double *s, int K, 
-												double theta1, double theta2, double **d);
-  double**  DTW_build_restricted_cumdistmatrix(const double *u, int J, 
-															  const double *s, int K, 
-															  double R, double **d);
-
-  /** \} 
-		\endcond */
-
-  
 #ifdef __cplusplus
 }
 #endif

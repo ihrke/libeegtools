@@ -36,3 +36,11 @@ Moving from EEGdata/EEGdata_trials to EEG:
 -----------------------------------------
 Files done:
  averaging.h/.c
+ filter.h/.c
+ wavelet.h/.c
+ mathadd.h/.c
+ helper.h/.c
+ reader.h/.c
+ recurrence_plot.h/.c
+ nonlinear.h/.c
+ tools.h/.c

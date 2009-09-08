@@ -3,9 +3,26 @@
  */
 #include "helper.h"
 
+#include <stdarg.h>
+#include <string.h> /* memcpy */
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <gsl/gsl_statistics.h>
+#include <gsl/gsl_sort.h>
+#include <limits.h>
+#include <float.h>
+#include <stdint.h>
+
 /* ---------------------------------------------------------------------------- 
    -- Helper functions                                                       -- 
    ---------------------------------------------------------------------------- */
+char*    create_string( const char *string ){
+  char *r;
+  r = (char*) malloc( strlen( string ) );
+  strcpy( r, string );
+  return r;
+}
 
 /** checks whether val is in a.
  */

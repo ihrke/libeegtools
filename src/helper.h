@@ -24,17 +24,6 @@
 #ifndef HELPER_H
 # define HELPER_H
 
-#include <stdarg.h>
-#include <string.h> /* memcpy */
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <gsl/gsl_statistics.h>
-#include <gsl/gsl_sort.h>
-#include <limits.h>
-#include <float.h>
-#include <stdint.h>
-
 #define _WITH_ANSI_ESCAPE_CODES /* necessary for the esc-codes to show up */
 #include "escape_codes.h"
 
@@ -129,6 +118,8 @@ extern "C" {
   int      strcount( const char *s, char c );
 
   int      safer_free( void *p );
+
+  char*    create_string( const char *string );
 
   double** copy_double_ptrptr(const double **s, int N, int n);
   /**\}*/

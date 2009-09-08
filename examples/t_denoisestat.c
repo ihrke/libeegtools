@@ -93,7 +93,7 @@ int main(int argc, char **argv){
     /*   for(i=0; i<args.n; i++) */
     /*       printf("%.2f ", real[i]); */
     /*     printf("\n"); */
-    generic_denoising(data, (int)pow(2,J), args.L, args.cleanfct, args.eta);
+	 wavelet_denoising(data, (int)pow(2,J), args.L, args.cleanfct, args.eta);
 
     stat_rmse[j]=rmse(real, dptr, args.n);
     stat_snr[j] =snr (real, dptr, args.n);
