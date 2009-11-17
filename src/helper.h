@@ -122,6 +122,7 @@ extern "C" {
   char*    create_string( const char *string );
 
   double** copy_double_ptrptr(const double **s, int N, int n);
+  void     string_strip_blanks( char *s );
   /**\}*/
 
   /**\addtogroup helperio

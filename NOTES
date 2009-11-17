@@ -44,3 +44,11 @@ Files done:
  recurrence_plot.h/.c
  nonlinear.h/.c
  tools.h/.c
+
+
+Using NAN or INF portably
+-------------------------
+use 0.0/0.0 for NAN
+use 1.0/0.0 for INF 
+etc.
+check with isnan(x)

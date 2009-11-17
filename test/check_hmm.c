@@ -20,7 +20,7 @@
      
 START_TEST (test_hmm_alloc_cphmm)
 {
-  CPHiddenMarkovModel *m = hmm_alloc_cphmm( 10, 1000, 2000, 10, 5 );
+  CPHiddenMarkovModel *m =cphmm_alloc( 10, 1000, 2000, 10, 5 );
   fail_if( m->K!=10 );
   fail_if( m->n!=1000 );
   fail_if( m->M!=2000 );

@@ -1,0 +1,95 @@
+/***************************************************************************
+ *   Copyright (C) 2008/2009 by Matthias Ihrke                                  *
+ *   mihrke@uni-goettingen.de                                              *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
+
+/**\file optarg.h
+ \brief Implementing optional argument lists.
+
+ This feature can be used to conveniently pass arguments to 
+ functions. This makes sense for generic functions that take
+ one or more function pointers requiring different arguements each.
+
+ The syntax is as follows:
+ \code
+ double *mydata = read_data();
+ OptArgList *args = optarglist( "bottom_frequency=double,num_trials=int,data=double*",
+                                0.5, 10, mydata );
+ function_taking_optargs( args );
+ free_optarglist( args ) // does not free any mydata 
+ \endcode
+ */
+#ifndef OPTARG_H
+# define OPTARG_H
+
+#include "definitions.h"
+#include <stdarg.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+  /**\ingroup list
+	*\{
+	*/ 
+  /* ------------ List -------------- */
+  struct list {
+    void *content;
+    struct list *next;
+  };
+  typedef struct list List;
+
+  List* list_append( List *l );
+  void  list_print( List *l, void(*print_content)(void*) );
+  int   list_length( List *l );
+  /*\}*/
+
+
+  /**\ingroup optarg
+	*\{
+	*/ 
+  typedef struct {
+	 char    key[MAX_LABEL_LENGTH];
+	 Boolean scalar;
+	 char    type[MAX_LABEL_LENGTH];
+	 void    *data_ptr;
+	 double  data_scalar;
+  } OptArg;
+
+  typedef struct {
+	 int nargs;
+	 OptArg *args;
+  } OptArgList;
+
+
+  OptArgList* optarglist( const char *format, ... );
+
+  double      optarglist_scalar_by_key( OptArgList *list, const char *key );
+  void*       optarglist_ptr_by_key   ( OptArgList *list, const char *key );
+  OptArg*     optarglist_optarg_by_key( OptArgList *list, const char *key );
+
+  void        optarglist_print( OptArgList *list, FILE *out );
+  void        optarglist_free( OptArgList *list );
+
+  /*\}*/
+
+#ifdef __cplusplus
+}
+#endif
+
+
+#endif

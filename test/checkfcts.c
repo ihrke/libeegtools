@@ -27,10 +27,14 @@ int cmpdouble(double d1, double d2, int precision){
   epsilon = pow(10, -1*precision);
  /*  printf("epsilon=%.10f, d1=%.10f, d2=%.10f\n", epsilon, d1, d2); */
 /*   printf("fabs(d1-d2)=%.10f, e*fabs(d1)=%.10f\n", fabs(d1 - d2), epsilon * fabs(d1)); */
-  if(fabs(d1 - d2) < epsilon * fabs(d1))
+//  dprintf("%f==%f with epsilon=%f, d1-d2=%f, |d1-d2|=%f, %i?\n", d1, d2, epsilon, d1-d2, fabs(d1-d2), fabs(d1-d2)<epsilon );
+  if(fabs(d1 - d2) < epsilon*fabs(d1) ){
     return 0;
-  else if(d1<d2) return -1;
-  else return 1;
+  } else if(d1<d2){
+	 return -1;
+  } else {
+	 return 1;
+  }
 }
 /** Compares two double arrays.
  * isequal_doublearray()

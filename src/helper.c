@@ -276,3 +276,23 @@ void progressbar_rotating( int flag, int num ){
 	 break;
   } /* switch */
 }
+
+
+
+/** remove spaces from a string by "compressing" it.
+	 for example, " this is a bla nk" becomes "thisisablank"
+ */
+void     string_strip_blanks( char *s ){
+  int i, j, n;
+
+  n = strlen(s);
+  for( i=0; i<n; i++ ){		  /* n+1 because of '\0' byte */
+	 if( isspace( s[i] ) ){
+		for( j=i; j<n; j++ ){
+		  s[j]=s[j+1];
+		}
+		i--;
+	 }
+
+  }
+}

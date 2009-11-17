@@ -1,4 +1,31 @@
 #include "writer.h"
+#include "eeg.h"
+#include <matio.h>
+
+#ifdef MATIO
+/** This write uses MatIO to create an EEGlab file.
+	 It was developed with EEGlab version 6.01b.
+	 
+	 \param eeg the struct
+	 \param file eeglab .set file
+	 \return error code
+*/
+int write_eeglab_file( EEG* eeg, const char *file ){
+  mat_t *mfile;
+  matvar_t *meeg;
+  if( !(mfile=Mat_Create( file, NULL )) ){
+	 errprintf("Could not open '%s' for writing\n");
+	 return -1;
+  }
+
+  int dims[2]={1,1}, rank=2;
+  //meeg = Mat_VarCreate( "EEG", MAT_T_STRUCT, , rank, dims, NULL, 0 );
+  
+  Mat_VarWrite( mfile, meeg, 0 );
+  return 0;
+}
+#endif //MATIO
+
 
 /** writes header of raw-file.
 	 \param f file pointer

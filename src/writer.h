@@ -67,7 +67,7 @@ extern "C" {
 
 #ifdef MATIO
   /* eeglab/matlab file writer functions if matio library is installed */
-  
+  int write_eeglab_file( EEG* eeg, const char *file );
 #endif
 
 #ifdef __cplusplus

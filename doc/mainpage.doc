@@ -71,6 +71,11 @@ $ make -f Makefile.matlab
  *
  * 
 
+
+\section optionalargs Using Optional Arguments
+\copydoc optarg.h
+
+
 \section Acknowledgments
 I'd like to thank a couple of people/groups for their code, which they made available under a usable license.
 The code I reused from other sources is documented in the source-files at the appropriate places.
@@ -86,6 +91,9 @@ Thanks Guys!
 \par History:
 \code
  * $Log$
+ * Revision 1.9  2009/11/17 15:55:43  mihrke
+ * before  OptArgList
+ *
  * Revision 1.8  2009/09/02 09:47:22  mihrke
  * There is going to be major restructuring of the API.
  * Most EEG-functions will be called differently or get different arguments,

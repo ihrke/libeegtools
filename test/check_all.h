@@ -21,5 +21,7 @@ Suite * init_denoising_suite (void);
 Suite * init_checkfct_suite  (void);
 Suite * init_distance_suite  (void);
 Suite * init_hmm_suite  (void);
+Suite * init_list_suite  (void);
+Suite * init_other_suite  (void);
 
 #endif 	    /* !CHECK_ALL_H_ */

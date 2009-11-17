@@ -87,8 +87,8 @@ extern "C" {
   double   vectordist_dtw                 ( double *x1, double *x2, int p, void *userdata );
   double   vectordist_regularized_dtw     ( double *x1, double *x2, int p, void *userdata );
 
-  double** eegtrials_distmatrix_channel( EEGdata_trials *eeg, VectorDistanceFunction f, 
-													  int channel, double **d, void *userdata );
+  double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, 
+									double **d, void *userdata );
   /** \} */
 
   /** \addtogroup warppathdist 

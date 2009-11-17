@@ -99,7 +99,7 @@ extern "C" {
 		-# the warp-path P obtained from d (or d*G)
 		-# an averaging scheme to put together s1 and s2 using P.
 		
-		In this implementation, you can cal init_dtw_hierarchical() to initialize
+		In this implementation, you can call init_dtw_hierarchical() to initialize
 		a settings-struct SettingsHierarchicalDTW and manipulate the entries in this
 		struct before plugging it into the eegtrials_dtw_hierarchical() function.
 		See SettingsHierarchicalDTW for documentation of the struct's fields. 
@@ -107,6 +107,8 @@ extern "C" {
 		The distance matrix for between-trials must be provided separately.
 		\{
   */
+
+  
   SettingsHierarchicalDTW init_dtw_hierarchical          ( const EEGdata_trials *eeg );
   void                    print_settings_hierarchicaldtw ( FILE *out, SettingsHierarchicalDTW s );
   EEGdata*                eegtrials_dtw_hierarchical     ( EEGdata_trials *eeg_in, 

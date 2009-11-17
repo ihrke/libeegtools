@@ -516,32 +516,40 @@ double** eeg_distmatrix_recplot_losdtwnoise_channel( const EEGdata *s1,const  EE
 }
 
 
-/** compute trial-to-trial distance matrix for all trials in eeg-struct.
+/** Compute trial-to-trial distance matrix for all trials in eeg-struct.
+	 Average over all channels in the EEG-struct.
+
 	 \todo implement that the called distance function incorporates time-markers or whatever is needed
 	 via the userdata
 	 \param eeg the EEG-data
 	 \param f the function used to compare two ERPs
-	 \param channel which electrode-channel
 	 \param d user allocated memory, or NULL -> own memory is alloc'ed
 	 \param userdata userdata is passed to the vectordist_*() function
  */
-double** eegtrials_distmatrix_channel( EEGdata_trials *eeg, VectorDistanceFunction f, int channel, double **d, void *userdata ){
+double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, double **d, void *userdata ){
   int i,j;
+  int c;
 
   if( d==ALLOC_IN_FCT ){
 	 warnprintf(" allocating matrix in fct\n");
 	 d = matrix_init( eeg->ntrials, eeg->ntrials );
   }
   
+
+
   for( i=0; i<eeg->ntrials; i++ ){
 	 d[i][i] = 0.0;
 	 for( j=i+1; j<eeg->ntrials; j++ ){
-		d[i][j] = f( (eeg->data[i]->d[channel]), 
-						 (eeg->data[j]->d[channel]), eeg->nsamples, userdata );
-		d[j][i] = d[i][j];
-		if( isnan( d[j][i] ) ){
-		  errprintf("D[%i][%i] is nan\n", j, i);
+		for( c=0; c<eeg->nbchan; c++ ){
+		  d[i][j] += f( eeg->data[c][i], 
+							 eeg->data[c][i],
+							 eeg->n, userdata );
+		  if( isnan( d[i][j] ) ){
+			 errprintf("D[%i][%i] is nan\n", i, j);
+		  }
 		}
+		d[i][j] /= (double)eeg->nbchan;
+		d[j][i] = d[i][j];
 	 }
   }
   
