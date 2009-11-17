@@ -19,7 +19,8 @@
  ***************************************************************************/
 
 #include "distances.h"
-
+#include "optarg.h"
+#include <gsl/gsl_statistics.h>
 
 /** build a distance matrix D from data X which consists of n observations with
 	 p features each. 
@@ -28,12 +29,13 @@
 	 \param X data (nxp)
 	 \param D output matrix or NULL -> own memory allocation
 	 \param progress NULL or a progressbar
+	 \param optargs may contain arguments for the vectordistancefunction f
 	 \return the distance matrix between all columns in X
  */
 double** vectordist_distmatrix( VectorDistanceFunction f, 
 										  const double **X, int n, int p, double **D, 
 										  ProgressBarFunction progress,
-										  void *userdata ){
+										  OptArgList *optargs ){
   int i,j;
   int idx;
   
@@ -51,7 +53,7 @@ double** vectordist_distmatrix( VectorDistanceFunction f,
 		if( progress ){
 		  progress( PROGRESSBAR_CONTINUE_LONG, idx );
 		}
-		D[i][j] = f( (double*)X[i], (double*)X[j], p, userdata );
+		D[i][j] = f( (double*)X[i], (double*)X[j], p, optargs );
 		D[j][i] = D[i][j];
 		if( isnan( D[j][i] ) ){
 		  errprintf("D[%i][%i] is nan\n", j, i);
@@ -68,9 +70,9 @@ double** vectordist_distmatrix( VectorDistanceFunction f,
 
 /** Euclidean distance between vector x1 and x2.
 	 \param x1, x2 vectors of size p
-	 \param userdata is ignored
+	 \param optargs is ignored
 */
-double vectordist_euclidean( double *x1, double *x2, int p, void *userdata ){
+double vectordist_euclidean( double *x1, double *x2, int p, OptArgList *optargs ){
   double d;
   int i;
 
@@ -89,9 +91,9 @@ double vectordist_euclidean( double *x1, double *x2, int p, void *userdata ){
 	 \f]
 
 	 \param x1, x2 vectors of size p
-	 \param userdata is ignored
+	 \param optargs is ignored
  */
-double   vectordist_euclidean_normalized( double *x1, double *x2, int p, void *userdata ){
+double   vectordist_euclidean_normalized( double *x1, double *x2, int p, OptArgList *optargs ){
   int i;
   double d;
   double avg1, avg2,
@@ -123,22 +125,31 @@ double   vectordist_euclidean_normalized( double *x1, double *x2, int p, void *u
 /** Distance which sums the absolute deviation from the main 
 	 diagonal of the dtw-warp-path computed on x1 and x2.
 	 \param x1, x2 vectors of size p
-	 \param userdata is (PointwiseDistanceFunction, userdata for distfunction)
+	 \param optargs may contain:
+	 <ul>
+	 <li> <tt>distfct=void*</tt> a PointwiseDistanceFunction, default is \c signaldist_euclidean
+	 <li> optargs for the distfunction (optargs is passed 'as is' to this function)
+	 </ul>
  */
-double   vectordist_dtw( double *x1, double *x2, int p, void *userdata ){
+double   vectordist_dtw( double *x1, double *x2, int p, OptArgList *optargs ){
   double d;
   double **D;
   PointwiseDistanceFunction f;
+  void *tmp;
   WarpPath *P;
   double diag1[2], diag2[2], path[2];
   int i;
 
-  f = *((PointwiseDistanceFunction)userdata);
-  userdata += sizeof(PointwiseDistanceFunction);
+  f = signaldist_euclidean;
+  if( optarglist_has_key( optargs, "distfct" ) ){
+	 tmp = optarglist_ptr_by_key( optargs, "distfct" );
+	 if( tmp )
+		f = (PointwiseDistanceFunction) tmp;
+  }
 
-  D = f( x1, p, x2, p, NULL, userdata );
+  D = f( x1, p, x2, p, NULL, optargs );
   dtw_cumulate_matrix( D, p, p );
-  P = dtw_backtrack( D, p, p, NULL );
+  P = dtw_backtrack( (const double**)D, p, p, NULL );
 
   d = 0;
   diag1[0] = 0;   
@@ -159,11 +170,9 @@ double   vectordist_dtw( double *x1, double *x2, int p, void *userdata ){
 
 /** \todo
 	 compute the cumulated sum along the regularized warping path.
-	 \param userdata (int)userdata[0] is nmarkers; 
-	       ((int)userdata)[1] and following is an 2 x nmarkers matrix 
-			 given the corresponding markers in the signals.
+	 \param optargs should contain the markers
  */
-double   vectordist_regularized_dtw( double *x1, double *x2, int p, void *userdata ){
+double   vectordist_regularized_dtw( double *x1, double *x2, int p, OptArgList *optargs ){
   /* int nmarkers; */
   /* int **markers; */
   /* double **G, **D; */
@@ -184,10 +193,10 @@ double   vectordist_regularized_dtw( double *x1, double *x2, int p, void *userda
 
 
 /** pointwise distance matrix for euclidean metric.
-	 \param userdata is ignored
+	 \param optargs is ignored
  */
 double** signaldist_euclidean( const double *s1, int n1, const double *s2, int n2,
-										 double **d, void *userdata ){
+										 double **d, OptArgList *optargs ){
   int i,j;
   if( d==ALLOC_IN_FCT ){
 	 d=matrix_init( n1, n2 );
@@ -214,25 +223,35 @@ double** signaldist_euclidean( const double *s1, int n1, const double *s2, int n
 	 Derivatives are approximated with s'(t) = s(t)-s(t-1)
 	 \param s1,s2 
 	 \param d matrix or NULL (alloc'd in function)
-	 \param userdata is (theta1,theta2) both as double values
+	 \param optargs can contain:
+	 - <tt>theta1=double</tt>, default is \c 1.0
+	 - <tt>theta2=double</tt>, default is \c 1.0
 	 \return d or NULL (error)
  */
-double** signaldist_euclidean_derivative( const double *s1, int n1, const double *s2, int n2, double **d, void *userdata ){
+double** signaldist_euclidean_derivative( const double *s1, int n1, const double *s2, int n2, double **d, OptArgList *optargs ){
   int i, j, k;
   double avg1, avg2,
 	 rms1=0, rms2=0;
   double norm1,norm2, /* normalized signal at time t */
 	 norm1p,norm2p;    /* normalized signal at time t-1 */
   double theta1,theta2;
+  double x;
 
-  if( !userdata ){
-	 theta1=1.0;
-	 theta2=1.0;
-  } else {
-	 theta1 = *((double*)userdata);
-	 userdata = ((double*)userdata)+1;
-	 theta2 = *((double*)userdata);
+  theta1=1.0;
+  theta2=1.0;
+
+  if( optarglist_has_key( optargs, "theta1" ) ){
+	 x = optarglist_scalar_by_key( optargs, "theta1" );
+	 if( !isnan( x ) )
+		theta1=x;
   }
+  if( optarglist_has_key( optargs, "theta2" ) ){
+	 x = optarglist_scalar_by_key( optargs, "theta2" );
+	 if( !isnan( x ) )
+		theta2=x;
+  }
+  dprintf("Using theta=(%f,%f)\n", theta1, theta2 );
+
 
   if( d==ALLOC_IN_FCT ){
 	 d=matrix_init( n1, n2 );
@@ -278,17 +297,24 @@ double** signaldist_euclidean_derivative( const double *s1, int n1, const double
 	 \f]
 	 \param s1,s2 
 	 \param d matrix or NULL (alloc'd in function)
-	 \param params is a
+	 \param optargs may contain:
+	 - <tt>sample_frequency=double</tt> of the signal, default is \c 500 (should really be provided!)
+	 - <tt>winfct=void*</tt> windowing function, default is \c window_hanning
+	 - <tt>winlength=int</tt> size of the window, default is <tt> MAX( SQR( sqrt(next_pow2( n ))-3 ), 5 )</tt>
+	 - <tt>N_freq=int</tt> number of frequency bins, default is \c winlength*4
+	 - <tt>N_time=int</tt> number of time bins, default is \c n
+	 - <tt>corner_freqs=double*</tt> (array with two double entries), default is \c (0.0,250.0)
 	 \return d or NULL (error)
  */
-double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, double **d, void *userdata ){
+double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, double **d, OptArgList *optargs ){
   int i, j;
   Spectrogram *sp1, *sp2;
   double *window;
   double *d1, *d2,
 	 mean1, mean2;
-  
-  /* extract from userdata */
+  double x;
+  void *ptr;
+
   double sample_frequency;
   WindowFunction winfct; 
   int winlength;
@@ -296,21 +322,43 @@ double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, do
   int N_time;
   double corner_freqs[2];
 
-  /* get params from void pointer */
-  sample_frequency = *((double*)(userdata));
-  userdata        += sizeof(double);
-  winfct           = *((WindowFunction*)(userdata));
-  userdata        += sizeof(WindowFunction);
-  winlength        = *((int*)(userdata));
-  userdata        += sizeof(int);
-  N_freq           = *((int*)(userdata));
-  userdata        += sizeof(int);
-  N_time           = *((int*)(userdata));
-  userdata        += sizeof(int);
-  corner_freqs[0]  = *((double*)(userdata));
-  userdata        += sizeof(double);
-  corner_freqs[1]  = *((double*)(userdata));
-  userdata        += sizeof(double);
+  /* defaults */
+  sample_frequency = 500.0;
+  winfct = window_hanning;
+  winlength =  MAX( SQR( sqrt(next_pow2( n1 ))-3 ), 5 );
+  N_freq = winlength*4;
+  N_time = n1;
+  corner_freqs[0] = 0.0;
+  corner_freqs[1] = 250.0;
+  
+  /* get params */
+  if( optarglist_has_key( optargs, "sample_frequency" ) ){
+	 x = optarglist_scalar_by_key( optargs, "sample_frequency" );
+	 if( !isnan( x ) ) sample_frequency=x;
+  }
+  if( optarglist_has_key( optargs, "winfct" ) ){
+	 ptr = optarglist_ptr_by_key( optargs, "winfct" );
+	 if( ptr ) winfct = (WindowFunction)ptr;
+  }
+  if( optarglist_has_key( optargs, "winlength" ) ){
+	 x = optarglist_scalar_by_key( optargs, "winlength" );
+	 if( !isnan( x ) ) winlength=(int)x;
+  }
+  if( optarglist_has_key( optargs, "N_freq" ) ){
+	 x = optarglist_scalar_by_key( optargs, "N_freq" );
+	 if( !isnan( x ) ) N_freq=(int)x;
+  }
+  if( optarglist_has_key( optargs, "N_time" ) ){
+	 x = optarglist_scalar_by_key( optargs, "N_time" );
+	 if( !isnan( x ) ) N_time=(int)x;
+  }
+  if( optarglist_has_key( optargs, "corner_freqs" ) ){
+	 ptr = optarglist_ptr_by_key( optargs, "corner_freqs" );
+	 if( ptr ){
+		corner_freqs[0] = ((double*)ptr)[0];
+		corner_freqs[1] = ((double*)ptr)[1];
+	 }
+  }
 
   dprintf("got sfreq=%f, winfct=%p, winlength=%i, N_f=%i, N_t=%i, cf=(%f,%f)\n",
 			 sample_frequency, winfct, winlength, N_freq, N_time, corner_freqs[0], corner_freqs[1] );
@@ -365,137 +413,63 @@ double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, do
   return d;
 }
 
-/** calculate
-	 \f$ 
-	 d_{euclid}(s_1(t_1),s_2(t_2)) = |s_1(t_1)-s_2(t_2)|^2
-	 \f$
-	 \param s1,s2 
-	 \param d matrix or NULL (alloc'd in function)
-	 \param params is ignored
-	 \return d or NULL (error)
+/** builds the pointwise distance matrix based on the
+	 line-of-synchrony as found in cross-recurrence plots. For details,
+	 see 
+	 
+	 Matthias Ihrke, Hecke Schrobsdorff and J. Michael Herrmann:
+	 Recurrence-Based Synchronization of Single Trials for EEG-Data
+	 Analysis. Lecture Notes on Computer Science, Proceedings of IDEAL
+	 2009. 
+
+	 \param s1,n1,s2,n2 the two signals
+	 \param d memory or ALLOC_IN_FCT
+	 \param optargs may contain:
+	 - <tt>m=int</tt> the embedding dimension for the phase-space reconstruction of the signals, default=10
+	 - <tt>tau=int</tt> time-lag for phase-space rec., default=15
+	 - <tt>FAN=int</tt> fixed amount of neighbours for each point in the recplot, default=(int)0.05*n1
+	 - <tt>noiseamp=double</tt> factor to use for adding noise to the recplot, default=\c 0.01
  */
-double** eeg_distmatrix_euclidean_channel( const EEGdata *s1, const EEGdata *s2, 
-														 int channel, double **d, void *userdata ){
-
-  d = signaldist_euclidean( s1->d[channel], s1->n, s2->d[channel], s2->n, d, userdata );
-
-  return d;
-}
-
-/** calculate
-	 \f[
-	 d(s_1(t_1), s_2(t_2))_{{derivative}} := \theta_1|\tilde{s_1}(t_1) - \tilde{s_2}(t_2)| + \theta_2|\tilde{s_1}'(t_1) - \tilde{s_2}'(t_2)|
-	 \f]
-	 where
-	 \f[ 
-	 \tilde{s}(t) := \frac{s(t) - \langle s(t)
-	 \rangle_t}{\sqrt{\langle s(t)^2 \rangle_t}}
-	 \f]
-	 Derivatives are approximated with s'(t) = s(t)-s(t-1)
-	 \param s1,s2 
-	 \param d matrix or NULL (alloc'd in function)
-	 \param params is a SettingsHierarchicalDTW struct that should contain valid values for theta1,theta2 weights for distance
-	 \return d or NULL (error)
- */
-double** eeg_distmatrix_euclidean_derivative_channel( const EEGdata *s1, const EEGdata *s2, 
-																		int channel, double **d, 
-																		void *params ){ 
-  /* get params from void pointer */
-  SettingsHierarchicalDTW *settings;
-  double theta[2];
-  settings = (SettingsHierarchicalDTW*)params;
-  if( !settings ){
-	 theta[0]=1.0;
-	 theta[1]=1.0;
-  } else {
-	 theta[0]=settings->theta1;
-	 theta[1]=settings->theta2;
-  }
-
-  if( eegdata_cmp_settings( s1, s2 ) ){
-	 errprintf(" ERROR: two EEGdata sets are not similar enough\n");
-	 return NULL;
-  }
-
-  d = signaldist_euclidean_derivative( s1->d[channel], s1->n, s2->d[channel], s2->n, d, &theta );
-													
-  return d;
-}
-
-/** 
-	 \todo at the moment, N_time is required to be n, the number of
-	       sampling points in s1 and s2. This needs to be fixed by interpolation
-
-	 calculate
-	 \f[  
-	 d_{{STFT}}(s_1(t_1), s_2(t_2)) := || STFT\{s_1(t_1)\} -
-	 \STFT\{s_2(t_2)\}||_{\circ}.
-	 \f]
-	 where 
-	 \f[
-	 STFT\{s(t)\}(\omega) = \int_{-\infty}^{+\infty} s(t)w(t-\tau)e^{-i\omega t} dt
-	 \f]
-	 This function calls signaldist_stft() with the appropriate variables packed 
-	 together.
-
-	 \param s1,s2 
-	 \param d matrix or NULL (alloc'd in function)
-	 \param params is a SettingsHierarchicalDTW struct that should contain valid:
-	   - (sample_frequency of the signal),
-	   - (winfct which windowing function? one of window_*()),
-	   - (winlength lenght of window in samples),
-	   - (N_freq how many frequencies),
-	   - (N_time how many time-points),
-	   - (corner_freqs - corner frequencies (lower, upper) for the returned
-	     spectrum at each time-sample in Hz; maximal would be
-	     {0, srate/2}) 
-	 fields
-	 \return d or NULL (error)
- */
-double** eeg_distmatrix_stft_channel( const EEGdata *s1, const EEGdata *s2, 
-												  int channel, double **d, void *params ){
-  void *pack, *orgpack;
-  SettingsHierarchicalDTW *settings;
-  settings = (SettingsHierarchicalDTW*)params;
-
-  /* packing stuff for signaldist-fct */
-  pack = (void*)malloc( 4*sizeof(double) + 3*sizeof(int) + sizeof(WindowFunction) );
-  orgpack = pack;
-  memcpy( pack, &(settings->sampling_rate   ), sizeof(double) );
-  pack += sizeof(double);
-  memcpy( pack, &(settings->winfct          ), sizeof(WindowFunction) );
-  pack += sizeof(WindowFunction);
-  memcpy( pack, &(settings->winlength       ), sizeof(int) );
-  pack += sizeof(int);
-  memcpy( pack, &(settings->N_freq          ), sizeof(int) );
-  pack += sizeof(int);
-  memcpy( pack, &(settings->N_time          ), sizeof(int) );
-  pack += sizeof(int);
-  memcpy( pack, &(settings->corner_freqs    ), 2*sizeof(double) );
-
-  d = signaldist_stft( s1->d[channel], s1->n, s2->d[channel], s2->n, d, orgpack );
-  free( orgpack );
-  return d;
-}
-
-double** eeg_distmatrix_recplot_losdtwnoise_channel( const EEGdata *s1,const  EEGdata *s2, 
-																	  int channel, double **d, void *params ){
+double** signaldist_recplot_los( const double *s1, int n1, const double *s2, int n2, 
+											double **d, 
+											OptArgList *optargs ){
   int i,j; 
   double noise;
-  double noiseamp = 0.01;
+  double noiseamp;
   RecurrencePlot *R;
   PhaseSpace *p1, *p2;
-  SettingsHierarchicalDTW *settings;
-  settings = (SettingsHierarchicalDTW*)params;
+  int m, tau, FAN;
+  double x;
+
+  /* defaults */
+  m = 10;
+  tau =15 ;
+  FAN = (int)0.05*n1;
+  noiseamp = 0.01;
+
+  /* override */
+  if( optarglist_has_key( optargs, "m" ) ){
+	 x = optarglist_scalar_by_key( optargs, "m" );
+	 if( !isnan( x ) ) m=(int)x;
+  }
+  if( optarglist_has_key( optargs, "tau" ) ){
+	 x = optarglist_scalar_by_key( optargs, "tau" );
+	 if( !isnan( x ) ) tau=(int)x;
+  }
+  if( optarglist_has_key( optargs, "FAN" ) ){
+	 x = optarglist_scalar_by_key( optargs, "FAN" );
+	 if( !isnan( x ) ) FAN=(int)x;
+  }
 
   if( d==ALLOC_IN_FCT ){
-	 d=matrix_init( s1->n, s2->n );
+	 d=matrix_init( n1, n2 );
   }
-  srand((long)time(NULL));
-  p1 = phspace_init( settings->m, settings->tau, s1->d[channel], s1->n );
-  p2 = phspace_init( settings->m, settings->tau, s2->d[channel], s2->n );
 
-  R = recplot_init( s1->n, s2->n, settings->FAN, RPLOT_FAN );
+  srand((long)time(NULL));
+  p1 = phspace_init( m, tau, s1, n1 );
+  p2 = phspace_init( m, tau, s2, n2 );
+
+  R = recplot_init( n1, n2, FAN, RPLOT_FAN );
   recplot_calculate( R, p1, p2 );
 
   matrix_copy( (const double**)R->R, d, R->m, R->n ); 
@@ -513,20 +487,18 @@ double** eeg_distmatrix_recplot_losdtwnoise_channel( const EEGdata *s1,const  EE
   }
 
   return d;
-}
 
+}
 
 /** Compute trial-to-trial distance matrix for all trials in eeg-struct.
 	 Average over all channels in the EEG-struct.
 
-	 \todo implement that the called distance function incorporates time-markers or whatever is needed
-	 via the userdata
 	 \param eeg the EEG-data
 	 \param f the function used to compare two ERPs
 	 \param d user allocated memory, or NULL -> own memory is alloc'ed
-	 \param userdata userdata is passed to the vectordist_*() function
+	 \param optargs userdata is passed to the vectordist_*() function
  */
-double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, double **d, void *userdata ){
+double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, double **d, OptArgList *optargs ){
   int i,j;
   int c;
 
@@ -534,8 +506,6 @@ double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, double **d, void *u
 	 warnprintf(" allocating matrix in fct\n");
 	 d = matrix_init( eeg->ntrials, eeg->ntrials );
   }
-  
-
 
   for( i=0; i<eeg->ntrials; i++ ){
 	 d[i][i] = 0.0;
@@ -543,7 +513,7 @@ double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, double **d, void *u
 		for( c=0; c<eeg->nbchan; c++ ){
 		  d[i][j] += f( eeg->data[c][i], 
 							 eeg->data[c][i],
-							 eeg->n, userdata );
+							 eeg->n, optargs );
 		  if( isnan( d[i][j] ) ){
 			 errprintf("D[%i][%i] is nan\n", i, j);
 		  }

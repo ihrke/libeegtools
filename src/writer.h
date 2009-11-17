@@ -40,10 +40,6 @@ extern "C" {
   */
   void write_raw_header( FILE *f, int nbchan, int nbtrials, int nsamples, 
 								 int nmarkers );
-  void write_raw_markers( FILE *f, const EEGdata *eeg );
-
-  void write_eegtrials_to_raw_file( const EEGdata_trials *eeg, const char *file );
-  void write_eegtrials_to_raw( const EEGdata_trials *eeg, FILE *out );
 
   void write_double_matrix_ascii(FILE *out, const double **d, int xdim, int ydim);
   void write_double_matrix_ascii_file(const char *fname, const double **d, int xdim, int ydim);
@@ -53,15 +49,6 @@ extern "C" {
 
   void write_int_vector_ascii(FILE *out, const int *v, int n);
   void write_int_vector_ascii_file(const char *fname, const int *v, int n);
-
-  void write_eegdata_ascii(FILE *out, const EEGdata *eeg );
-  void write_eegdata_ascii_file(const char *fname, const EEGdata *eeg );
-
-  double* eegdata_to_double( EEGdata *eeg, int *n );
-  EEGdata* eegdata_from_double( double *stream, int n );
-
-  double* eegtrials_to_double( EEGdata_trials *eeg, int *n );
-  EEGdata_trials* eegtrials_from_double( double *stream, int n );
   /** \} */
 
 

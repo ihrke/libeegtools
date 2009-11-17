@@ -77,7 +77,7 @@ extern "C" {
 
 
   CPHiddenMarkovModel* cphmm_alloc( int K, int n, int M, int Q, int J );
-  CPHiddenMarkovModel* eegtrials_cphmm_init( EEGdata_trials *eeg, int channel, double **X );
+  CPHiddenMarkovModel* eegtrials_cphmm_init( EEG *eeg, int channel, double **X );
   void cphmm_init( CPHiddenMarkovModel *m, double **X );
   void cphmm_free( CPHiddenMarkovModel *m );
 

@@ -85,10 +85,9 @@ extern "C" {
 												 const double *s2, int n2, 
 												 const WarpPath *P, double *avg,
 												 const double weights[2]);
-  EEGdata*  eeg_warp_add_signals_by_path(const EEGdata *s1, const EEGdata *s2, 
-													  EEGdata *target, int channel, 
-													  const WarpPath *P, 
-													  const double weights[2]);
+  int*      warp_adjust_time_markers(const int *m1, const int *m2, 
+												 int nmarkers, int *outmarkers,
+												 const double weights[2] );
   /** \} */
 
   /** \addtogroup hierarchical		
@@ -99,22 +98,13 @@ extern "C" {
 		-# the warp-path P obtained from d (or d*G)
 		-# an averaging scheme to put together s1 and s2 using P.
 		
-		In this implementation, you can call init_dtw_hierarchical() to initialize
-		a settings-struct SettingsHierarchicalDTW and manipulate the entries in this
-		struct before plugging it into the eegtrials_dtw_hierarchical() function.
-		See SettingsHierarchicalDTW for documentation of the struct's fields. 
-		
 		The distance matrix for between-trials must be provided separately.
 		\{
   */
 
   
-  SettingsHierarchicalDTW init_dtw_hierarchical          ( const EEGdata_trials *eeg );
-  void                    print_settings_hierarchicaldtw ( FILE *out, SettingsHierarchicalDTW s );
-  EEGdata*                eegtrials_dtw_hierarchical     ( EEGdata_trials *eeg_in, 
-																			  const double **distmatrix, 
-																			  int N,  EEGdata *out, 
-																			  SettingsHierarchicalDTW settings );
+  EEG* eegtrials_dtw_hierarchical( EEG *eeg_in, const double **distmatrix, 
+											  EEG *out, OptArgList *optargs );
 
   /** \} */
   

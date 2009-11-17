@@ -206,3 +206,14 @@ OptArg*     optarglist_optarg_by_key( OptArgList *list, const char *key ){
   }
   return NULL;
 }
+
+/** return TRUE if key is found in list, else FALSE
+ */
+Boolean     optarglist_has_key( OptArgList *list, const char *key ){
+  int i;
+  for( i=0; i<list->nargs; i++ ){
+	 if( !strcmp( list->args[i].key, key ) )
+		return TRUE;
+  }
+  return FALSE;
+}

@@ -42,28 +42,18 @@ extern "C" {
 	*\{
 	*/  
   double** signaldist_euclidean( const double *s1, int n1, const double *s2, int n2, 
-											double **d, void *userdata );
+											double **d, 
+											OptArgList *optargs );
   double** signaldist_euclidean_derivative( const double *s1, int n1, const double *s2, int n2, 
-														  double **d, void *userdata );
+														  double **d, 
+														  OptArgList *optargs );
   double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, 
-									 double **d, void *userdata );
+									 double **d, 
+									 OptArgList *optargs );
+  double** signaldist_recplot_los( const double *s1, int n1, const double *s2, int n2, 
+											  double **d, 
+											  OptArgList *optargs );
   /*\}*/
-
-  
-  /** \addtogroup eegdist
-		These functions are wrappers for the signaldist_*() functions from group 
-		\ref signaldist which take EEGData structs instead of raw signals.
-	*\{
-	*/
-  double** eeg_distmatrix_euclidean_channel( const EEGdata *s1, const EEGdata *s2, 
-															int channel, double **d, void* params );
-  double** eeg_distmatrix_euclidean_derivative_channel( const EEGdata *s1, const EEGdata *s2, 
-																		  int channel, double **d, void *params ); 
-  double** eeg_distmatrix_stft_channel( const EEGdata *s1,const  EEGdata *s2, 
-													 int channel, double **d, void *params );
-  double** eeg_distmatrix_recplot_losdtwnoise_channel( const EEGdata *s1,const  EEGdata *s2, 
-																		 int channel, double **d, void *params );  
-  /** \} */
 
   /** \addtogroup vectordist 
 		These distances (functions starting with vectordist_*()) are between 
@@ -81,14 +71,15 @@ extern "C" {
   */  
   double** vectordist_distmatrix          ( VectorDistanceFunction f, const double **X, 
 														  int n, int p, double **D, 
-														  ProgressBarFunction progress, void* userdata );
-  double   vectordist_euclidean           ( double *x1, double *x2, int p, void *userdata );
-  double   vectordist_euclidean_normalized( double *x1, double *x2, int p, void *userdata );
-  double   vectordist_dtw                 ( double *x1, double *x2, int p, void *userdata );
-  double   vectordist_regularized_dtw     ( double *x1, double *x2, int p, void *userdata );
+														  ProgressBarFunction progress, 
+														  OptArgList* optargs );
+  double   vectordist_euclidean           ( double *x1, double *x2, int p, OptArgList *optargs );
+  double   vectordist_euclidean_normalized( double *x1, double *x2, int p, OptArgList *optargs );
+  double   vectordist_dtw                 ( double *x1, double *x2, int p, OptArgList *optargs );
+  double   vectordist_regularized_dtw     ( double *x1, double *x2, int p, OptArgList *optargs );
 
   double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, 
-									double **d, void *userdata );
+									double **d, OptArgList *optargs );
   /** \} */
 
   /** \addtogroup warppathdist 

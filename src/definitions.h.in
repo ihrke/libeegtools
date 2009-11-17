@@ -73,25 +73,27 @@ extern "C" {
 
   } EEG;
 
-  typedef struct{
-	 unsigned int nbchan;    /**< number of channels */
-	 unsigned int n;         /**< number of samples */
-	 double **d;             /**< data */
-	 unsigned long *markers; /**< stimulus onset, response, etc
-										 in sampling points; nmarkers long */
-	 unsigned int nmarkers;
-  } EEGdata;
+  
+  /*-----------------------------------------------------------
+	 - Optional Arguments
+	 ---------------------------------------------------------*/
+  /**\ingroup optarg
+	*\{
+	*/ 
+  typedef struct {
+	 char    key[MAX_LABEL_LENGTH];
+	 Boolean scalar;
+	 char    type[MAX_LABEL_LENGTH];
+	 void    *data_ptr;
+	 double  data_scalar;
+  } OptArg;
 
-  typedef struct{
-	 EEGdata **data;          /**< EEG-data for all  trials (n EEGdata-struct-ptr) */
-	 unsigned int ntrials;    /**< number of trials = dim(eeg) */  
-	 unsigned int nmarkers_per_trial;
-	 unsigned long **markers; /**< stimulus onset, response, etc
-											in sampling points; dims are ntrials x nmarkers */
-	 unsigned int nsamples;   /**< number of samples in each data */
-	 double *times;           /**< times array; data->n long */
-	 double sampling_rate;    /**< in Hz */
-  } EEGdata_trials;
+  typedef struct {
+	 int nargs;
+	 OptArg *args;
+  } OptArgList;
+
+  /*\}*/
 
 
   /*-----------------------------------------------------------
@@ -166,12 +168,11 @@ extern "C" {
   /*-----------------------------------------------------------
 	 - Function Pointers
 	 ---------------------------------------------------------*/
-  typedef double**(*RegularizationFunction)       (const EEGdata*,const EEGdata*,double,double**);
+  typedef double**(*RegularizationFunction)       (double**,int,OptArgList*);
   typedef double  (*LinkageFunction)              (const double**,int,const Dendrogram*,const Dendrogram*);
 
-  typedef double**(*EEGPointwiseDistanceFunction) (const EEGdata*,const EEGdata*,int,double**,void*);
-  typedef double**(*PointwiseDistanceFunction)    (const double*,int,const double*,int,double**,void*);
-  typedef double  (*VectorDistanceFunction)       (double*,double*,int,void*);
+  typedef double**(*PointwiseDistanceFunction)    (const double*,int,const double*,int,double**,OptArgList*);
+  typedef double  (*VectorDistanceFunction)       (double*,double*,int,OptArgList*);
   typedef double  (*PointDistanceFunction)        (double,double);
 
   typedef double  (*ThresholdSelectionFunction)   (const double*,int);
@@ -206,46 +207,6 @@ extern "C" {
 	 int n; /**< length(t1)==length(t2) */
   } WarpPath;
 	
-
- /*-----------------------------------------------------------
-	 - Hierarchical WARPING -
-	 ---------------------------------------------------------*/
-
-  typedef struct {
-	 RegularizationFunction regularize; /**< regularization function; 
-														at the moment only one double 
-														parameter is possible */
-	 double sigma; 				  /**< for regularization; maximal sigma of gaussian corridor */
-	 LinkageFunction linkage; /**< linkage function 
-										  for clustering; one of 
-										  dgram_dist_*() */
-	 int dont_touch_eeg;    /**< overwrite eeg_in or not? */
-	 EEGPointwiseDistanceFunction pointdistance; /**< distance function for between
-															  trials; params receives the complete
-															  SettingsHierarchicalDTW struct */
-	 double theta1, theta2;			  /**< for derivative timewarping metric */
-	 double corner_freqs[2];	  /**< for local-frequency metric */
-	 double sampling_rate;	     /**< sampling frequency of the signal */
-	 WindowFunction winfct; /**< windowing function for STFT */
-	 int winlength;					  /**< length of window used for STFT */
-	 int N_freq;						  /**< frequency resolution of STFT */
-	 int N_time;						  /**< time resolution of STFT */
-
-	 int m;   /**< embedding dimension in case of recplot-based LOS estimation */
-	 int tau; /**< time-lag in case of recplot-based LOS estimation */
-	 int FAN; /**< fixed amount of neighbours in case of recplot-based LOS estimation */
-
-	 int *channels; /**< compute PADTW only for these channels; 
-							 if NULL, all channels are used */
-	 int num_channels; /**< number of elements in channels */
-	 ProgressBarFunction progress; /**< callback function, called every now and then.
-												 The function is called with PROGRESSBAR_INIT and 
-												 the max number of calls once. Then it is called
-											    for a major step with PROGRESSBAR_CONTINUE_LONG
-											    and the num of the step as second arg. For small
-											    steps it is called with PROGRESSBAR_CONTINUE_SHORT.
-											    If NULL, nothing is done. */
-  } SettingsHierarchicalDTW;
 
   /*-----------------------------------------------------------
 	 - Wavelet-Denoising

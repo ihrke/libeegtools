@@ -75,6 +75,25 @@ $ make -f Makefile.matlab
 \section optionalargs Using Optional Arguments
 \copydoc optarg.h
 
+<b>A list of optional arguments and where they are used:</b>
+
+<b> For Recurrence-Plot based metric: </b>
+- <tt>m=int</tt> the embedding dimension for the phase-space reconstruction of the signals, default=10
+- <tt>tau=int</tt> time-lag for phase-space rec., default=15
+- <tt>FAN=int</tt> fixed amount of neighbours for each point in the recplot, default=(int)0.05*n1
+- <tt>noiseamp=double</tt> factor to use for adding noise to the recplot, default=\c 0.01
+
+<b> For Time-Frequency based metric: </b>
+- <tt>sample_frequency=double</tt> of the signal, default is \c 500 (should really be provided!)
+- <tt>winfct=void*</tt> windowing function, default is \c window_hanning
+- <tt>winlength=int</tt> size of the window, default is <tt> MAX( SQR( sqrt(next_pow2( n ))-3 ), 5 )</tt>
+- <tt>N_freq=int</tt> number of frequency bins, default is \c winlength*4
+- <tt>N_time=int</tt> number of time bins, default is \c n
+- <tt>corner_freqs=double*</tt> (array with two double entries), default is \c (0.0,250.0)
+
+<b> For derivative DTW </b>
+- <tt>theta1=double</tt>, default is \c 1.0
+- <tt>theta2=double</tt>, default is \c 1.0
 
 \section Acknowledgments
 I'd like to thank a couple of people/groups for their code, which they made available under a usable license.
@@ -91,6 +110,9 @@ Thanks Guys!
 \par History:
 \code
  * $Log$
+ * Revision 1.10  2009/11/17 20:35:48  mihrke
+ * after transition from EEGdata -> EEG
+ *
  * Revision 1.9  2009/11/17 15:55:43  mihrke
  * before  OptArgList
  *

@@ -400,7 +400,10 @@ WarpPath* recplot_los_dtw_markers( const RecurrencePlot *R, int **markers, int n
 	 markers[0][0] = 0; markers[1][0] = 0;
 	 markers[0][1] = n-1; markers[1][1] = n-1;
   }
-  G = regularization_linear_points( markers[0], markers[1], nmarkers, R->m, ALLOC_IN_FCT );
+  OptArgList *opts = optarglist( "markers=int**,nmarkers=int",
+											markers, nmarkers );
+  G = regularization_linear_points( ALLOC_IN_FCT, R->m, opts );
+  optarglist_free( opts );
   matrix_normalize_by_max( G, R->m, R->n );
 
   /* apply */

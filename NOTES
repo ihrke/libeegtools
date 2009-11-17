@@ -41,10 +41,16 @@ Files done:
  mathadd.h/.c
  helper.h/.c
  reader.h/.c
+ clustering
+ hmm
+ time_frequency
+ regularization
+ som
  recurrence_plot.h/.c
  nonlinear.h/.c
  tools.h/.c
-
+ distances.h/.c
+ warping.h/.c
 
 Using NAN or INF portably
 -------------------------

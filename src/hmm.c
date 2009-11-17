@@ -135,7 +135,7 @@ void cphmm_init( CPHiddenMarkovModel *m, double **X ){
 	            to the appropriate data in eeg (not copied).
 
  */
-CPHiddenMarkovModel* eegtrials_cphmm_init( EEGdata_trials *eeg, int channel, double **X ){
+CPHiddenMarkovModel* eegtrials_cphmm_init( EEG *eeg, int channel, double **X ){
   CPHiddenMarkovModel *m;
   int M;
   double epsilon = 0.2;
@@ -143,13 +143,13 @@ CPHiddenMarkovModel* eegtrials_cphmm_init( EEGdata_trials *eeg, int channel, dou
   int J;
   int i;
 
-  M = (2+epsilon)*eeg->nsamples;
+  M = (2+epsilon)*eeg->n;
   Q = 7;
   J = 3;
 
-  m = cphmm_alloc( eeg->ntrials, eeg->nsamples, M, Q, J );
+  m = cphmm_alloc( eeg->ntrials, eeg->n, M, Q, J );
   for( i=0; i<m->K; i++ ){
-	 X[i] = eeg->data[i]->d[channel];
+	 X[i] = eeg->data[channel][i];
   }
   cphmm_init( m, X );
 

@@ -56,27 +56,13 @@ extern "C" {
   List* list_append( List *l );
   void  list_print( List *l, void(*print_content)(void*) );
   int   list_length( List *l );
-  /*\}*/
-
 
   /**\ingroup optarg
 	*\{
 	*/ 
-  typedef struct {
-	 char    key[MAX_LABEL_LENGTH];
-	 Boolean scalar;
-	 char    type[MAX_LABEL_LENGTH];
-	 void    *data_ptr;
-	 double  data_scalar;
-  } OptArg;
-
-  typedef struct {
-	 int nargs;
-	 OptArg *args;
-  } OptArgList;
-
-
   OptArgList* optarglist( const char *format, ... );
+
+  Boolean     optarglist_has_key( OptArgList *list, const char *key );
 
   double      optarglist_scalar_by_key( OptArgList *list, const char *key );
   void*       optarglist_ptr_by_key   ( OptArgList *list, const char *key );
