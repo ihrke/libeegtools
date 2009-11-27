@@ -51,10 +51,10 @@ extern "C" {
 
 		The minimization is done by cumulating the matrix
 		\f[
-		\D_{jk} = \mathbf{d}_{jk}+\min{\{\D_{j,k-1}, \D_{j-1,k}, \D_{j-1, k-1}\}}
+		D_{jk} = \mathbf{d}_{jk}+min{\{D_{j,k-1}, D_{j-1,k}, D_{j-1, k-1}\}}
 		\f]
 		and backtracking via the minimum of the three neighboring entries (down,
-		down-right, right) from \f$\D_{J,K}\f$ to \f$\D_{1,1}\f$.
+		down-right, right) from \f$D_{J,K}\f$ to \f$D_{1,1}\f$.
 		Here, the functions dtw_cumulate_matrix() and dtw_backtrack() do that.
 
 		Finally, the signals need to be mapped to one another to get time-amplitude 
@@ -71,7 +71,7 @@ extern "C" {
 	*/
 
   void       dtw_regularize_matrix( double **d, const double **R, int M, int N );
-  void       dtw_cumulate_matrix  ( double **d, int M, int N );
+  void       dtw_cumulate_matrix  ( double **d, int M, int N, OptArgList *opts );
   /* void dtw_cumulate_matrix_chiba_band( double **d, int M, int N, double restriction );*/
   WarpPath*  dtw_backtrack        ( const double **d, int M, int N, WarpPath *P );
   
@@ -103,8 +103,8 @@ extern "C" {
   */
 
   
-  EEG* eegtrials_dtw_hierarchical( EEG *eeg_in, const double **distmatrix, 
-											  EEG *out, OptArgList *optargs );
+  EEG* eeg_dtw_hierarchical( EEG *eeg_in, const double **distmatrix, 
+									  EEG *out, OptArgList *optargs );
 
   /** \} */
   

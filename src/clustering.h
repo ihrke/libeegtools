@@ -87,6 +87,9 @@ extern "C" {
   double** gap_get_reference_distribution_svd   ( const double **X, int n, int p, double **Xr );
   double   get_within_scatter (const double **d, int N, const Clusters *c);
   double   get_between_scatter(const double **d, int N, const Clusters *c);
+
+  int      eeg_best_num_clusters_gapstat( const EEG *eeg, VectorDistanceFunction distfunction,
+														OptArgList *optargs );
   /** \} */
 
 

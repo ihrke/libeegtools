@@ -535,6 +535,20 @@ void matrix_add_matrix(double **m1, const double **m2, int N, int n){
   }
 }
 
+/** subtract matrix src from matrix dest (must be of equal dimensions).
+	 result is written to dest.
+ */
+void matrix_sub_matrix(double **dest, const double **src, int N, int n){
+  int i, j;
+
+  for( i=0; i<N; i++){
+	 for( j=0; j<n; j++ ){
+		dest[i][j]-=src[i][j];
+	 }
+  }
+}
+
+
 /** 
 	 MatLab's M1.*M2, which is M1[i][j] = M1[i][j]*M2[i][j];
 	 That is, m1 is overwritten with the result from the operation

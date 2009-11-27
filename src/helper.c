@@ -19,7 +19,7 @@
    ---------------------------------------------------------------------------- */
 char*    create_string( const char *string ){
   char *r;
-  r = (char*) malloc( strlen( string ) );
+  r = (char*) malloc( (strlen( string )+1)*sizeof(char) );
   strcpy( r, string );
   return r;
 }
@@ -237,26 +237,28 @@ int strcount( const char *s, char c ){
  */
 void progressbar_rotating( int flag, int num ){
   int c, i;
+  FILE *out;
 
+  out = stderr; 
   switch(flag){
   case PROGRESSBAR_INIT:
 	 progress_status.max_progress = num;
 	 progress_status.cur_progress = 0;
 	 progress_status.prev_progress= 0;
-	 fprintf( stdout, "[ " );
+	 fprintf( out, "[ " );
 	 for( i=0; i<PROGRESSBAR_NUMCOLS; i++ ){
-		fprintf( stdout, " " );
+		fprintf( out, " " );
 	 }
-	 fprintf( stdout, " ]" );
+	 fprintf( out, " ]" );
 	 for( i=0; i<PROGRESSBAR_NUMCOLS+2; i++ ){
-		fprintf( stdout, "\b" );
+		fprintf( out, "\b" );
 	 }
 	 break;
   case PROGRESSBAR_CONTINUE_LONG:
 	 c = (num*PROGRESSBAR_NUMCOLS/progress_status.max_progress);
 	 //printf("c=%i, cur_progress=%i, num=%i, p=%i\n", c, cur_progress, num, max_progress);
 	 if( c>progress_status.cur_progress ){
-		fprintf( stdout, "#" );
+		fprintf( out, "#" );
 		progress_status.cur_progress++;
 	 }
 	 break;
@@ -268,11 +270,11 @@ void progressbar_rotating( int flag, int num ){
 	 case 2: c = '\\'; break;
 	 case 3: c = '|'; break;
 	 }
-	 fprintf( stdout, "%c", c);
-	 fprintf( stdout, "\b" );
+	 fprintf( out, "%c", c);
+	 fprintf( out, "\b" );
 	 break;
   case PROGRESSBAR_FINISH:
-	 fprintf( stdout, "\n");
+	 fprintf( out, "\n");
 	 break;
   } /* switch */
 }

@@ -410,7 +410,7 @@ EEG* read_eeg_from_raw(const char *file){
   /* allocating all memory */
   eeg = eeg_init( nbchan, ntrials, nsamples );
   eeg->times = (double*) malloc( nsamples*sizeof(double) );
-  eeg->filename = (char*) malloc( strlen( file )*sizeof(char) );
+  eeg->filename = (char*) malloc( (strlen( file )+1)*sizeof(char) );
   strcpy( eeg->filename, file );
 
   /* read times-array */

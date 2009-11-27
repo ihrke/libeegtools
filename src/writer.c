@@ -1,5 +1,6 @@
 #include "writer.h"
 #include "eeg.h"
+#include "optarg.h"
 #include <matio.h>
 
 #ifdef MATIO
@@ -49,24 +50,45 @@ void write_raw_header( FILE *f, int nbchan, int nbtrials, int nsamples,
   ffwrite( &nmarkers_d, sizeof(double), 1, f );
 }
 
-
-void write_double_matrix_ascii_file(const char *fname, const double **d, int xdim, int ydim){
+/**
+ write double matrix to file in ASCII format.
+	 \param opts may contain
+	 - "precision=int" number of significant digits (after comma); default=6;
+*/
+void write_double_matrix_ascii_file(const char *fname, const double **d, int xdim, int ydim, OptArgList *opts){
   FILE *f;
 
+  dprintf("opening '%s'\n", fname );
   if((f=fopen(fname, "w"))==NULL)
 	 errormsg(ERR_IO, 1);
   
-  write_double_matrix_ascii(f, d, xdim, ydim);
+  write_double_matrix_ascii(f, d, xdim, ydim, opts);
 
   fclose(f);
 }
 
-void write_double_matrix_ascii(FILE *out, const double **d, int xdim, int ydim){
+/** write double matrix to file in ASCII format.
+	 \param opts may contain
+	 - "precision=int" number of significant digits (after comma); default=6;
+ */
+void write_double_matrix_ascii(FILE *out, const double **d, int xdim, int ydim, OptArgList *opts){
   int x, y;
+  int precision;
+  char tformat[20];
+  double a;
+
+  precision=6;
+  if( optarglist_has_key( opts, "precision" ) ){
+	 a = optarglist_scalar_by_key( opts, "precision" );
+	 if( !isnan( a ) ) precision=(int)a;
+  }
+  
+  sprintf( tformat, "%%.%if ", precision );
+  dprintf("Printing in format: '%s'\n", tformat);
 
   for( y=0; y<ydim; y++ ){
 	 for( x=0; x<xdim; x++ ){
-		fprintf(out, "%f ", d[x][y]);
+		fprintf(out, tformat, d[x][y]);
 	 }
 	 fprintf(out, "\n");
   }

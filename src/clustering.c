@@ -301,6 +301,7 @@ void gapstat_free( GapStatistic *g ){
 }
 
 /** calculate the gap-statistic. the struct contains all important information.
+	 \todo fix this, there appears to be an NaN error
 	 \param gap
 	 \param X is nxp where n is number of observations and p num features (e.g. 
 	          trials x voltage
@@ -592,7 +593,7 @@ double get_between_scatter( const double **d, int N, const Clusters *c ){
  */
 Dendrogram* agglomerative_clustering(const double **d, int N, LinkageFunction dist ){
   Dendrogram **nodes, *tmp; /* at the lowest level, we have N nodes */
-  double min_d, cur_d;
+  double min_d, cur_d=0.0;
   int min_i=0, min_j=0;
   int num_nodes;
   int i, j;
@@ -774,7 +775,7 @@ double dgram_dist_completelinkage(const double **d, int N, const Dendrogram *c1,
 	 }
   }
   
-  dprintf("SL-distance = %f\n", dist);
+  //  dprintf("SL-distance = %f\n", dist);
 
   free(el1);
   free(el2);
@@ -872,3 +873,54 @@ void dgram_print_node( Dendrogram *t ){
 #undef END_NODE 
 #undef INTERMEDIATE_NODE 
 #undef NULL_NODE
+
+
+/** return the best number of clusters as returned by the
+	 Gap-Statistic.
+	 To get the data-distribution, all channels in eeg are averaged.
+	 \param optargs may contain
+	 - "max_num_clusters=int", maximum number of clusters, default=10
+	 - "num_ref_dist=int", number of reference distribution iterations, default=ntrials
+	 - <b>optargs is passed to:</b> distfunction
+	 \return best number of clusters or 0 in case of error
+ */
+
+int      eeg_best_num_clusters_gapstat( const EEG *eeg, VectorDistanceFunction distfunction, OptArgList *optargs ){
+  GapStatistic *gap;
+  double x;
+  int max_num_clusters;
+  int num_ref_dist;
+  EEG *meaneeg;
+  double **D;
+  int bestclust=0;
+
+  max_num_clusters = 10;
+  num_ref_dist = eeg->ntrials;
+  if( optarglist_has_key( optargs, "max_num_clusters" ) ){
+	 x = optarglist_scalar_by_key( optargs, "max_num_clusters" );
+	 if( !isnan( x ) ) max_num_clusters=(int)x;
+  }
+  if( optarglist_has_key( optargs, "num_ref_dist" ) ){
+	 x = optarglist_scalar_by_key( optargs, "num_ref_dist" );
+	 if( !isnan( x ) ) num_ref_dist=(int)x;
+  }
+
+  meaneeg = eeg_average_channels( eeg );
+  eeg_print( stderr, meaneeg, 3 );
+  D = eeg_distmatrix( meaneeg, distfunction, ALLOC_IN_FCT, optargs );
+
+  gap = gapstat_init( NULL, max_num_clusters, num_ref_dist );
+  gapstat_calculate( gap, meaneeg->data[0], meaneeg->ntrials, meaneeg->n, 
+							distfunction, D );
+
+  bestclust = gap->khat;
+#ifdef DEBUG
+  gapstat_print( stderr, gap );
+#endif 
+
+  matrix_free( D, meaneeg->ntrials );
+  eeg_free( meaneeg );
+  gapstat_free( gap );
+
+  return bestclust;
+}

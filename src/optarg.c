@@ -57,6 +57,10 @@ void optarglist_print( OptArgList *list, FILE *out ){
 	 Internally, all pointer types are \c void*  and stored along
 	 with the given specification.
 
+	 Be VERY careful to typecast all variables to match the type you indicated.
+	 For example, if you have a float-variable and pass it as double, you need to 
+	 typecast to (double).
+
 	 Only "basic" scalar values (without asterisk) are
 	 supported:
 	 <ul>
@@ -90,13 +94,19 @@ OptArgList* optarglist( const char *format, ... ){
 	 nargs++;
   }
 
+  if( sizeof(char*)!=sizeof(void*) ||
+		sizeof(double*)!=sizeof(void*) ){
+	 errprintf("System Error! For this function to work, all pointers must be of the same size!\n");
+	 return NULL;
+  }
+
   L = (OptArgList*)malloc( sizeof( OptArgList ) );
   L->nargs=nargs;
   L->args=(OptArg*)malloc( nargs*sizeof( OptArg ) );
   dprintf("Found %i args\n", nargs );
 
   /* parse key=type information from format */
-  fmt = (char*)malloc( strlen( format )*sizeof(char) );
+  fmt = (char*)malloc( (strlen( format )+1)*sizeof(char) );
   strcpy( fmt, format );
   key=fmt;
   type=fmt;
@@ -147,8 +157,10 @@ OptArgList* optarglist( const char *format, ... ){
 		  break;
 		}
 	 } else {
+		dprintf("There is a pointer in the %i'th argument\n", i+1 );
 		L->args[i].scalar=FALSE;
-		L->args[i].data_ptr = va_arg (ap, void * );  
+		L->args[i].data_ptr = (void*)va_arg(ap, void *);  
+		dprintf("got a pointer: %p\n", L->args[i].data_ptr );
 	 }
   }
 
@@ -200,6 +212,7 @@ void*       optarglist_ptr_by_key   ( OptArgList *list, const char *key ){
  */
 OptArg*     optarglist_optarg_by_key( OptArgList *list, const char *key ){
   int i;
+  if( !list ) return NULL;
   for( i=0; i<list->nargs; i++ ){
 	 if( !strcmp( list->args[i].key, key ) )
 		return &(list->args[i]);
@@ -211,9 +224,47 @@ OptArg*     optarglist_optarg_by_key( OptArgList *list, const char *key ){
  */
 Boolean     optarglist_has_key( OptArgList *list, const char *key ){
   int i;
+  if( !list ) return FALSE;
   for( i=0; i<list->nargs; i++ ){
 	 if( !strcmp( list->args[i].key, key ) )
 		return TRUE;
   }
   return FALSE;
+}
+
+/** create a new optarglist that is the former optarglist with the new arg appended.
+	 \param list the pointer to the Optarglist* (use &optargs, where optargs is the pointer!)
+	 \return the new list (the caller is responsible for freeing the old one)
+ */
+OptArgList*     optarglist_append_arg   ( OptArgList *list, OptArg *arg ){
+  OptArgList *new;
+  
+  new = (OptArgList*)malloc( sizeof( OptArgList ) );
+  new->nargs=list->nargs+1;
+  new->args=(OptArg*)malloc( new->nargs*sizeof( OptArg ) );
+  memcpy( new->args, list->args, list->nargs * sizeof( OptArg ) );
+  memcpy( &(new->args[new->nargs-1]), arg, sizeof( OptArg ) );
+  return new;
+}
+
+/** create a new OptArg* containing a scalar value */
+OptArg*     optarg_scalar( const char *key, double scalar ){
+  OptArg *p = (OptArg*)malloc(sizeof(OptArg) );
+  strncpy( p->key, key, MAX_LABEL_LENGTH );
+  p->scalar = TRUE;
+  p->data_scalar = scalar;
+  sprintf( p->type, "double" );
+  p->data_ptr = NULL;
+  return p;
+}
+
+/** create a new OptArg* containing a pointer */
+OptArg*     optarg_ptr   ( const char *key, void *ptr ){
+  OptArg *p = (OptArg*)malloc(sizeof(OptArg) );
+  strncpy( p->key, key, MAX_LABEL_LENGTH );
+  p->scalar = FALSE;
+  p->data_ptr = ptr;
+  sprintf( p->type, "void*" );
+  p->data_scalar = 0.0/0.0;
+  return p;
 }

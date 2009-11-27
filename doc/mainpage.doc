@@ -1,7 +1,6 @@
 /** \mainpage 
  *
- * This is libEEGTools. Please explore the functionality via the 
- * Modules page (link above). 
+ * This is libEEGTools. 
  *
  * The official Homepage is http://libeegtools.sf.net
  *
@@ -9,93 +8,7 @@
 
 \dotfile usage.dot
 
-\par Library
- * - denoising.h, denoising.c - core functionality
- * - averaging.h, averaging.c - averaging function
- * - clustering.h clustering.c - clustering functions
- * - reader.c, reader.h - get data
- * - writer.c writer.h  - write data
- * - helper.h, helper.c contain helper math, print, plot functions etc.
- * - mathadd.h, mathadd.c - mathematical helper
- * - time_frequency.h, time_frequency.c - Time-Frequency-representations (spectrogram)
- * - warping.h, warping.c - Warping Functions 
- * - nonlinear.h, nonlinear.c - Nonlinear System Embedding
- * - recurrence_plot.h, recurrence_plot.c - Recurrence Plot-Analysis
-
-\par Matlab-Support
-   - \ref mexfiles
-   - \ref matlabscripts
-   - \ref eeglabplugins
-
-\par Other
-   - \ref otherscripts
-
-\section howto How do I ...
- - import and export data? -> \ref importexport
- - use channel-location information? -> \ref chaninfo
-
-\note
-See the examples (follow the link on top).
-
- * \section notes Notes
- * - Functions starting with eeg_*() take an EEGdata - struct as argument 
- *   and the algorithm is carried out independantly for each channel within
- *   the struct.
- * - Functions that start with eegtrials_*() take an EEGdata_trials - struct
- *   as main argument and the algorithm is carried out independantly on the
- *   trial segments (usually the corresponding eeg_*() function is called for
- *   each trial-segment)
- * - Some demo programs are provided in ./progs of the distribution. 
- * - CAUTION: some of the functions are not well tested (alpha). 
- *
- * \section Compilation
- * - You need the GNU Scientific Library >=1.09, available from http://www.gnu.org/software/gsl/
- * - then compilation and installation according to GNU autotools:
-\code
-$ tar xvfz libeegtools-ver.tar.gz
-$ cd libeegtools-ver.tar.gz
-$ ./configure
-$ make
-$ make install
-\endcode
- * 
- * - to install the matlab-files as well, do
-\code
-$ cd matlab
-$ make -f Makefile.matlab
-\endcode
- * this will compile the Matlab-Mex-files. You can then use all MATLAB-functions in 
- * this directory from the MATLAB-command line.
- * - after this, you can install the eeglab-plugin by copying all files from ./matlab and 
- *   ./eeglab_plugin to a directory in your eeglab-plugin path.
- *
- * 
-
-
-\section optionalargs Using Optional Arguments
-\copydoc optarg.h
-
-<b>A list of optional arguments and where they are used:</b>
-
-<b> For Recurrence-Plot based metric: </b>
-- <tt>m=int</tt> the embedding dimension for the phase-space reconstruction of the signals, default=10
-- <tt>tau=int</tt> time-lag for phase-space rec., default=15
-- <tt>FAN=int</tt> fixed amount of neighbours for each point in the recplot, default=(int)0.05*n1
-- <tt>noiseamp=double</tt> factor to use for adding noise to the recplot, default=\c 0.01
-
-<b> For Time-Frequency based metric: </b>
-- <tt>sample_frequency=double</tt> of the signal, default is \c 500 (should really be provided!)
-- <tt>winfct=void*</tt> windowing function, default is \c window_hanning
-- <tt>winlength=int</tt> size of the window, default is <tt> MAX( SQR( sqrt(next_pow2( n ))-3 ), 5 )</tt>
-- <tt>N_freq=int</tt> number of frequency bins, default is \c winlength*4
-- <tt>N_time=int</tt> number of time bins, default is \c n
-- <tt>corner_freqs=double*</tt> (array with two double entries), default is \c (0.0,250.0)
-
-<b> For derivative DTW </b>
-- <tt>theta1=double</tt>, default is \c 1.0
-- <tt>theta2=double</tt>, default is \c 1.0
-
-\section Acknowledgments
+\section acknowledgements Acknowledgments
 I'd like to thank a couple of people/groups for their code, which they made available under a usable license.
 The code I reused from other sources is documented in the source-files at the appropriate places.
 - I took a bit of code from the TISEAN 3.1 package (http://www.mpipks-dresden.mpg.de/~tisean)
@@ -103,64 +16,11 @@ The code I reused from other sources is documented in the source-files at the ap
 - I used the code-base of the TIME-FREQUENCY TOOLBOX by Emmanuel Roy and Manuel DAVY (http://www-lagis.univ-lille1.fr/~davy/toolbox/Ctftbeng.html)
    - \ref spectrogram_stft - \ref time_frequency.h
 - I included the complete Fidlib-library (and wrote wrappers for the EEG-data) from Jim Peters (http://uazu.net/fidlib/)
-   - \ref denoising.h
+   - \ref filter.h
+- I acknowledge the great MATIO (https://sourceforge.net/projects/matio/) library that I use to import Matlab files
+- and of course the GNU Scientific Library at http://www.gnu.org/software/gsl/
 
 Thanks Guys!
 
-\par History:
-\code
- * $Log$
- * Revision 1.10  2009/11/17 20:35:48  mihrke
- * after transition from EEGdata -> EEG
- *
- * Revision 1.9  2009/11/17 15:55:43  mihrke
- * before  OptArgList
- *
- * Revision 1.8  2009/09/02 09:47:22  mihrke
- * There is going to be major restructuring of the API.
- * Most EEG-functions will be called differently or get different arguments,
- * because the main structs are going to change.
- * We will move to 0.5 after this.
- *
- * Revision 1.7  2009/05/22 13:37:53  mihrke
- * implemented Fidlib support
- *
- * Revision 1.6  2009/03/31 20:33:18  mihrke
- * fixed many bugs and renamed/restructured a good deal;
- * began ml_padtw which is going to be an essential part of
- * the eeglab plugin
- *
- * Revision 1.4  2009/01/12 11:34:19  mihrke
- * documentation,
- * rearrangements,
- * eeglab
- *
- * Revision 1.3  2008/12/12 13:46:43  mihrke
- * chaninfo etc.
- *
- * Revision 1.2  2008/10/21 17:32:38  mihrke
- * Import/Export
- *
- * Revision 1.1  2008/10/17 13:11:32  mihrke
- * a lot of documentation
- *
- * Revision 1.1  2008/10/06 23:19:54  mihrke
- * a lot of stuff...
- * Seems we have 0.2b now :-)
- * New versions of some functions are in t_padtw.c (with a functioname2()-suffix).
- *
- * Revision 1.7  2008/07/31 20:07:53  mihrke
- * evidence for different warping :-)
- *
- * Revision 1.5  2008/05/30 19:53:09  mihrke
- * version 0.2a
- *
- * Revision 1.4  2008/05/29 12:40:37  mihrke
- * version 0.2
- *
- * Revision 1.3  2008/03/14 15:44:27  mihrke
- * distribution 0.15
- *
-\endcode
  */
 

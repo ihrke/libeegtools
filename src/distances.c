@@ -127,7 +127,7 @@ double   vectordist_euclidean_normalized( double *x1, double *x2, int p, OptArgL
 	 \param x1, x2 vectors of size p
 	 \param optargs may contain:
 	 <ul>
-	 <li> <tt>distfct=void*</tt> a PointwiseDistanceFunction, default is \c signaldist_euclidean
+	 <li> <tt>pointdistance=void*</tt> a PointwiseDistanceFunction, default is \c signaldist_euclidean
 	 <li> optargs for the distfunction (optargs is passed 'as is' to this function)
 	 </ul>
  */
@@ -148,7 +148,7 @@ double   vectordist_dtw( double *x1, double *x2, int p, OptArgList *optargs ){
   }
 
   D = f( x1, p, x2, p, NULL, optargs );
-  dtw_cumulate_matrix( D, p, p );
+  dtw_cumulate_matrix( D, p, p, NULL );
   P = dtw_backtrack( (const double**)D, p, p, NULL );
 
   d = 0;
@@ -460,10 +460,17 @@ double** signaldist_recplot_los( const double *s1, int n1, const double *s2, int
 	 x = optarglist_scalar_by_key( optargs, "FAN" );
 	 if( !isnan( x ) ) FAN=(int)x;
   }
+  if( optarglist_has_key( optargs, "noiseamp" ) ){
+	 x = optarglist_scalar_by_key( optargs, "noiseamp" );
+	 if( !isnan( x ) ) noiseamp=x;
+  }
 
   if( d==ALLOC_IN_FCT ){
 	 d=matrix_init( n1, n2 );
   }
+
+  dprintf("Using Parameters: m=%i, tau=%i, FAN=%i, noiseamp=%f\n",
+			 m, tau, FAN, noiseamp );
 
   srand((long)time(NULL));
   p1 = phspace_init( m, tau, s1, n1 );
@@ -486,8 +493,11 @@ double** signaldist_recplot_los( const double *s1, int n1, const double *s2, int
 	 }
   }
 
-  return d;
+  free( p1 );
+  free( p2 );
+  recplot_free( R );
 
+  return d;
 }
 
 /** Compute trial-to-trial distance matrix for all trials in eeg-struct.
@@ -496,23 +506,44 @@ double** signaldist_recplot_los( const double *s1, int n1, const double *s2, int
 	 \param eeg the EEG-data
 	 \param f the function used to compare two ERPs
 	 \param d user allocated memory, or NULL -> own memory is alloc'ed
-	 \param optargs userdata is passed to the vectordist_*() function
+	 \param optargs may contain:
+	 - "progress=void*", a progress-bar function; default=NULL;
+	 - <b> userdata is passed to the vectordist_*() function </b>
  */
 double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, double **d, OptArgList *optargs ){
   int i,j;
   int c;
+  void *tmp;
+  ProgressBarFunction progress=NULL;
 
   if( d==ALLOC_IN_FCT ){
 	 warnprintf(" allocating matrix in fct\n");
 	 d = matrix_init( eeg->ntrials, eeg->ntrials );
   }
 
+  if( optarglist_has_key( optargs, "progress" ) ){
+	 tmp = optarglist_ptr_by_key( optargs, "progress" );
+	 if( tmp ) progress = (ProgressBarFunction) tmp;
+  }
+  dprintf("progress=%p\n", progress );
+
+  if( progress ){
+	 progress( PROGRESSBAR_INIT, eeg->ntrials );
+  }
+
   for( i=0; i<eeg->ntrials; i++ ){
-	 d[i][i] = 0.0;
+	 d[i][i] = 0.0;	 
+	 if( progress ){
+		progress( PROGRESSBAR_CONTINUE_LONG, i );
+	 }
 	 for( j=i+1; j<eeg->ntrials; j++ ){
+		d[i][j] = 0.0;
 		for( c=0; c<eeg->nbchan; c++ ){
+		  if( progress ){
+			 progress( PROGRESSBAR_CONTINUE_SHORT, 0 );
+		  }
 		  d[i][j] += f( eeg->data[c][i], 
-							 eeg->data[c][i],
+							 eeg->data[c][j],
 							 eeg->n, optargs );
 		  if( isnan( d[i][j] ) ){
 			 errprintf("D[%i][%i] is nan\n", i, j);
@@ -522,7 +553,9 @@ double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, double **d, OptArgL
 		d[j][i] = d[i][j];
 	 }
   }
-  
+  if( progress ){
+	 progress( PROGRESSBAR_FINISH, 0 );
+  }
   return d;
 }
 
@@ -539,8 +572,8 @@ double pointdist_euclidean(double x, double y){
 	 \param x,y points specify the line x=(x_1,x_2), y=(y_1, y_2)
  */
 double   dist_point_line(double *p, double *x, double *y){
-  double det;
-  double d;
+  double det=0.0;
+  double d=0.0;
   det = ((y[0]-x[0])*(p[1]-x[1])) - ((y[1]-x[1])*(p[0]-x[0]));
   //dprintf("det=%f\n", det);
   d = (double)ABS( det ) / (double)sqrt( SQR(y[0]-x[0]) + SQR(y[1]-x[1]) );

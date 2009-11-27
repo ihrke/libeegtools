@@ -28,6 +28,17 @@ extern "C" {
 #endif
 
   /*-----------------------------------------------------------
+	 -  slope constraint for DTW
+	 ---------------------------------------------------------*/
+  typedef enum {
+	 SLOPE_CONSTRAINT_NONE=0,
+	 SLOPE_CONSTRAINT_LAX,
+	 SLOPE_CONSTRAINT_MEDIUM,
+	 SLOPE_CONSTRAINT_SEVERE
+  } SlopeConstraint;
+  
+
+  /*-----------------------------------------------------------
 	 - CONVENIENCE -
 	 ---------------------------------------------------------*/
   typedef enum {

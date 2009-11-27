@@ -40,31 +40,107 @@ void      dtw_regularize_matrix( double **d, const double **R, int M, int N ){
   scalar_minus_matrix( maxdist, d, M, N ); 
 }
 
+
+/** \cond PRIVATE
+
+	 apply slope constraint by using cumulation along different
+	 possible pathes. See Skaoe & Chiba, 1978.
+*/
+double _slope_constraint( SlopeConstraint constraint, double **d, double **D, int i, int j ){
+  double r;
+
+  if( (i==0 || j==0) ){
+	 errprintf("i and j must be larger than zero '%i'\n", (int)constraint);
+	 return NAN;
+  }
+
+  r = D[i-1][j-1] + 2*d[i][j];
+  switch( constraint ){
+  case SLOPE_CONSTRAINT_NONE:
+	 r = MIN( r, D[i][j-1] + d[i][j] );
+	 r = MIN( r, D[i-1][j] + d[i][j] );
+	 break;
+  case SLOPE_CONSTRAINT_LAX:
+	 if( j>=3 )
+		r = MIN( r, D[i-1][j-3] + 2*d[i][j-2] + d[i][j-1] + d[i][j] );
+	 if( j>=2 ){
+		r = MIN( r, D[i-1][j-2] + 2*d[i][j-1] + d[i][j] );
+	 }
+	 if( i>=2 ){
+		r = MIN( r, D[i-2][j-1] + 2*d[i-1][j] + d[i][j] );
+	 }
+	 if( i>=3 ){
+		r = MIN( r, D[i-3][j-1] + 2*d[i-2][j] + d[i-1][j] + d[i][j] );
+	 }
+	 break;
+  case SLOPE_CONSTRAINT_MEDIUM:
+	 if( j>=2 ){
+		r = MIN( r, D[i-1][j-2] + 2*d[i][j-1] + d[i][j] );
+	 }
+	 if( i>=2 ){
+		r = MIN( r, D[i-2][j-1] + 2*d[i-1][j] + d[i][j] );
+	 }
+	 break;
+  case SLOPE_CONSTRAINT_SEVERE:
+	 if( i>=2 && j>=3 ){
+		r = MIN( r, D[i-2][j-3] + 2*d[i-1][j-2] + 2*d[i][j-1] + d[i][j] );
+	 }
+	 if( j>=2 && i>=3 ){
+		r = MIN( r, D[i-3][j-2] + 2*d[i-2][j-1] + 2*d[i-1][j] + d[i][j] );
+	 }
+	 break;
+  default:
+	 errprintf("Slope constraint not supported '%i'\n", (int)constraint);
+	 r = NAN;
+	 break;
+  }
+  return r;
+}
+/**\endcond*/
+
 /** cumulate a distance matrix d to give
 	 \f[
-	 \D_{jk} = \mathbf{d}_{jk}+\min{\{\D_{j,k-1}, \D_{j-1,k}, \D_{j-1, k-1}\}}
+	 D_{jk} = \mathbf{d}_{jk}+\min{\{D_{j,k-1}, D_{j-1,k}, D_{j-1, k-1}\}}
 	 \f]
 	 \param d input/output matrix
 	 \param M,N dimensions of d
+	 \param optargs may contain:						 
+	 - "slope_constraint=int" slope constraint, one of SLOPE_CONSTRAINT_*; default=SLOPE_CONSTRAINT_NONE
  */
-void      dtw_cumulate_matrix  ( double **d, int M, int N ){
+void      dtw_cumulate_matrix  ( double **d, int M, int N, OptArgList *optargs ){
   /* j = 0,...,M-1
 	  k = 0,...,N-1
   */
   int j, k;
+  double x;
+  double **D;
+  SlopeConstraint constraint = SLOPE_CONSTRAINT_NONE;
   
+  if( optarglist_has_key( optargs, "slope_constraint" ) ){
+	 x = optarglist_scalar_by_key( optargs, "slope_constraint" );
+	 if( !isnan( x ) ) constraint=(SlopeConstraint)x;
+  }
+  dprintf("using slope constraint '%i'\n", constraint );
+
+  D = matrix_init( M, N );
+  matrix_copy( d, D, M, N );
+
    /* computing D_jk */
   for(j=0; j<M; j++){
     for(k=0; k<N; k++){
       if(k==0 && j==0) ;
-      else if(k==0 && j>0)
-		  d[j][k] += d[j-1][k];
-      else if(k>0 && j==0)
-		  d[j][k] += d[j][k-1];
-      else /* j,k > 0 */
-		  d[j][k] += MIN(MIN(d[j][k-1], d[j-1][k]), d[j-1][k-1]);
+      else if(k==0 && j>0){
+		  D[j][k] = D[j-1][k] + d[j][k];
+		} else if(k>0 && j==0){
+		  D[j][k] = D[j][k-1] + d[j][k];
+		} else { /* j,k > 0 */
+		  D[j][k] = _slope_constraint( constraint, d, D, j, k ); // MIN(MIN(d[j][k-1], d[j-1][k]), d[j-1][k-1]);
+		}
     }
   }
+  
+  matrix_copy( D, d, M, N );
+  matrix_free( D, M );
 }
 /**
 
@@ -123,7 +199,7 @@ WarpPath* dtw_backtrack        ( const double **d, int M, int N, WarpPath *P ){
 
 	 P->t1[idx] = j;
 	 P->t2[idx] = k;
-	 dprintf("(j, k), idx = (%i,%i), %i\n", j, k, idx);
+	 //	 dprintf("(j, k), idx = (%i,%i), %i\n", j, k, idx);
 	 if(idx>0 && P->t1[idx]>=P->t1[idx-1] && P->t2[idx]>=P->t2[idx-1]  ){
 		warnprintf("P=%p: idx=%i\n", P, idx);
 	 }
@@ -160,7 +236,7 @@ int*      warp_adjust_time_markers(const int *m1, const int *m2,
 	 outmarkers = (int*)malloc(nmarkers*sizeof(int) );
   }
   for( i=0; i<nmarkers; i++ ){
-	 outmarkers[i] = m1[i]/weights[0] + m2[i]/weights[1];
+	 outmarkers[i] = m1[i]*weights[0] + m2[i]*weights[1];
   }
   
   return outmarkers;
@@ -195,9 +271,9 @@ double* warp_add_signals_by_path(const double *s1, int n1,
 
 
   for(i=0; i<P->n; i++){
-	 x[i] = (double)((P->t1[i])+(P->t2[i]))/2.0; /* average latencies */
+	 x[i] = (double)((P->t1[i])*weights[0]+(P->t2[i])*weights[1]); /* average latencies */
 	 y[i] = weights[0]*(s1[P->t1[i]]) + weights[1]*(s2[P->t2[i]]); /* average magnitude */
-	 dprintf( "x[%i]=(%f,%f), (%i, %i)\n", i, x[i], y[i], (P->t1[i]), (P->t2[i]) );
+	 //	 dprintf( "x[%i]=(%f,%f), (%i, %i)\n", i, x[i], y[i], (P->t1[i]), (P->t2[i]) );
 	 if( i>0 && x[i]<=x[i-1] ){
 		warnprintf("x not monotonic at P=%p x[%i]=(%f,%f), (%i, %i)\n", P, i, x[i], y[i], (P->t1[i]), (P->t2[i]) );
 	 }
@@ -208,9 +284,9 @@ double* warp_add_signals_by_path(const double *s1, int n1,
   gsl_spline_init (spline, x, y, P->n);
 
   for( i=0; i<newn; i++ ){
-	 dprintf("xp[%i]=%f\n", i, xp[i] ); 
+	 //	 dprintf("xp[%i]=%f\n", i, xp[i] ); 
 	 avg[i] = gsl_spline_eval( spline, xp[i], acc );
-	 dprintf(" avg[%i] = (%f, %f)\n", i,xp[i], avg[i] );
+	 //	 dprintf(" avg[%i] = (%f, %f)\n", i,xp[i], avg[i] );
   }
 
   /* free */
@@ -232,9 +308,9 @@ double* warp_add_signals_by_path(const double *s1, int n1,
 	 \param optargs may contain:
 	 - <b>Directly used by this function:</b>
 	 - <tt>regularize=void*</tt> regularization function, default=\c NULL
-	 - <tt>sigma_max=double</tt> regularization parameter (std of gaussian), default=\c 0.2
 	 - <tt>linkage=void*</tt> rule for building the dendrogram, default=\c dgram_dist_completelinkage
 	 - <tt>pointdistance=void*</tt> pointwise distance function for two time-series, default=\c signaldist_euclidean
+	 - <tt>pass_trial_markers_in_optargs=int</tt> if true, replace (or create) the "markers=int**" and "nmarkers=int" fields in optargs to match the currently used trials (in each iteration, two trials are combined and their markers are sometimes required by the distance functions);  the function uses an own copy of the optargs handed in to the function, such that the original optargs is not modified!, default=\c TRUE
 	 - <tt>progress=void*</tt> progress-bar function, called every now and then.
 	 The function is called with PROGRESSBAR_INIT and 
 	 the max number of calls once. Then it is called
@@ -243,11 +319,12 @@ double* warp_add_signals_by_path(const double *s1, int n1,
 	 steps it is called with PROGRESSBAR_CONTINUE_SHORT.
 	 If NULL, nothing is done., default=\c NULL
 	 - <tt>use_eeg_in=int</tt> if provided, use the memory in eeg_in. default is to allocate new memory
-	 - <b> Depending on which metric/regularization etc you chose, you might want to provide further optional arguments </b> The optargs list is passed to the regularization, linkage and metric functions
+	 - <b> Depending on which metric/regularization etc you chose, you might want to provide further optional arguments </b> 
+	 - The optargs list is passed to the regularization, linkage, dtw_cumulate_matrix and metric functions
 	 \return pointer to final average (EEG-struct with one trial which holds the average)
  */  
-EEG* eegtrials_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
-											EEG *out, OptArgList *optargs ){
+EEG* eeg_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
+									EEG *out, OptArgList *optargs ){
   Dendrogram *T, *Tsub; 
   EEG *eeg;
   WarpPath *P;
@@ -256,6 +333,7 @@ EEG* eegtrials_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
 	 trials_left;
   double *s1, *s2, *s1s2;
   int    *s1s2_markers;
+  int    **markers;
   double **G, **d;
   double maxdist;
   double srate;
@@ -271,6 +349,8 @@ EEG* eegtrials_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
   PointwiseDistanceFunction pointdistance=signaldist_euclidean;
   ProgressBarFunction progress=NULL;
   int use_eeg_in=FALSE;
+  int pass_trial_markers_in_optargs = TRUE;
+  OptArgList *new_optargs, *tmp_arglist;
 
   /* override params */
   if( optarglist_has_key( optargs, "regularize" ) ){
@@ -297,23 +377,65 @@ EEG* eegtrials_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
 	 x = optarglist_scalar_by_key( optargs, "sigma_max" );
 	 if( !isnan( x ) ) sigma_max=x;
   }
+  if( optarglist_has_key( optargs, "pass_trial_markers_in_optargs" ) ){
+	 x = optarglist_scalar_by_key( optargs, "pass_trial_markers_in_optargs" );
+	 if( !isnan( x ) ) pass_trial_markers_in_optargs=(int)x;
+  }
 
+  /* what about the EEG memory ?*/
   if( !use_eeg_in ){
 	 dprintf("Cloning EEGData\n");
-	 eeg = eeg_clone( eeg, EEG_CLONE_ALL );
+	 eeg = eeg_clone( eeg_in, EEG_CLONE_ALL );
+	 dprintf("...done\n");
   } else {
 	 warnprintf("using eeg_in and deleting it because you want it that way!\n");
 	 eeg = eeg_in; 
   }
 
-  nmarkers = eeg->nmarkers[0];
+  /* shortcuts */
+  N = eeg->ntrials;
+  n = eeg->n;
+  nmarkers = eeg->nmarkers[0]+2; /* trivial markers */
+
+  /* what about optional arguments? */
+  OptArg *tmp_arg;
+  if( pass_trial_markers_in_optargs ){ /* create own optarg memory*/
+	 markers = (int**) malloc( 2*sizeof(int*));
+	 markers[0] = (int*) malloc( nmarkers*sizeof(int) ); 
+	 markers[1] = (int*) malloc( nmarkers*sizeof(int) );
+	 markers[0][0] = 0; /* trivial markers */
+	 markers[0][nmarkers-1] = n-1;
+	 markers[1][0] = 0;
+	 markers[1][nmarkers-1] = n-1;
+
+	 new_optargs = (OptArgList*) malloc( optargs->nargs*sizeof(OptArg) );
+	 memcpy( new_optargs, optargs,  optargs->nargs*sizeof(OptArg) );
+	 if( !optarglist_has_key( new_optargs, "nmarkers" ) ){
+		tmp_arg = optarg_scalar( "nmarkers", (double) nmarkers );
+	 }
+	 tmp_arglist = optarglist_append_arg( new_optargs, tmp_arg );
+	 optarglist_free( new_optargs );
+	 new_optargs = tmp_arglist;
+	 free( tmp_arg );
+	 if( !optarglist_has_key( new_optargs, "markers" ) ){
+		tmp_arg = optarg_ptr( "markers", markers );
+	 }
+	 tmp_arglist = optarglist_append_arg( new_optargs, tmp_arg );
+	 optarglist_free( new_optargs );
+	 new_optargs = tmp_arglist;
+	 free( tmp_arg );
+  } else {
+	 new_optargs = optargs;
+  }
+
+#ifdef DEBUG
+  optarglist_print( new_optargs, stderr );
+#endif
 
   /* build hierarchical dendrogram */
   T = agglomerative_clustering( (const double**)distmatrix, eeg->ntrials, linkage );
 
-  /* shortcuts */
-  N = eeg->ntrials;
-  n = eeg->n;
+
   G = matrix_init( n, n );
   d = matrix_init( n, n );  
   indices = (int*)malloc( N*sizeof(int) );
@@ -321,10 +443,14 @@ EEG* eegtrials_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
 	 indices[i] = 1;
   }
   if( !out ){
-	 warnprintf( "allocating output EEG within function \n");
 	 out = eeg_init( eeg->nbchan, 1, n );
-	 out = eeg_init_markers( nmarkers, out );
+	 out = eeg_init_markers( nmarkers-2, out );
+	 out->times = (double*)malloc( n*sizeof(double) );
+	 memcpy( out->times, eeg->times, n*sizeof(double) );
+  } else {
+	 warnprintf( "overwriting your input eeg!\n");
   }
+  
   P = init_warppath( ALLOC_IN_FCT, n, n );
 
   idx1=0; 
@@ -346,7 +472,14 @@ EEG* eegtrials_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
 	 dprintf("Tsub=%p, val=%i, lval=%i, rval=%i, d[%i,%i]=%f\n", Tsub, Tsub->val, Tsub->left->val, 
 				Tsub->right->val,  idx1,  idx2, d[idx1][idx2]);
 
-	 
+	 /* fill new markers to optargs */
+	 if( pass_trial_markers_in_optargs ){
+		for( i=1; i<=nmarkers-2; i++ ){
+		  markers[0][i] = eeg->markers[idx1][i-1];
+		  markers[1][i] = eeg->markers[idx2][i-1];
+		}
+	 }
+
 	 weights[0] = indices[idx1]/(double)(indices[idx1]+indices[idx2]);
 	 weights[1] = indices[idx2]/(double)(indices[idx1]+indices[idx2]);
 	 dprintf("indices[%i,%i]=(%i,%i)\n", idx1, idx2, indices[idx1], indices[idx2]);
@@ -355,7 +488,7 @@ EEG* eegtrials_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
 
 	 dprintf(" compute regularization matrix G\n");
 	 if( regularize ){
-		G = regularize( G, n, optargs ); /* we need G only 
+		G = regularize( G, n, new_optargs ); /* we need G only 
 														once for all channels */
 		if(!G){
 		  errprintf("Regularization did not work for some reason\n");
@@ -367,8 +500,6 @@ EEG* eegtrials_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
 	 /* loop this for all channels */
 	 for( c=0; c<eeg->nbchan; c++){	
 		/* prepare average */
-		s1s2 = vector_init( NULL, n, 0.0 );
-		s1s2_markers = (int*)malloc( nmarkers*sizeof(int) );
 		s1 = eeg->data[c][idx1];
 		s2 = eeg->data[c][idx2];
 		if( progress ){
@@ -377,7 +508,7 @@ EEG* eegtrials_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
 		}
 		
 		dprintf(" compute d for trial %i,%i\n", idx1, idx2);
-		if(!(d = pointdistance( s1, n, s2, n, d, optargs ) ) ){
+		if(!(d = pointdistance( s1, n, s2, n, d, new_optargs ) ) ){
 		  errprintf("pointdistance faulty\n");
 		  return NULL;
 		}
@@ -388,26 +519,26 @@ EEG* eegtrials_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
 		  dprintf(" ...done\n");  
 		}
 		dprintf(" Compute path\n");  
-		dtw_cumulate_matrix( d, n, n );
+		dtw_cumulate_matrix( d, n, n, new_optargs );
 		P = dtw_backtrack( (const double**) d, n, n, P );
 		dprintf(" ...done\n");  
 		dprintf(" Warpavg\n");  
-		s1s2 = warp_add_signals_by_path( s1, n, s2, n, P, s1s2, weights );
+		s1s2 = warp_add_signals_by_path( s1, n, s2, n, P, ALLOC_IN_FCT, weights );
 		s1s2_markers = warp_adjust_time_markers( eeg->markers[idx1], 
 															  eeg->markers[idx2], 
-															  nmarkers, s1s2_markers, 
+															  nmarkers-2, ALLOC_IN_FCT,
 															  weights );
 		dprintf(" ...done\n");  
 
 		/* replace trials with ADTW */
 		free( s1 );
-		free( s2 );
+		//		free( s2 );
 		eeg->data[c][idx1] = s1s2; /* ADTW goes to idx1 */
-		eeg->data[c][idx2] = NULL; /* do not touch this again */
+		//		eeg->data[c][idx2] = NULL; /* do not touch this again */
 		free( eeg->markers[idx1] );
-		free( eeg->markers[idx2] );
+		//		free( eeg->markers[idx2] );
 		eeg->markers[idx1] = s1s2_markers;
-		eeg->markers[idx1] = NULL;
+		//		eeg->markers[idx2] = NULL;
 	 }
 
 	 indices[idx1] += indices[idx2];
@@ -428,9 +559,13 @@ EEG* eegtrials_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
 
   /* fill output data */
   for( c=0; c<eeg->nbchan; c++ ){
-	 out->data[c][0] = eeg->data[c][idx1];
-	 out->markers[0] = eeg->markers[idx1];
+	 memcpy( out->data[c][0], eeg->data[c][idx1], n*sizeof(double) );
+	 memcpy( out->markers[0], eeg->markers[idx1], (nmarkers-2)*sizeof(int) );
+	 //	 free( eeg->data[c][idx1] );
+	 //	 free( eeg->markers[idx1] );
   }
+  eeg_free( eeg );
+
 
   if( progress ){
 	 progress( PROGRESSBAR_FINISH, 0 );
@@ -438,6 +573,9 @@ EEG* eegtrials_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
 
   /* cleaning up */
   dprintf("Freeing Memory\n");
+  if( pass_trial_markers_in_optargs ){
+	 optarglist_free( new_optargs );
+  }
   matrix_free( d, n );
   matrix_free( G, n );
   dgram_free( T );

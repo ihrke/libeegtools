@@ -1,0 +1,290 @@
+/** \page manual LibEEGTools Manual
+	 
+	 Table of Contents:
+	 
+	 - \subpage man_installation
+	  - \ref man_optdep
+	  - \ref man_config
+	  - \ref man_cvsinstallation
+	 - \subpage man_helloworld
+	 - \subpage man_corefunctionality
+	 - \subpage man_io
+	 - \subpage man_matlab
+	 - \subpage man_python
+	 - \subpage man_appendix
+*/
+
+
+/**\page man_installation Installation/Compilation
+	<h1>Installation/Compilation</h1>
+
+	There are very few hard dependencies, currently:
+	- GNU Scientific Library at http://www.gnu.org/software/gsl/, version >=1.11 (ftp://ftp.gnu.org/gnu/gsl/gsl-1.12.tar.gz)
+
+	Go to the https://sourceforge.net/projects/libeegtools/files/ and get
+	a copy of LibEEGTools.
+
+	Unpack it with
+   \verbatim tar xvfz libeegtools-<ver>.tar.gz \endverbatim
+
+	and use the configure script to generate make files
+   \verbatim./configure <options>\endverbatim
+
+	such that you can 
+	\verbatim make install\endverbatim
+	the package (you might need root-priviledges to install the library).
+	
+	Use
+	\verbatim ./configure --help \endverbatim
+	for a list of options.
+	
+	\section man_optdep Optional Dependencies
+	You can enable some functionality by providing other software dependencies. 
+	
+	-  MatIO - https://sourceforge.net/projects/matio/, >=1.3.3 (https://sourceforge.net/projects/matio/files/) 
+   - enables access to MATLAB and EEGLab files. This is strongly encouraged to enable direct cooperation with EEGlab.
+	- libcheck - http://check.sourceforge.net/ (https://sourceforge.net/projects/check/files/]) 
+   - enable some unit testing 
+	
+	\section man_config Optional Configuration Flags
+	You can append some flags to the ./configure call to modify the installation behaviour.
+	\verbatim
+--prefix=<path> - provide the installation directory
+--enable-debug - you can get _a lot_ of debugging output
+--enable-matlab
+--enable-unittest	\endverbatim
+	
+	\section man_cvsinstallation Installation from CVS
+	- Check out your copy
+	\verbatim
+cvs -d:pserver:anonymous@libeegtools.cvs.sourceforge.net:/cvsroot/libeegtools login
+	
+cvs -z3 -d:pserver:anonymous@libeegtools.cvs.sourceforge.net:/cvsroot/libeegtools co -P libeegtools	\endverbatim
+	- run autotools
+	\verbatim
+autoreconf --force --install	\endverbatim
+	- compile
+	\verbatim
+./configure --enable-debug 
+make
+make install 	\endverbatim
+
+<p><br><br><hr>
+  - Previous Page: \ref manual
+  - Next Page: \ref man_helloworld
+
+<hr>
+*/
+
+/**
+	\page man_helloworld Hello World!
+	<h1>Hello World!</h1>
+
+	Let's write a very easy program using LibEEGTools. For now, we just read EEGdata from a
+	file that has been saved using EEGlab software and print the information contained in this file
+
+	\code
+#include <libeegtools/eeg.h>    /* struct information */
+#include <libeegtools/reader.h>    /* read EEG data */
+
+int main( int argc, char **argv ){
+  EEG *eeg; /* <- main EEG-data struct */
+
+  eeg = read_eeglab_file( argv[1] ); /* read EEG from file, allocating data */
+
+  fprintf( stdout, "Hello World!\nThis is the content of file '%s'\n", argv[1] );
+  eeg_print( stdout, eeg, 3 );
+
+  eeg_free( eeg ); /* free memory */
+
+  return 0;
+}
+\endcode
+If you installed the library to $PREFIX, you can compile and link the sample program
+  with
+  \verbatim  gcc test.c -I$PREFIX/include -L$PREFIX/lib -leegtools  \endverbatim
+
+  Instead of printing the data, you can do all the fancy stuff promised in the description.
+  Just read on to \ref man_corefunctionality to get more information.
+
+<p><br><br><hr>
+  - Previous Page: \ref man_installation
+  - Next Page: \ref man_io
+
+<hr>
+*/
+
+/**
+	\page man_io Input/Output
+	<h1>Input/Output</h1>
+	
+	- \ref importexport
+	- \ref chaninfo
+
+Coming Soon!
+
+<p><br><br><hr>
+  - Previous Page: \ref man_helloworld
+  - Next Page: \ref man_organization
+
+<hr>
+*/
+
+/** \page man_organization Data Representation and Organisation
+	 <h1>Data Representation and Organisation</h1>
+
+\section optionalargs Using Optional Arguments
+\copydoc optarg.h
+
+
+<p><br><br><hr>
+  - Previous Page: \ref man_io
+  - Next Page: \ref man_corefunctionality
+
+<hr>
+ */
+
+/**
+	\page man_corefunctionality Core Functionality
+	<h1>Core Functionality</h1>
+
+Coming Soon!
+
+<p><br><br><hr>
+  - Previous Page: \ref man_organization
+  - Next Page: \ref man_matlab
+
+<hr>
+*/
+
+/**
+	\page man_matlab MATLAB integration
+	<h1>MATLAB integration</h1>
+
+Coming Soon!
+
+\par Matlab-Support
+   - \ref mexfiles
+   - \ref matlabscripts
+   - \ref eeglabplugins
+
+<p><br><br><hr>
+  - Previous Page: \ref man_corefunctionality
+  - Next Page: \ref man_python
+
+<hr>
+*/
+
+/**
+	\page man_python Python integration
+	<h1>Python integration</h1>
+
+Coming Soon!
+
+<p><br><br><hr>
+  - Previous Page: \ref man_matlab
+  - Next Page: \ref man_appendix
+
+<hr>
+*/
+
+/**
+	\page man_appendix Appendix
+	<h1>Appendix</h1>
+
+	- \subpage optarglist
+	- \subpage changelog
+	- \ref otherscripts
+
+<p><br><br><hr>
+  - Previous Page: \ref man_python
+
+<hr>
+	
+*/
+
+/** \page optarglist A list of optional arguments and where they are used
+	 <h1>A list of optional arguments and where they are used</h1>
+
+\par For Recurrence-Plot based metric: 
+- <tt>m=int</tt> the embedding dimension for the phase-space reconstruction of the signals, default=10
+- <tt>tau=int</tt> time-lag for phase-space rec., default=15
+- <tt>FAN=int</tt> fixed amount of neighbours for each point in the recplot, default=(int)0.05*n1
+- <tt>noiseamp=double</tt> factor to use for adding noise to the recplot, default=\c 0.01
+
+\par For Time-Frequency based metric: 
+- <tt>sample_frequency=double</tt> of the signal, default is \c 500 (should really be provided!)
+- <tt>winfct=void*</tt> windowing function, default is \c window_hanning
+- <tt>winlength=int</tt> size of the window, default is <tt> MAX( SQR( sqrt(next_pow2( n ))-3 ), 5 )</tt>
+- <tt>N_freq=int</tt> number of frequency bins, default is \c winlength*4
+- <tt>N_time=int</tt> number of time bins, default is \c n
+- <tt>corner_freqs=double*</tt> (array with two double entries), default is \c (0.0,250.0)
+
+\par For derivative DTW 
+- <tt>theta1=double</tt>, default is \c 1.0
+- <tt>theta2=double</tt>, default is \c 1.0
+*/
+
+
+/** \page changelog ChangeLog
+	 <h1>ChangeLog</h1>
+
+\verbatim
+* $Log$
+* Revision 1.1  2009/11/27 19:35:00  mihrke
+* * some memory bugs
+* * documentation restructured
+*
+* Revision 1.10  2009/11/17 20:35:48  mihrke
+* after transition from EEGdata -> EEG
+*
+* Revision 1.9  2009/11/17 15:55:43  mihrke
+* before  OptArgList
+*
+* Revision 1.8  2009/09/02 09:47:22  mihrke
+* There is going to be major restructuring of the API.
+* Most EEG-functions will be called differently or get different arguments,
+* because the main structs are going to change.
+* We will move to 0.5 after this.
+*
+* Revision 1.7  2009/05/22 13:37:53  mihrke
+* implemented Fidlib support
+*
+* Revision 1.6  2009/03/31 20:33:18  mihrke
+* fixed many bugs and renamed/restructured a good deal;
+* began ml_padtw which is going to be an essential part of
+* the eeglab plugin
+*
+* Revision 1.4  2009/01/12 11:34:19  mihrke
+* documentation,
+* rearrangements,
+* eeglab
+*
+* Revision 1.3  2008/12/12 13:46:43  mihrke
+* chaninfo etc.
+*
+* Revision 1.2  2008/10/21 17:32:38  mihrke
+* Import/Export
+*
+* Revision 1.1  2008/10/17 13:11:32  mihrke
+* a lot of documentation
+*
+* Revision 1.1  2008/10/06 23:19:54  mihrke
+* a lot of stuff...
+* Seems we have 0.2b now :-)
+* New versions of some functions are in t_padtw.c (with a functioname2()-suffix).
+*
+* Revision 1.7  2008/07/31 20:07:53  mihrke
+* evidence for different warping :-)
+*
+* Revision 1.5  2008/05/30 19:53:09  mihrke
+* version 0.2a
+*
+* Revision 1.4  2008/05/29 12:40:37  mihrke
+* version 0.2
+*
+* Revision 1.3  2008/03/14 15:44:27  mihrke
+* distribution 0.15
+*
+\endverbatim
+*/

@@ -147,7 +147,9 @@ double** regularization_gaussian_line( double **d, int n, OptArgList *optargs ){
   void *ptr;
 
   /* get distance transform of the linear interpolation between markers */
+  dprintf("Calling regularization_linear_points\n");
   d = regularization_linear_points( d, n, optargs );
+  dprintf("...done\n");
 
   /* defaults */
   nmarkers = 2;
@@ -162,9 +164,14 @@ double** regularization_gaussian_line( double **d, int n, OptArgList *optargs ){
 	 ptr = optarglist_ptr_by_key( optargs, "markers" );
 	 if( ptr ) markers = (int**)ptr;
   }
+  if( optarglist_has_key( optargs, "max_sigma" ) ){
+	 x = optarglist_scalar_by_key( optargs, "max_sigma" );
+	 if( !isnan( x ) ) max_sigma=x;
+  }
 
   /* allocate own markers if not provided via optargs */
   if( !markers ){
+	 dprintf("Got no markers, using (0,0),(%i,%i)\n", n-1, n-1 );
 	 nmarkers = 2;
 	 markers = (int**) malloc( 2*sizeof( int* ) );
 	 markers[0] = (int*) malloc( nmarkers*sizeof( int ) );
@@ -178,6 +185,8 @@ double** regularization_gaussian_line( double **d, int n, OptArgList *optargs ){
   /* apply gaussian with varying sigma */
   flag = 0;
   maxdist = sqrt(2.0)*(double)(n-1);
+
+  dprintf("maxdist=%f, max_sigma=%f\n", maxdist, max_sigma);
   for( i=0; i<n; i++ ){
   	 for( j=0; j<n; j++ ){
 		closest_dist = DBL_MAX;

@@ -41,8 +41,8 @@ extern "C" {
   void write_raw_header( FILE *f, int nbchan, int nbtrials, int nsamples, 
 								 int nmarkers );
 
-  void write_double_matrix_ascii(FILE *out, const double **d, int xdim, int ydim);
-  void write_double_matrix_ascii_file(const char *fname, const double **d, int xdim, int ydim);
+  void write_double_matrix_ascii(FILE *out, const double **d, int xdim, int ydim, OptArgList *opts);
+  void write_double_matrix_ascii_file(const char *fname, const double **d, int xdim, int ydim, OptArgList *opts);
 
   void write_double_vector_ascii(FILE *out, const double *v, int n);
   void write_double_vector_ascii_file(const char *fname, const double *v, int n);

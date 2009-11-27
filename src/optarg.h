@@ -68,8 +68,14 @@ extern "C" {
   void*       optarglist_ptr_by_key   ( OptArgList *list, const char *key );
   OptArg*     optarglist_optarg_by_key( OptArgList *list, const char *key );
 
+  OptArgList* optarglist_append_arg   ( OptArgList *list, OptArg *arg );
+
   void        optarglist_print( OptArgList *list, FILE *out );
   void        optarglist_free( OptArgList *list );
+
+  OptArg*     optarg_scalar( const char *key, double scalar );
+  OptArg*     optarg_ptr   ( const char *key, void *ptr );
+
 
   /*\}*/
 

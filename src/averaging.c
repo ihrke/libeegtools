@@ -48,6 +48,36 @@ EEG*     eeg_simple_average( EEG *eeg ){
   }
   return out;
 }
+/** Calculate a pointwise average across channels
+	 \f[
+	 \hat{s}_i(t) = \frac{1}{C}\sum_{c=1}^{C}s^c_i(t)
+	 \f]
+	 \param eeg input
+	 \return freshly allocate EEG-struct
+ */
+EEG*     eeg_average_channels( EEG *eeg ){
+  EEG *out;
+  int c, i, j;
+
+  out = eeg_init( 1, eeg->ntrials, eeg->n ); /* the average */
+  out->sampling_rate=eeg->sampling_rate;
+  if( eeg->times ){
+	 out->times = (double*) malloc( eeg->n*sizeof(double) );
+	 memcpy( out->times, eeg->times, eeg->n*sizeof(double) );
+  }
+  eeg_append_comment( out, "output from eegtrials_average_channels()\n" );
+
+  for( i=0; i<eeg->ntrials; i++ ){
+	 for( j=0; j<eeg->n; j++ ){
+		out->data[0][i][j] = 0;
+		for( c=0; c<eeg->nbchan; c++ ){
+		  out->data[0][i][j] += eeg->data[c][i][j];
+		}
+		out->data[0][i][j] /= (double)eeg->nbchan;
+	 }
+  }
+  return out;
+}
 
 /** Calculate alternate average of n vectors
 	 \f[

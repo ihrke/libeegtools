@@ -6,13 +6,18 @@ EEG* eeg_init            ( int nbchan, int ntrials, int nsamples ){
   EEG *eeg;
   int c,i,j;
 
+  dprintf("init\n");
   eeg = (EEG*)malloc( sizeof( EEG ) );
   eeg->nbchan = nbchan;
   eeg->ntrials= ntrials;
   eeg->n      = nsamples;
+  eeg->sampling_rate = -1;
+  
+  dprintf("alloc data\n");
   eeg->data   = (double***) malloc( nbchan*sizeof( double** ));
+  dprintf("done\n");
   for( c=0; c<nbchan; c++ ){
-	 eeg->data[c] = (double**) malloc( ntrials*sizeof(double**) );
+	 eeg->data[c] = (double**) malloc( ntrials*sizeof(double*) );
 	 for( i=0; i<ntrials; i++ ){
 		eeg->data[c][i] = (double*) malloc( nsamples*sizeof(double) );
 		for( j=0; j<nsamples; j++ ){
@@ -38,14 +43,18 @@ EEG* eeg_init            ( int nbchan, int ntrials, int nsamples ){
 	 \param eeg
  */
 EEG* eeg_init_markers    ( int nmarkers_per_trial, EEG *eeg ){
-  int i;
+  int i, j;
   eeg->nmarkers= (unsigned int*) malloc( eeg->ntrials*sizeof(unsigned int) );
   eeg->markers = (unsigned int**)malloc( eeg->ntrials*sizeof(unsigned int*) );
-  eeg->marker_labels=(char***)   malloc(eeg->ntrials*sizeof(char***) );
+  eeg->marker_labels=(char***)   malloc(eeg->ntrials*sizeof(char**) );
   for( i=0; i<eeg->ntrials; i++ ){
 	 eeg->nmarkers[i] = nmarkers_per_trial;
 	 eeg->markers[i] = (unsigned int*) malloc( nmarkers_per_trial*sizeof(unsigned int) );
 	 eeg->marker_labels[i] = (char**)  malloc( nmarkers_per_trial*sizeof(char*) );
+	 for( j=0; j<nmarkers_per_trial; j++ ){
+		eeg->marker_labels[i][j] = (char*)malloc( MAX_LABEL_LENGTH*sizeof(char) );
+		sprintf( eeg->marker_labels[i][j], "Marker %i", j );
+	 }
   }
   return eeg;
 }
@@ -56,10 +65,10 @@ EEG* eeg_init_markers    ( int nmarkers_per_trial, EEG *eeg ){
  */
 void eeg_append_comment( EEG *eeg, const char *comment ){
   if( !eeg->comment ){
-	 eeg->comment = (char*) malloc( strlen(comment)*sizeof(char) );
+	 eeg->comment = (char*) malloc( (strlen(comment)+1)*sizeof(char) );
 	 strcpy( eeg->comment, comment );
   } else {
-	 eeg->comment = (char*) realloc( eeg->comment, (strlen(eeg->comment)+strlen(comment))*sizeof(char) );
+	 eeg->comment = (char*) realloc( eeg->comment, (strlen(eeg->comment)+strlen(comment)+2)*sizeof(char) );
 	 strcpy( eeg->comment+strlen(eeg->comment), comment );
   }
 }
@@ -114,7 +123,6 @@ EEG* eeg_extract_channels( EEG* eeg, const int *channels, int nchannels, Boolean
   /* move empty fields such that there are no gaps in data and chaninfo */
   Boolean moved;
   for( c=0; c<outeeg->nbchan; c++ ){
-	 dprintf("c=%i, data=%p, chan.num=%i\n",c, outeeg->data[c], outeeg->chaninfo[c].num);
 	 moved=FALSE;
 	 if( !outeeg->data[c] ){	  /* move all remaining data */	
 		for( i=c+1; i<outeeg->nbchan; i++ ){
@@ -123,11 +131,14 @@ EEG* eeg_extract_channels( EEG* eeg, const int *channels, int nchannels, Boolean
 		moved=TRUE;
 	 }
 
-	 if( outeeg->chaninfo[c].num==-1 ){ /* move remaining chaninfos */
-		for( i=c+1; i<outeeg->nbchan; i++ ){
-		  memcpy( &(outeeg->chaninfo[i-1]), &(outeeg->chaninfo[i]), sizeof(ChannelInfo) );
+	 if( outeeg->chaninfo ){
+		if( outeeg->chaninfo[c].num==-1 ){ /* move remaining chaninfos */
+		  for( i=c+1; i<outeeg->nbchan; i++ ){
+			 memcpy( &(outeeg->chaninfo[i-1]), &(outeeg->chaninfo[i]), 
+						sizeof(ChannelInfo) );
+		  }
+		  moved=TRUE;
 		}
-		moved=TRUE;
 	 }
 	 if( moved ) {
 		c--;
@@ -376,14 +387,15 @@ void eeg_print( FILE *out, const EEG *eeg, int preview ){
 EEG* eeg_clone( const EEG *eeg, int flags ){
   EEG *clone;
   int c, i, j;
-
+  dprintf("start init\n");
   clone = eeg_init( eeg->nbchan, eeg->ntrials, eeg->n );
+  dprintf("...done\n");
   if( eeg->filename ){
-	 clone->filename = (char*)  malloc( strlen( eeg->filename )*sizeof(char) );
+	 clone->filename = (char*)  malloc( (strlen( eeg->filename )+1)*sizeof(char) );
 	 strcpy( clone->filename, eeg->filename );
   }
   if( eeg->comment ){
-	 clone->comment = (char*)  malloc( strlen( eeg->comment )*sizeof(char) );
+	 clone->comment = (char*)  malloc( (strlen( eeg->comment )+1)*sizeof(char) );
 	 strcpy( clone->comment, eeg->comment );
   }
   clone->sampling_rate = eeg->sampling_rate;
@@ -391,6 +403,7 @@ EEG* eeg_clone( const EEG *eeg, int flags ){
 	 clone->times = (double*) malloc( eeg->n*sizeof(double) );
 	 memcpy( clone->times, eeg->times, eeg->n*sizeof(double) );
   }
+  dprintf("stuff done\n");
 
   if( !(flags & EEG_CLONE_NODATA) ){
 	 for( c=0; c<eeg->nbchan; c++ ){
@@ -428,7 +441,7 @@ EEG* eeg_clone( const EEG *eeg, int flags ){
 		for( i=0; i<eeg->ntrials; i++ ){
 		  clone->marker_labels[i] =(char**)malloc( eeg->nmarkers[i]*sizeof(char*) );
 		  for( j=0; j<eeg->nmarkers[i]; j++ ){
-			 clone->marker_labels[i][j] = (char*) malloc( strlen( eeg->marker_labels[i][j])*sizeof(char) );
+			 clone->marker_labels[i][j] = (char*) malloc( (strlen( eeg->marker_labels[i][j])+1)*sizeof(char) );
 			 strcpy( clone->marker_labels[i][j], eeg->marker_labels[i][j] );
 		  }
 		}

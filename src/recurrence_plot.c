@@ -348,7 +348,7 @@ WarpPath* recplot_los_dtw( const RecurrencePlot *R ){
   /* add a bias such that diagonal is preferred */
   
   
-  dtw_cumulate_matrix( d, R->m, R->n );
+  dtw_cumulate_matrix( d, R->m, R->n, NULL );
   //matrix_normalize_by_max( D, R->m, R->n );
   P = dtw_backtrack( (const double**) d, R->m, R->n, NULL );
 
@@ -410,7 +410,7 @@ WarpPath* recplot_los_dtw_markers( const RecurrencePlot *R, int **markers, int n
   matrix_add_matrix( d, G, R->m, R->n );
   
   /* dtw */
-  dtw_cumulate_matrix( d, R->m, R->n );
+  dtw_cumulate_matrix( d, R->m, R->n, NULL );
   P = dtw_backtrack( (const double**) d, R->m, R->n, NULL );
 
   /* clean */
@@ -459,7 +459,7 @@ WarpPath* recplot_los_disttransform( const RecurrencePlot *R ){
   }
 
   d = disttransform_deadreckoning( I, R->m, R->n, ALLOC_IN_FCT );
-  dtw_cumulate_matrix( d, R->m, R->n );
+  dtw_cumulate_matrix( d, R->m, R->n, NULL );
   P = dtw_backtrack( (const double**) d, R->m, R->n, NULL );
 
   /* free */
@@ -497,18 +497,20 @@ WarpPath* recplot_los_dtw_noise( const RecurrencePlot *R ){
   matrix_copy( (const double**)R->R, d, R->m, R->n ); 
 
   /* flip binary matrix */
-  scalar_minus_matrix( 2.0, d, R->m, R->n );
+  scalar_minus_matrix( 1.0, d, R->m, R->n );
   
   /* add small amount of noise */
   for( i=0; i<R->m; i++ ){
 	 for( j=0; j<R->n; j++ ){
 		noise = noiseamp*(((double)rand()) / RAND_MAX);		
-		if( d[i][j]<2 )
+		//		if( d[i][j]<2 )
 		  d[i][j] += noise;
 	 }
   }
   
-  dtw_cumulate_matrix( d, R->m, R->n );
+  OptArgList *opt = optarglist( "slope_constraint=int", SLOPE_CONSTRAINT_LAX );
+  dtw_cumulate_matrix( d, R->m, R->n, opt );
+  optarglist_free( opt );
 
   P = dtw_backtrack( (const double**) d, R->m, R->n, NULL );
 

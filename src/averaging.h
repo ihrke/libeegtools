@@ -39,6 +39,7 @@ extern "C" {
 
   EEG*     eeg_simple_average   ( EEG *eeg );
   EEG*     eeg_alternate_average( EEG *eeg );
+  EEG*     eeg_average_channels ( EEG *eeg );
 /** \} */
 #ifdef __cplusplus
 }
