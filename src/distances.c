@@ -39,6 +39,7 @@ double** vectordist_distmatrix( VectorDistanceFunction f,
   int i,j;
   int idx;
   
+  dprintf("data dim is (%i,%i)\n", n, p);
   if( D==ALLOC_IN_FCT ){
 	 warnprintf(" allocating matrix in fct\n");
 	 D = matrix_init( n, n );
@@ -55,6 +56,8 @@ double** vectordist_distmatrix( VectorDistanceFunction f,
 		}
 		D[i][j] = f( (double*)X[i], (double*)X[j], p, optargs );
 		D[j][i] = D[i][j];
+
+
 		if( isnan( D[j][i] ) ){
 		  errprintf("D[%i][%i] is nan\n", j, i);
 		}
@@ -72,7 +75,7 @@ double** vectordist_distmatrix( VectorDistanceFunction f,
 	 \param x1, x2 vectors of size p
 	 \param optargs is ignored
 */
-double vectordist_euclidean( double *x1, double *x2, int p, OptArgList *optargs ){
+double vectordist_euclidean( const double *x1, const double *x2, int p, OptArgList *optargs ){
   double d;
   int i;
 
@@ -93,7 +96,7 @@ double vectordist_euclidean( double *x1, double *x2, int p, OptArgList *optargs 
 	 \param x1, x2 vectors of size p
 	 \param optargs is ignored
  */
-double   vectordist_euclidean_normalized( double *x1, double *x2, int p, OptArgList *optargs ){
+double   vectordist_euclidean_normalized( const double *x1, const double *x2, int p, OptArgList *optargs ){
   int i;
   double d;
   double avg1, avg2,
@@ -131,7 +134,7 @@ double   vectordist_euclidean_normalized( double *x1, double *x2, int p, OptArgL
 	 <li> optargs for the distfunction (optargs is passed 'as is' to this function)
 	 </ul>
  */
-double   vectordist_dtw( double *x1, double *x2, int p, OptArgList *optargs ){
+double   vectordist_dtw( const double *x1, const double *x2, int p, OptArgList *optargs ){
   double d;
   double **D;
   PointwiseDistanceFunction f;
@@ -172,7 +175,7 @@ double   vectordist_dtw( double *x1, double *x2, int p, OptArgList *optargs ){
 	 compute the cumulated sum along the regularized warping path.
 	 \param optargs should contain the markers
  */
-double   vectordist_regularized_dtw( double *x1, double *x2, int p, OptArgList *optargs ){
+double   vectordist_regularized_dtw( const double *x1, const double *x2, int p, OptArgList *optargs ){
   /* int nmarkers; */
   /* int **markers; */
   /* double **G, **D; */
@@ -384,10 +387,10 @@ double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, do
   window = winfct(ALLOC_IN_FCT, winlength);
   sp1 = spectrogram_stft( d1, n1, sample_frequency,
 								  window, winlength, N_freq, N_time, 
-								  corner_freqs, ALLOC_IN_FCT );
+								  corner_freqs, NULL, ALLOC_IN_FCT );
   sp2 = spectrogram_stft( d2, n2, sample_frequency,
 								  window, winlength, N_freq, N_time,
-								  corner_freqs, ALLOC_IN_FCT );
+								  corner_freqs, NULL, ALLOC_IN_FCT );
   if( !sp1 || !sp2 ){
 	 errprintf("Spectrogram broken\n");
 	 return NULL;
@@ -404,8 +407,8 @@ double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, do
   dprintf("\nDone\n");
 
   /* free */
-  free_spectrogram( sp1 );
-  free_spectrogram( sp2 );
+  spectrogram_free( sp1 );
+  spectrogram_free( sp2 );
   free( d1 );
   free( d2 );
   free( window );

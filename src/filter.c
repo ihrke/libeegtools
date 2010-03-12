@@ -33,7 +33,7 @@
  \param alloc TRUE: a new struct is returned; FALSE: in-place modification
  \return filtered EEG
  */
-EEG* eeg_filter_running_median(EEG *eeg, int win, Boolean alloc){
+EEG* eeg_filter_running_median(EEG *eeg, int win, bool alloc){
   EEG *s;
   int c,i;
   if( alloc ){
@@ -113,7 +113,7 @@ double* moving_average(double *s, int n, int win){
  \param alloc TRUE: a new struct is returned; FALSE: in-place modification
  \return filtered EEG
  */
-EEG* eeg_filter_weighted_running_median( EEG *eeg, int win, Boolean alloc){
+EEG* eeg_filter_weighted_running_median( EEG *eeg, int win, bool alloc){
   EEG *s;
   int c,i;
   if( alloc ){
@@ -303,7 +303,7 @@ double* weighted_running_median(double *d, int n, int win,
 
 	 \endcode
 */
-EEG* eeg_filter_fidlib( EEG *eeg, const char *spec, Boolean alloc ){
+EEG* eeg_filter_fidlib( EEG *eeg, const char *spec, bool alloc ){
   int len;
   int c,i,j;
   FidFilter *filt;

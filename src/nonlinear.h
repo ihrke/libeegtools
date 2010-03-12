@@ -42,21 +42,32 @@ extern "C" {
 	*\{
 	*/ 
 
+  /* parameter estimation */
   int         phspace_estimate_timelag_mutual( PhaseSpace *p, long partitions, long corrlength, double *mutual );
   int         phspace_estimate_timelag_autocorr( PhaseSpace *p );
   int         phspace_estimate_dimension( double Rtol, int m_start, int m_end );
   double      phspace_fnn_ratio( PhaseSpace *p, double Rtol, double Atol );
   double      phspace_attractor_size( PhaseSpace *p );
 
+  /* struct handling */
   PhaseSpace* phspace_init ( int m, int tau, double *x, int n );
   void        phspace_free ( PhaseSpace *p );
   void        phspace_print( FILE *out, PhaseSpace *p);
 
+  /* indexing */
   double      phspace_index_ij( PhaseSpace *p, int i, int j );
   void        phspace_index_i ( PhaseSpace *p, int i, double *x);
   void        phspace_index_j ( PhaseSpace *p, int j, double *x);
+
+  /* nonlinear prediction */
+  double phspace_predict_simple( PhaseSpace *p, double *sample, int npredict, double epsilon );
+  double phspace_simple_nonlinear_prediction_error( PhaseSpace *reference, double *y, int yn, 
+																	 int npredict, double epsilon );
   /*\}*/
 
+  double** eeg_nonlinear_prediction_error( const EEG *eeg, int embedding_dim, int time_lag,
+														 int npredict, double epsilon, 
+														 double** output, OptArgList *optargs );
 #ifdef __cplusplus
 }
 #endif

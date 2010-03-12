@@ -184,12 +184,14 @@ double      optarglist_scalar_by_key( OptArgList *list, const char *key ){
   OptArg *arg;
   arg = optarglist_optarg_by_key( list, key );
   if( !arg ){
+	 errprintf("There is no key: '%s'\n", key );
 	 return NAN;
   }
   if( !arg->scalar ){
 	 errprintf("You requested a scalar from a pointer argument\nYou get NaN instead :-)\n");
 	 return NAN; 
   }
+  dprintf("arg->data_scalar=%f\n", arg->data_scalar );
   return arg->data_scalar;
 }
 
@@ -222,7 +224,7 @@ OptArg*     optarglist_optarg_by_key( OptArgList *list, const char *key ){
 
 /** return TRUE if key is found in list, else FALSE
  */
-Boolean     optarglist_has_key( OptArgList *list, const char *key ){
+bool     optarglist_has_key( OptArgList *list, const char *key ){
   int i;
   if( !list ) return FALSE;
   for( i=0; i<list->nargs; i++ ){

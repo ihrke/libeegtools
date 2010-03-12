@@ -32,6 +32,12 @@ START_TEST (test_optarg_init)
   fail_if( opts->args[1].data_ptr != test );
 
   optarglist_free( opts );
+
+  opts = optarglist( "hi=int", 5 );
+  optarglist_print( opts, stderr );
+  fail_if( strcmp( opts->args[0].key, "hi" ) );
+
+
   free(test);
 }
 END_TEST

@@ -5,6 +5,6 @@ AUTOMAKE_OPTIONS = foreign 1.4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libeegtools.pc
 
-SUBDIRS = src misc test matlab eeglab_plugin scipy examples programs
+SUBDIRS = src misc test matlab eeglab_plugin scipy examples programs pythonapi
 
 

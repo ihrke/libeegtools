@@ -7,6 +7,6 @@ Name: libeegtools
 Description: Library for analysis of EEG data.
 Requires: 
 Version: @VERSION@
-Libs: -L${libdir} -leegtools `gsl-config --libs`
-Cflags: -I${includedir}/ `gsl-config --cflags`
+Libs: -L${libdir} -leegtools @GSL_LIBS@
+Cflags: -I${includedir}/ @GSL_CFLAGS@ 
 

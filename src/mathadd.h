@@ -108,6 +108,7 @@ extern "C" {
   int*    linspace(int first, int last);
   double* linspace_dbl(double first, double last, double step, double *v, int *n);
   double  weighted_median_from_unsorted(const double *d, const double *w, int n);
+  int cmpdouble(double d1, double d2, int precision);
 
   int     bresenham_howmany_points( int xstart,int ystart,int xend,int yend );
   int*    bresenham(int xstart,int ystart,int xend,int yend, int *points);
@@ -176,6 +177,8 @@ extern "C" {
   double* vector_complex_to_real( const Complex *vc, double *vr, int n );
   double  vector_euclidean_distance( const double *v1, const double *v2, int n );
   void    vector_shuffle_int( int *permut, int n );
+  void    vector_print( double *v, int n );
+  void    vector_print_int( int *v, int n );
   /** \} */
 
   /* ---------------------------------------------------------------------------- 
@@ -188,7 +191,7 @@ extern "C" {
   double** matrix_delcol(double **m, int N, int n, int col);
   double   matrix_min(const double **m, int N, int n, int *i1, int *i2);
   double   matrix_max(const double **m, int N, int n, int *i1, int *i2);
-  void     matrix_print(double **m, int N, int n);
+  void     matrix_print(const double **m, int N, int n);
   double** matrix_init(int N, int M);
   int**    matrix_init_int(int N, int M);
   void     matrix_divide_scalar(double **m, int N, int n, double s);

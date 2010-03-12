@@ -24,8 +24,23 @@
 #define PROGRESSBAR_FINISH         3  /**< cleanup */
 
 #ifdef __cplusplus
-extern "C" {
+extern "C" { 
+#else
+ /*-----------------------------------------------------------
+	 - CONVENIENCE -
+	 we don't need (or may) declare this in C++, since there is
+	 bool already
+	 ---------------------------------------------------------*/
+  typedef enum {
+	 FALSE=0,
+	 TRUE
+  } bool;
 #endif
+
+#define SWAPT( Type, a, b ) { Type tmp; tmp=(a); (a)=(b); (b)=(tmp); }
+
+  /* really long integer */
+  typedef  unsigned long long ulonglong_t;
 
   /*-----------------------------------------------------------
 	 -  slope constraint for DTW
@@ -38,13 +53,6 @@ extern "C" {
   } SlopeConstraint;
   
 
-  /*-----------------------------------------------------------
-	 - CONVENIENCE -
-	 ---------------------------------------------------------*/
-  typedef enum {
-	 FALSE=0,
-	 TRUE
-  } Boolean;
 
   /*-----------------------------------------------------------
 	 - EEG-CHANNELS -
@@ -81,7 +89,6 @@ extern "C" {
 	 unsigned int **markers; /**< trials x nmarkers[i] */
 	 char       ***marker_labels; /**< trials x nmarkers[i] x length(label) gives  a 
 											  label for each marker */
-
   } EEG;
 
   
@@ -93,7 +100,7 @@ extern "C" {
 	*/ 
   typedef struct {
 	 char    key[MAX_LABEL_LENGTH];
-	 Boolean scalar;
+	 bool    scalar;
 	 char    type[MAX_LABEL_LENGTH];
 	 void    *data_ptr;
 	 double  data_scalar;
@@ -105,6 +112,20 @@ extern "C" {
   } OptArgList;
 
   /*\}*/
+  /*-----------------------------------------------------------
+	 - Priority Queue
+	 ---------------------------------------------------------*/
+
+  struct pqueue {
+	 double priority;
+	 void *content;
+	 struct pqueue *next;
+  };
+  typedef struct pqueue PQnode;
+
+  typedef struct {
+	 PQnode *root;
+  } PriorityQueue;
 
 
   /*-----------------------------------------------------------
@@ -183,7 +204,7 @@ extern "C" {
   typedef double  (*LinkageFunction)              (const double**,int,const Dendrogram*,const Dendrogram*);
 
   typedef double**(*PointwiseDistanceFunction)    (const double*,int,const double*,int,double**,OptArgList*);
-  typedef double  (*VectorDistanceFunction)       (double*,double*,int,OptArgList*);
+  typedef double  (*VectorDistanceFunction)       (const double*,const double*,int,OptArgList*);
   typedef double  (*PointDistanceFunction)        (double,double);
 
   typedef double  (*ThresholdSelectionFunction)   (const double*,int);
@@ -205,6 +226,34 @@ extern "C" {
 	 int khat;         /**> best number of clusters */
 	 ProgressBarFunction progress; /**> progress-bar callback */
   } GapStatistic;
+
+  /*-----------------------------------------------------------
+	 - Search Tree
+	 ---------------------------------------------------------*/
+
+  /**\cond PRIVATE */
+  struct btree{
+	 int c;     /* center */
+	 double R;  /* maximal distance from c to any point */
+	 double g;  /* min[ d(c,x)-d(sister,x) ] */
+	 int start; /* start of cluster in A */
+	 int end;   /* end of cluster in A */
+	 double *cdist; /* distances from center for terminal nodes */
+	 struct btree *left;
+	 struct btree *right;
+  };
+  typedef struct btree TreeNode;
+  /**\endcond */
+
+  typedef struct {
+	 int *A;       /**< index array */
+	 const double **d;    /**< data pointer */
+	 int m, N;      /**< dimensions of d */
+	 VectorDistanceFunction distfct; /**< distance function */
+	 TreeNode *root; /**< root node of the binary tree */
+	 OptArgList *optargs;
+  } SearchTree;
+
 
   /*-----------------------------------------------------------
 	 - WARPING -

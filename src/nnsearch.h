@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Matthias Ihrke   *
- *   mihrke@uni-goettingen.de   *
+ *   Copyright (C) 2010 by Matthias Ihrke                                  *
+ *   ihrke@nld.ds.mpg.de
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -13,32 +13,51 @@
  *   GNU General Public License for more details.                          *
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
+ *   aint with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/**\file tools.h
- * Other Tools.
- *
- */
-#ifndef TOOLS_H
-#define TOOLS_H
+/**\file nnsearch.h
+ \brief Fast Nearest-Neighbour searching.
 
+see 
+
+Merkwirth et al. Fast nearest-neighbor searching for nonlinear signal
+processing. Physical review E, Statistical physics, plasmas, fluids,
+and related interdisciplinary topics (2000) vol. 62 (2 Pt A)
+pp. 2089-97
+	
+ */
+#ifndef NNSEARCH_H
+# define NNSEARCH_H
+#include "mathadd.h"
+#include "distances.h"
 #include "definitions.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/** \addtogroup tools
- *\{
- */
-  EEG* eeg_remove_baseline      ( EEG *eeg, double win_from, double win_to, bool alloc );
-/** \} */
+  /**\cond PRIVATE */
+  TreeNode*   tnode_init();
+  bool tnode_isleaf( TreeNode *C );
+  void build_tree_recursive( TreeNode *C, double **D, int N, int *A, int maxel );
+  SearchTree* searchtree_init( int n );
+
+  /**\endcond */
+
+
+  SearchTree* nn_prepare( const double **X, int m, int N, OptArgList *optargs );
+  void        nn_search_k( const SearchTree *S, const double *x, int k, 
+									int *nn_idx, double *nn_dist );
+  void        nn_searck_k_slow( const double **X, int N, int m, 
+										  const double *x, int k, int *nn_idx,
+										  double *nn_dist, OptArgList *optargs );
 
 #ifdef __cplusplus
 }
 #endif
+
 
 #endif

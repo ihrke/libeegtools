@@ -2,6 +2,39 @@
 #include "helper.h"
 #include "mathadd.h"
 
+
+/** in-depth comparison of two eeg-structs;
+	 \todo finish!
+ */
+bool eeg_cmp_depth( const EEG *eeg1, const EEG *eeg2 ){
+  if( strcmp( eeg1->filename, eeg2->filename ) ){
+	 dprintf("Filenames to not match: %s != %s\n", eeg1->filename,
+				eeg2->filename );
+	 return FALSE;
+  }
+  if( strcmp( eeg1->comment, eeg2->comment ) ){
+	 dprintf("Comments to not match: %s != %s\n", eeg1->comment,
+				eeg2->comment );
+	 return FALSE;
+  }
+  if( eeg1->nbchan!=eeg2->nbchan ||
+		eeg1->ntrials!=eeg2->ntrials ||
+		eeg1->n!=eeg2->n ){
+	 dprintf("Main params do not match: (%i,%i,%i) != (%i,%i,%i)\n",
+				eeg1->nbchan, eeg2->nbchan,
+				eeg1->ntrials, eeg2->ntrials,
+				eeg1->n, eeg2->n );
+	 return FALSE;
+  }
+  if( cmpdouble( eeg1->sampling_rate, eeg2->sampling_rate, 2 ) ){
+	 dprintf("sampling rate is different: %f!=%f\n", eeg1->sampling_rate,
+				eeg2->sampling_rate );
+  }
+  /* TODO */
+
+  return TRUE;
+}
+
 EEG* eeg_init            ( int nbchan, int ntrials, int nsamples ){
   EEG *eeg;
   int c,i,j;
@@ -82,7 +115,7 @@ void eeg_append_comment( EEG *eeg, const char *comment ){
 	 \param alloc TRUE: allocate new memory and return; FALSE: delete channels that have 
 	               not been selected from the input dataset
  */
-EEG* eeg_extract_channels( EEG* eeg, const int *channels, int nchannels, Boolean alloc ){
+EEG* eeg_extract_channels( EEG* eeg, const int *channels, int nchannels, bool alloc ){
   EEG *outeeg;
   int c, i;
   int minus_nchannels;
@@ -121,7 +154,7 @@ EEG* eeg_extract_channels( EEG* eeg, const int *channels, int nchannels, Boolean
   }
 
   /* move empty fields such that there are no gaps in data and chaninfo */
-  Boolean moved;
+  bool moved;
   for( c=0; c<outeeg->nbchan; c++ ){
 	 moved=FALSE;
 	 if( !outeeg->data[c] ){	  /* move all remaining data */	
@@ -158,6 +191,7 @@ EEG* eeg_extract_channels( EEG* eeg, const int *channels, int nchannels, Boolean
 				  If this it is not the case, the function will segfault.
 				  This is useful to run before doing large calculation.
 				  You will know that it will fail a lot earlier then :-)
+				  \todo implement it!
 	 \param eeg input eeg
 	 \param flags one of EEG_CHECK_*
 	 \return 0 if ok; something else if not															\
@@ -175,7 +209,7 @@ int eeg_check( EEG *eeg, int flags ){
 	 \param alloc TRUE: allocate new memory and return; FALSE: delete trials that have 
 	               not been selected from the input dataset
  */
-EEG* eeg_extract_trials  ( EEG* eeg, const int *trials,   int ntrials,   Boolean alloc ){
+EEG* eeg_extract_trials  ( EEG* eeg, const int *trials,   int ntrials,   bool alloc ){
   EEG *outeeg;
   int c,i,j;
   int minus_ntrials;
@@ -222,7 +256,7 @@ EEG* eeg_extract_trials  ( EEG* eeg, const int *trials,   int ntrials,   Boolean
   }
 
   /* shifting data/markers */
-  Boolean moved;
+  bool moved;
   for( i=0; i<outeeg->ntrials; i++ ){
 	 moved=FALSE;
 	 for( c=0; c<outeeg->nbchan; c++ ){
@@ -289,6 +323,17 @@ void eeg_free( EEG *eeg ){
   safer_free( eeg->nmarkers );
   safer_free( eeg->chaninfo );
   safer_free( eeg );
+}
+
+/** Pretty-print an EEG - struct to a string.
+	 \todo implement this!
+	 \param out the output string or ALLOC_IN_FCT
+	 \param eeg the struct
+	 \param preview number of items to preview in data
+	 \return memory for output string
+*/
+char* eeg_sprint( char *out, const EEG *eeg, int preview ){
+  
 }
 
 /** Pretty-print an EEG - struct.

@@ -23,6 +23,7 @@
 
 #include "definitions.h"
 #include "mathadd.h"
+#include "optarg.h"
 #include <math.h>
 /* #include <gsl/gsl_fft_complex.h> */
 
@@ -39,8 +40,6 @@ extern "C" {
 	 double         low_corner_freq; /**< lower corner frequency */
 	 double         up_corner_freq;	/**< upper corner frequency */
 	 Complex        **sgram; /**< the spectrogram data */
-    /* double        **real;	/\** real part of the TFR, N_time x N_freq *\/ */
-    /* double        **imag;	/\** imaginary part of the TFR, N_time x N_freq*\/ */
 	 double        **powerspect;
 	 int           has_power_spectrum; /**< true if power spectrum is filled */
   } Spectrogram;
@@ -50,13 +49,16 @@ extern "C" {
   Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
 										  const double *Window, int Window_Length,
 										  int N_freq, int N_time, double corner_freqs[2],
-										  Spectrogram *spectgram);
+										  int *timepoints, Spectrogram *spectgram);
+
+  Spectrogram* spectrogram( const double *s, int n, Spectrogram *spectgram, 
+									 OptArgList *optargs );
   /** \} */
 
   /** \ingroup specthelp
 		\{ */
-  Spectrogram* init_spectrogram( int N_freq, int N_time );
-  void         free_spectrogram( Spectrogram *s );
+  Spectrogram* spectrogram_init( int N_freq, int N_time );
+  void         spectrogram_free( Spectrogram *s );
   void         spectrogram_compute_powerspectrum( Spectrogram *s );
   /** \} */
 

@@ -66,6 +66,160 @@ double make_cond_entropy(long t, long *h1, long *h11, long **h2, long *array, in
 }
 /** \endcond */
 
+/** Using the Simple-Prediction algorithm from 
+
+	 Kantz & Schreiber 1997 Nonlinear Time-Series Analysis. Cambridge University Press
+
+	 this function calculates the current+npredict's sample of the time series from which
+	 sample has been taken based on the time-series in p. It's basically an average
+	 over all points that are npredict time-steps after those points in p that are closer to 
+	 sample than epsilon.
+
+	 It's also described here:
+
+	 R. Hegger, H. Kantz, and T. Schreiber, Practical
+	 implementation of nonlinear time series methods: The TISEAN
+	 package, CHAOS 9, 413 (1999)
+
+	 \param p prediction time-series
+	 \param sample predict time-points after this sample (must be of same dimension as p->m)
+	 \param npredict predict n time-steps
+	 \param epsilon epsilon-ball placed around all points in p to look for sample
+	 \return the predicted sample in the time-series
+ */
+double      phspace_predict_simple( PhaseSpace *p, double *sample, int npredict, double epsilon ){
+  double predict=0;
+  int nfound;
+  int i;
+  double *s; /* compare to sample */
+  double dist; 
+
+  s = vector_init( NULL, p->m, 0.0 );
+  for( nfound=0; nfound==0; epsilon*=1.2 ){ /* increase epsilon if no matching point is found */
+	 dprintf("epsilon=%f\n", epsilon );
+	 for( i=0; i<p->xn-npredict; i++ ){
+		phspace_index_i( p, i, s );
+		dist = vectordist_euclidean( s, sample, p->m, NULL );
+		if( dist<epsilon ){
+		  nfound++;
+		  predict+=p->x[i+npredict];
+		}
+	 }
+  }
+  dprintf("nfound after alg=%i\n", nfound);
+  free( s );
+
+  return predict/(double)nfound;
+}
+
+/** Calculates the root mean square prediction error averaged over all
+	 samples in y. I.e. the function predicts the npredict'th following sample
+	 for each point in y and sums up the RMSE for all these predictions. The result
+	 is divided by yn.
+	 \f[
+	 result = \frac{1}{yn}\sum_{i=1}^{i=yn} RMSE( predict(y,npredict), y[i+npredict] )
+	 \f] 
+	 with 
+	 \f$ 
+    RMSE(r,d) = \sqrt{ \frac{1}{\#r}  \sum{ (r-d)^2)}} 
+    \f$ 
+	 For prediction, the function uses phspace_predict_simple().
+
+	 \param reference is the reference signal used for prediction 
+	 \param y signal to predict for
+	 \param yn length of y
+	 \param npredict prediction for npredict timesteps ahead
+	 \param epsilon defines the initial neighbourhood
+	 \return root mean square prediction error cumulated (see above)
+ */
+double phspace_simple_nonlinear_prediction_error( PhaseSpace *reference, double *y, int yn, 
+																  int npredict, double epsilon ){
+  int i;
+  double crmse=0.0;
+  PhaseSpace *Y;
+  double *ysample;
+  double pred; 
+  Y = phspace_init( reference->m, reference->tau, y, yn );
+  ysample = vector_init( NULL, reference->m, 0.0 );
+
+  for( i=0; i<yn-npredict; i++ ){
+	 phspace_index_i( Y, i, ysample );
+	 pred = phspace_predict_simple( reference, ysample, npredict, epsilon );
+	 crmse += rmse( &pred, &(y[i+npredict]), 1 );
+  }
+
+  free( ysample );
+  phspace_free( Y );
+  return crmse/(double)(yn-npredict);
+}
+
+/** Calculate a trial x trial matrix M_ij that contains the prediction error when predicting
+	 time-series points in trial j using trial i as the reference.
+
+	 The function uses phspace_simple_nonlinear_prediction_error() for prediction.
+
+	 \param eeg
+	 \param embedding_dim embedding dimensionm for phase space reconstruction
+	 \param time_lag time-lag in sampling units used for phase space reconstruction
+	 \param npredict prediction for npredict timesteps ahead
+	 \param epsilon defines the initial neighbourhood (e.g. 1/4 of the variance in the data points)
+	 \param allocated memory of eeg->ntrials x eeg->ntrials or ALLOC_IN_FCT
+	 \param optargs may contain:
+	 - "channel=int" calculate the trial x trial matrix for this channel, default=0
+	 - "progress=void*" progressbar callback-function; default=NULL
+	 \return the trial x trial matrix contain the prediction errors; NULL if an error occured
+ */
+double** eeg_nonlinear_prediction_error( const EEG *eeg, int embedding_dim, int time_lag,
+													  int npredict, double epsilon, 
+													  double** output, OptArgList *optargs ){
+  int channel=0;
+  double x;
+  int i, j;
+  void *ptr;
+  ProgressBarFunction progress=NULL;
+
+  /* optarg parsing */
+  if( optarglist_has_key( optargs, "channel" ) ){
+	 x = optarglist_scalar_by_key( optargs, "channel" );
+	 if( !isnan( x ) ) channel=(int)x;
+  }
+  if( eeg->nbchan<=channel ){
+	 errprintf( "Channel '%i' is not in EEG-set which holds only '%i' channels\n", 
+					channel, eeg->nbchan );
+	 return NULL;
+  }
+  if( optarglist_has_key( optargs, "progress" ) ){
+	 ptr = optarglist_ptr_by_key( optargs, "progress" );
+	 if( ptr ) progress = (ProgressBarFunction)ptr;
+  }
+
+  /* output allocation */
+  if( !output ){
+	 output = matrix_init( eeg->ntrials, eeg->ntrials );
+  }
+
+  /* calculation */
+  PhaseSpace *reference;
+  reference = phspace_init( embedding_dim, time_lag, NULL, eeg->n );  
+
+  if( progress ){
+	 progress( PROGRESSBAR_INIT, eeg->ntrials );
+  }
+  for( i=0; i<eeg->ntrials; i++ ){
+	 /* fill phase-space with data */
+	 reference->x = eeg->data[channel][i];	
+	 if( progress ) progress( PROGRESSBAR_CONTINUE_LONG, i );
+	 for( j=0; j<eeg->ntrials; j++ ){ /* not symmetric */
+		output[i][j] = phspace_simple_nonlinear_prediction_error( reference, eeg->data[channel][j], eeg->n,
+																					 npredict, epsilon );
+		if( progress )	progress( PROGRESSBAR_CONTINUE_SHORT, j );
+	 }
+  }
+
+  if( progress ) progress( PROGRESSBAR_FINISH, 0 );
+  return output;
+}
+
 
 /** estimate time-lag based on the first local minimum of the 
 	 mutual information.
@@ -202,7 +356,7 @@ int         phspace_estimate_timelag_autocorr( PhaseSpace *p ){
 	 \return 
  */
 int         phspace_estimate_dimension_fnn( PhaseSpace *p, double Rtol, double Atol, int num_dim  ){
-  
+  errprintf("Not implemented ?!?!?\n");
 }
 
 /** Estimate number of false-nearest-neighbours as proposed in

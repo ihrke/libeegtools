@@ -57,7 +57,7 @@ extern "C" {
   WaveletParameters wavelet_init();
   int  wavelet_denoise           ( double *data, int n, WaveletParameters P );
   int  wavelet_extend_and_denoise( double *data, int n, WaveletParameters P );
-  EEG* eeg_wavelet_denoise       ( EEG *eeg, WaveletParameters P, Boolean alloc );
+  EEG* eeg_wavelet_denoise       ( EEG *eeg, WaveletParameters P, bool alloc );
   /**\} */
 
 

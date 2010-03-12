@@ -73,10 +73,10 @@ extern "C" {
 														  int n, int p, double **D, 
 														  ProgressBarFunction progress, 
 														  OptArgList* optargs );
-  double   vectordist_euclidean           ( double *x1, double *x2, int p, OptArgList *optargs );
-  double   vectordist_euclidean_normalized( double *x1, double *x2, int p, OptArgList *optargs );
-  double   vectordist_dtw                 ( double *x1, double *x2, int p, OptArgList *optargs );
-  double   vectordist_regularized_dtw     ( double *x1, double *x2, int p, OptArgList *optargs );
+  double   vectordist_euclidean           ( const double *x1, const double *x2, int p, OptArgList *optargs );
+  double   vectordist_euclidean_normalized( const double *x1, const double *x2, int p, OptArgList *optargs );
+  double   vectordist_dtw                 ( const double *x1, const double *x2, int p, OptArgList *optargs );
+  double   vectordist_regularized_dtw     ( const double *x1, const double *x2, int p, OptArgList *optargs );
 
   double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, 
 									double **d, OptArgList *optargs );

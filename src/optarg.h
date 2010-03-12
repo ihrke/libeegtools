@@ -33,6 +33,22 @@
  function_taking_optargs( args );
  free_optarglist( args ) // does not free any mydata 
  \endcode
+
+ */
+/*
+
+ Every function that receives an optarglist is required to check for the 
+ existence of "optarglist_free" within the parameterlist. If this parameter
+ exists, the function is required to free the memory pointed to the
+ argument. This enables the use of optarglists like this:
+ \code
+ function_taking_optargs( optarglist( "bottom_frequency=double,
+                                       num_trials=int,
+													data=double*,
+													optarglist_free=int",
+													0.5, 10, mydata, 1) );
+ \endcode
+ where the memory deallocation is handled by the called function.
  */
 #ifndef OPTARG_H
 # define OPTARG_H
@@ -62,7 +78,7 @@ extern "C" {
 	*/ 
   OptArgList* optarglist( const char *format, ... );
 
-  Boolean     optarglist_has_key( OptArgList *list, const char *key );
+  bool     optarglist_has_key( OptArgList *list, const char *key );
 
   double      optarglist_scalar_by_key( OptArgList *list, const char *key );
   void*       optarglist_ptr_by_key   ( OptArgList *list, const char *key );

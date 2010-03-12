@@ -92,7 +92,26 @@ double snr (const double *r, const double *d, int n){
   return 10*(glog(res/tmp, 10));
 }
 
-
+/** Compare two doubles to a certain precision.
+ * cmpdouble()
+ *
+ * \param precision to which position after comma it is compared
+ * \return 
+ *   - -1 if d1<d2
+ *   - 0 if d1==d2
+ *   - 1 if d1>d2
+ */
+int cmpdouble(double d1, double d2, int precision){
+  double epsilon;
+  epsilon = pow(10, -1*precision);
+  if(fabs(d1 - d2) < epsilon*fabs(d1) ){
+    return 0;
+  } else if(d1<d2){
+	 return -1;
+  } else {
+	 return 1;
+  }
+}
 double glog(double v, int b){
   /* compute log_b(v) using ansi-C log */
   return (double)((double)log((double)v)/(double)log((double)b));
@@ -257,6 +276,23 @@ double* lininterp(const double *x1, const double *y1, int n1,
    -- vector ops                                                             -- 
    ---------------------------------------------------------------------------- */
 
+void    vector_print( double *v, int n ){
+  int i;
+  for( i=0; i<n; i++ ){
+	 fprintf( stderr, "%f\n", v[i] );
+  }
+}
+
+void    vector_print_int( int *v, int n ){
+  int i;
+  fprintf( stderr, "[  ");
+  for( i=0; i<n; i++ ){
+	 fprintf( stderr, "%i  ", v[i] );
+  }
+  fprintf( stderr, "]\n");
+
+}
+
 /** find minimum element in vector.
 	 \param v vector of length n
 	 \param idx the index in v where v[i] is minimal
@@ -276,6 +312,7 @@ double vector_min( double *v, int n, int *idx ){
 
   return min;
 }
+
 /** find max element in vector.
 	 \param v vector of length n
 	 \param idx the index in v where v[i] is max
@@ -284,12 +321,14 @@ double vector_min( double *v, int n, int *idx ){
 double vector_max( double *v, int n, int *idx ){
   int i;
   double max=DBL_MIN;
-  *idx=-1;
+  if( idx )
+	 *idx=-1;
 
   for( i=0; i<n; i++ ){
 	 if( v[i] > max ){
 		max = v[i];
-		*idx = i;
+		if( idx )
+		  *idx = i;
 	 }
   }
 
@@ -509,7 +548,7 @@ double matrix_max(const double **m, int N, int n, int *i1, int *i2){
 
 /** print a matrix.
  */
-void matrix_print(double **m, int N, int n){
+void matrix_print(const double **m, int N, int n){
   int i,j;
 
   for(i=0; i<N; i++){

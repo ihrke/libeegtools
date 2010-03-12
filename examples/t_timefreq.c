@@ -82,7 +82,7 @@ int main(int argc, char **argv){
 
   /* cleaning up */
   free_eegdata_trials( eeg );
-  free_spectrogram( spectgram );
+  spectrogram_free( spectgram );
   free( win );
   /*  free( data );*/
 

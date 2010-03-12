@@ -26,7 +26,7 @@ char*    create_string( const char *string ){
 
 /** checks whether val is in a.
  */
-Boolean  isin_intarray( const int *a, int n, int val ){
+bool  isin_intarray( const int *a, int n, int val ){
   int i;
   for( i=0; i<n; i++ ){
 	 if( val==a[i] )
@@ -257,7 +257,7 @@ void progressbar_rotating( int flag, int num ){
   case PROGRESSBAR_CONTINUE_LONG:
 	 c = (num*PROGRESSBAR_NUMCOLS/progress_status.max_progress);
 	 //printf("c=%i, cur_progress=%i, num=%i, p=%i\n", c, cur_progress, num, max_progress);
-	 if( c>progress_status.cur_progress ){
+	 if( num>progress_status.cur_progress ){
 		fprintf( out, "#" );
 		progress_status.cur_progress++;
 	 }

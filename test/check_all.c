@@ -18,13 +18,16 @@ int main (void){
   Suite *s4 = init_hmm_suite      ();
   Suite *s5 = init_list_suite     ();
   Suite *s6 = init_other_suite    ();
+  Suite *s7 = init_nonlinear_suite    ();
+
 
   SRunner *sr = srunner_create (s);
-  srunner_add_suite(sr, s2);
+  /*  srunner_add_suite(sr, s2);
   srunner_add_suite(sr, s3);
-  srunner_add_suite(sr, s4);
+  srunner_add_suite(sr, s4);*/
   srunner_add_suite(sr, s5);
   srunner_add_suite(sr, s6);
+  //  srunner_add_suite(sr, s7);
 
 
   srunner_set_log(sr, "test.log");

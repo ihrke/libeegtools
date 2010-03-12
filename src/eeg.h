@@ -1,3 +1,4 @@
+
 /* **************************************************************************
  *   Copyright (C) 2009 by Matthias Ihrke   *
  *   mihrke@uni-goettingen.de   *
@@ -44,8 +45,8 @@ extern "C" {
   
   EEG* eeg_init            ( int nbchan, int ntrials, int nsamples );
   EEG* eeg_init_markers    ( int nmarkers_per_trial, EEG *eeg );
-  EEG* eeg_extract_channels( EEG* eeg, const int *channels, int nchannels, Boolean alloc );
-  EEG* eeg_extract_trials  ( EEG* eeg, const int *trials,   int ntrials,   Boolean alloc );
+  EEG* eeg_extract_channels( EEG* eeg, const int *channels, int nchannels, bool alloc );
+  EEG* eeg_extract_trials  ( EEG* eeg, const int *trials,   int ntrials,   bool alloc );
 
   void eeg_append_comment( EEG *eeg, const char *comment );
   void eeg_print( FILE *out,  const EEG *eeg, int preview );

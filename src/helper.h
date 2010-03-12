@@ -108,7 +108,7 @@ extern "C" {
   void     wswap(void *ptr, int nmemb, int flag);
   int      is_little_endian();
 
-  Boolean  isin_intarray( const int *a, int n, int val );
+  bool  isin_intarray( const int *a, int n, int val );
 
   void     qsort_int_index( int *idx_idx, const int *idx, int n );
   int      compare_ints (const void *a, const void *b);

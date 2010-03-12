@@ -53,7 +53,10 @@ int main(int argc, char **argv){
   avg = eeg_gibbons( eeg, 0, 1, 1.0 );
   eeg_print( stdout, avg, 3 );
   plot_eeg( avg, "-r");
+
+#ifdef PLOTTER
   plot_show();
+#endif
 
 #if 0
   oprintf("Extract Trials\n");
@@ -91,6 +94,7 @@ int main(int argc, char **argv){
   return 0;
 }
 void plot_eeg( EEG *eeg, const char *format ){
+#ifdef PLOTTER
   int chan, c, sb;
   double sbpos[4], sbsize[4];
   double psize = 10;
@@ -128,4 +132,5 @@ void plot_eeg( EEG *eeg, const char *format ){
 	 /* } */
 	 plot_subplot_select(-1);
   }
+#endif
 }

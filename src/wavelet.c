@@ -227,7 +227,7 @@ double hard_thresholding(double d, double lambda){
  \param P parameters
  \param alloc allocate memory, or not
  */
-EEG* eeg_wavelet_denoise( EEG *eeg, WaveletParameters P, Boolean alloc ){
+EEG* eeg_wavelet_denoise( EEG *eeg, WaveletParameters P, bool alloc ){
   int c, i;
   EEG *eeg_out;
   if( alloc ){

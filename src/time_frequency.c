@@ -20,6 +20,99 @@
 
 #include "time_frequency.h"
 
+/** Easy interface for spectrogram calculation.
+	 Calculates also the power spectrum.
+
+	 \param s - data to be spectrogrammified (real function)
+	 \param n - length(s)
+	 \param spectgram - if NULL, own memory is alloated, else use this pointer.
+	 \param optargs may contain:
+	 - <tt>sample_frequency=double</tt> of the signal, default is \c 500 (should really be provided!)
+	 - <tt>winfct=void*</tt> windowing function, default is \c window_hanning
+	 - <tt>timepoints=int*</tt> compute the spectrogram at selected time-points; this array is N_time long
+	 - <tt>winlength=int</tt> size of the window, default is <tt> MAX( SQR( sqrt(next_pow2( n ))-3 ), 5 )</tt>
+	 - <tt>N_freq=int</tt> number of frequency bins, default is \c winlength*4
+	 - <tt>N_time=int</tt> number of time bins, default is \c n
+	 - <tt>corner_freqs=double*</tt> (array with two double entries), default is \c (0.0,250.0)
+ */
+Spectrogram* spectrogram( const double *s, int n, Spectrogram *spectgram, 
+								  OptArgList *optargs ){
+  double x;
+  void *ptr;
+  double sample_frequency;
+  WindowFunction winfct; 
+  int winlength;
+  int N_freq;
+  int N_time;
+  double corner_freqs[2];
+  int *timepoints;
+
+  /* defaults */
+  sample_frequency = 500.0;
+  winfct = window_hanning;
+  winlength =  MAX( SQR( sqrt(next_pow2( n ))-3 ), 5 );
+  N_freq = winlength*4;
+  N_time = n;
+  corner_freqs[0] = 0.0;
+  corner_freqs[1] = 250.0;
+  timepoints = NULL;
+  bool N_time_set=FALSE;
+
+  /* get params */
+  if( optarglist_has_key( optargs, "sample_frequency" ) ){
+	 x = optarglist_scalar_by_key( optargs, "sample_frequency" );
+	 if( !isnan( x ) ) sample_frequency=x;
+  }
+  if( optarglist_has_key( optargs, "winfct" ) ){
+	 ptr = optarglist_ptr_by_key( optargs, "winfct" );
+	 if( ptr ) winfct = (WindowFunction)ptr;
+  }
+  if( optarglist_has_key( optargs, "winlength" ) ){
+	 x = optarglist_scalar_by_key( optargs, "winlength" );
+	 if( !isnan( x ) ) winlength=(int)x;
+  }
+  if( optarglist_has_key( optargs, "N_freq" ) ){
+	 x = optarglist_scalar_by_key( optargs, "N_freq" );
+	 if( !isnan( x ) ) N_freq=(int)x;
+  }
+  if( optarglist_has_key( optargs, "N_time" ) ){
+	 x = optarglist_scalar_by_key( optargs, "N_time" );
+	 if( !isnan( x ) ){
+		N_time=(int)x;
+		N_time_set=TRUE;
+	 }
+  }
+  if( optarglist_has_key( optargs, "corner_freqs" ) ){
+	 ptr = optarglist_ptr_by_key( optargs, "corner_freqs" );
+	 if( ptr ){
+		corner_freqs[0] = ((double*)ptr)[0];
+		corner_freqs[1] = ((double*)ptr)[1];
+	 }
+  }
+  if( optarglist_has_key( optargs, "timepoints" ) ){
+	 ptr = optarglist_ptr_by_key( optargs, "timepoints" );
+	 if( ptr && N_time_set ){
+		timepoints = (int*)ptr;
+	 }
+  }
+
+
+  dprintf("got sfreq=%f, winfct=%p, winlength=%i, N_f=%i, N_t=%i, cf=(%f,%f), timepoints=%p\n",
+			 sample_frequency, winfct, winlength, N_freq, N_time, corner_freqs[0], corner_freqs[1],
+			 timepoints );
+
+  double *window=winfct( ALLOC_IN_FCT, winlength );
+
+  spectgram = spectrogram_stft( s, n, sample_frequency, 
+										  window, winlength, N_freq,
+										  N_time, corner_freqs, timepoints,
+										  spectgram );
+
+  spectrogram_compute_powerspectrum( spectgram );
+  return spectgram;
+}
+
+
 /** This function is inspired by (read: 'was shamelessly ripped of from') 
 	 the TIME-FREQUENCY TOOLBOX by  Emmanuel Roy - Manuel DAVY 
 	 (http://www-lagis.univ-lille1.fr/~davy/toolbox/Ctftbeng.html)
@@ -43,14 +136,15 @@
 	 \param N_time - number of cols in the TFR matrix        
 	 \param corner_freqs - corner frequencies (lower, upper) for the returned
 	                       spectrum at each time-sample in Hz; maximal would be
-								  {0, srate/2}
+								  {0, srate/2} 
+    \param timepoints compute the spectrogram at selected time-points; this array is N_time long
 	 \param spectgram - if NULL, own memory is alloated, else use this pointer.
  */
 
 Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
 										const double *Window, int Window_Length,
-										int N_freq, int N_time, double corner_freqs[2],
-										Spectrogram *spectgram){
+										int N_freq, int N_time, double corner_freqs[2], 
+										int *timepoints, Spectrogram *spectgram){
 
   int            Nfft, timepoint, frequency, time;
   int            taumin, taumax, tau;
@@ -101,7 +195,7 @@ Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
   wind_sig_complex = (double *) calloc (2*Nfft, sizeof (double));
 
   if( spectgram==NULL ){
-	 spectgram = init_spectrogram( N_freq_spect, N_time );
+	 spectgram = spectrogram_init( N_freq_spect, N_time );
 	 dprintf(" spectgram=%p, real[0]=%f\n", spectgram, spectgram->sgram[0][0].re);
   }
   spectgram->low_corner_freq = corner_freqs[0];
@@ -117,7 +211,11 @@ Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
 	 }
 
 	 /* current time to compute the stft */
-	 time = timepoint*(int)(n/N_time);
+	 if( timepoints ){
+		time = timepoints[timepoint];
+	 } else {
+		time = timepoint*(int)(n/N_time);
+	 }
 	 /* dprintf( "Spectrum at sample '%i'\n", time ); */
 
 	 /* the signal is multipied by the window between the instants
@@ -159,12 +257,13 @@ Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
 }
 
 
-Spectrogram* init_spectrogram( int N_freq, int N_time ){
+Spectrogram* spectrogram_init( int N_freq, int N_time ){
   Spectrogram *s;
   int i;
   
   dprintf("N_freq=%i, N_time=%i\n", N_freq, N_time );
   s = (Spectrogram*) malloc( sizeof(Spectrogram) );
+  s->samplingrate = 500.0;
   s->N_freq = N_freq;
   s->N_time = N_time;
   s->low_corner_freq=0;
@@ -179,7 +278,7 @@ Spectrogram* init_spectrogram( int N_freq, int N_time ){
   return s;
 }
 
-void free_spectrogram( Spectrogram *s ){
+void spectrogram_free( Spectrogram *s ){
   int i;
 
   for( i=0; i<s->N_time;  i++ ){

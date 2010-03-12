@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Matthias Ihrke   *
- *   mihrke@uni-goettingen.de   *
+ *   Copyright (C) 2010 by Matthias Ihrke   *
+ *   ihrke@nld.ds.mpg.de
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -18,27 +18,10 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/**\file tools.h
- * Other Tools.
- *
- */
-#ifndef TOOLS_H
-#define TOOLS_H
+#include "TEMPLATE.h"
 
-#include "definitions.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/** \addtogroup tools
- *\{
- */
-  EEG* eeg_remove_baseline      ( EEG *eeg, double win_from, double win_to, bool alloc );
-/** \} */
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+/** TEMPLATE
+	 \param
+	 \param
+	 \return
+*/

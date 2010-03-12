@@ -58,3 +58,6 @@ use 0.0/0.0 for NAN
 use 1.0/0.0 for INF 
 etc.
 check with isnan(x)
+
+List stuff in object files:
+nm object.o

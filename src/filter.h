@@ -40,8 +40,8 @@ extern "C" {
   double* weighted_running_median( double *d, int n, int win, 
 											  PointDistanceFunction dist);
 
-  EEG*    eeg_filter_running_median( EEG *eeg, int win, Boolean alloc );
-  EEG*    eeg_filter_weighted_running_median( EEG *eeg, int win, Boolean alloc );
+  EEG*    eeg_filter_running_median( EEG *eeg, int win, bool alloc );
+  EEG*    eeg_filter_weighted_running_median( EEG *eeg, int win, bool alloc );
   /** \} */
 
   /* ------------------------------ 
@@ -56,7 +56,7 @@ extern "C" {
 	  -- Bandpass filter  --
 	  ------------------------------ */ 
  /** \ingroup frequence_filter \{ */
-  EEG* eeg_filter_fidlib( EEG *eeg, const char *spec, Boolean alloc );
+  EEG* eeg_filter_fidlib( EEG *eeg, const char *spec, bool alloc );
   /** \} */
   
 #ifdef __cplusplus
