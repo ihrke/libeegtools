@@ -19,8 +19,8 @@
  ***************************************************************************/
 
 /**\file warping.h
-	\brief Warping functions.
- 
+	\brief \ref status_stable Warping functions.
+
  */
 #ifndef WARPING_H
 #define WARPING_H

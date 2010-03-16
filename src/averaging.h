@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file averaging.h
- * \brief Averaging functions.
+ * \brief \ref status_stable Averaging functions.
  */
 #ifndef AVERAGING_H
 #define AVERAGING_H

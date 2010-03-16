@@ -26,7 +26,7 @@
 */
 
 /** \file
-* \brief Definitions of print features.
+* \brief \ref status_stable Definitions of print features.
 
 * If the shell environment supports this, there are special features
 * we can use. We also included ANSI CSI (Control Sequences Intitiator)

@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file som.h
- \brief Self-Organizing Maps
+ \brief \ref status_experimental Self-Organizing Maps
 
  \warning For now this is only experimental but plans are to complete this file.
 

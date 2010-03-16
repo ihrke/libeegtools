@@ -1,0 +1,35 @@
+#!/usr/bin/env python
+
+"""
+setup.py file for SWIG wrapper
+"""
+
+from distutils.core import setup, Extension
+import numpy as np
+import os
+
+gslcflags  = "@GSL_CFLAGS@" #os.popen( "gsl-config --cflags" ).read().strip();
+gslldflags = "@GSL_LIBS@" #os.popen( "gsl-config --libs" ).read().strip();
+gsllibdirs = []
+for l in gslldflags.split(" "):
+    if l.strip().startswith("-L"):
+        gsllibdirs.append(l.strip()[2:]);
+
+srcdir="@SRCDIR@"
+prefix="@prefix@";
+pyeegtools_module = Extension('_pyeegtools',
+                               sources=['pyeegtools_wrap.c'],
+                               include_dirs=['../%s/src'%srcdir, '../src', np.get_include(), '%s/include'%prefix],
+                               library_dirs=['../src/.libs', '%s/lib'%(prefix)],
+                               extra_compile_args=[gslcflags],
+                               extra_link_args=[gslldflags, "-leegtools"],
+                               runtime_library_dirs=gsllibdirs+['../src/.libs'],
+                               )
+
+setup (name = 'pyeegtools',
+       version = '0.1 (libeegtools, ver. @VERSION@)',
+       author      = "Matthias Ihrke",
+       description = """PyEEGTools: Wrapper for LibEEGTools""",
+       ext_modules = [pyeegtools_module],
+       py_modules = ["pyeegtools"],
+       )

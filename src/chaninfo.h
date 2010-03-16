@@ -1,5 +1,5 @@
 /**\file chaninfo.h
-	\brief Predefined structs for channel locations.
+	\brief \ref status_stable Predefined structs for channel locations.
 */
 #ifndef CHANINFO_H
 #define CHANINFO_H

@@ -207,7 +207,7 @@
 //	project settings, or add /D "T_MSVC" to the compiler
 //	command-line.)
 //
-
+#define T_LINUX
 #ifndef T_LINUX
 #ifndef T_MINGW
 #ifndef T_MSVC
@@ -255,7 +255,7 @@
 extern FidFilter *mkfilter(char *, ...);
 
 //
-//	Target-specific fixes
+//	Target-Specific fixes
 //
 
 // Macro for local inline routines that shouldn't be visible externally

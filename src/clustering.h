@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file clustering.h
- * \brief Clustering functions.
+ * \brief \ref status_unstable Clustering functions.
  */
 
 #ifndef CLUSTERING_H

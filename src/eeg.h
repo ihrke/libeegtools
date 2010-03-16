@@ -20,7 +20,7 @@
  ***************************************************************************/
 
 /**\file eeg.h
- * \brief EEG struct handling functions
+ * \brief \ref status_stable EEG struct handling functions
  */
 #ifndef EEG_H
 # define EEG_H

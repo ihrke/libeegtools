@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file pqueue.h
- \brief Priority queue.
+ \brief \ref status_stable Priority queue.
 
 Smaller priority values indicate higher priority.
 

@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file wavelet.h
- * \brief Contains functions used for wavelet-based signal denoising.
+ * \brief \ref status_stable Contains functions used for wavelet-based signal denoising.
  *
  */
 

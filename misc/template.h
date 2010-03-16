@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file TEMPLATE.h
- \brief TEMPLATE
+ \brief \ref status_inprogress TEMPLATE
 
 TEMPLATE
 	

@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file reader.h
- * \brief Read EEG-data from files.
+ * \brief \ref status_stable Read EEG-data from files.
  */
 #ifndef READER_H
 # define READER_H

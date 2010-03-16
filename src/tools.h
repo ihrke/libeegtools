@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file tools.h
- * Other Tools.
+ * \brief \ref status_stable Other Tools.
  *
  */
 #ifndef TOOLS_H

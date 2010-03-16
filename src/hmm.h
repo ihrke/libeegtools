@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file hmm.h
- \brief Hidden Markov Models.
+ \brief \ref status_inprogress Hidden Markov Models.
 
  \warning For now this is only experimental but plans are to complete this file.
 

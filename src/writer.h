@@ -19,6 +19,7 @@
  ***************************************************************************/
 
 /**\file writer.h
+	\brief \ref status_unstable Functions for writing to files.
  * \todo implement writer for EEGlab set-files
  */
 #ifndef WRITER_H

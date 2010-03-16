@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file nnsearch.h
- \brief Fast Nearest-Neighbour searching.
+ \brief \ref status_inprogress Fast Nearest-Neighbour searching.
 
 see 
 

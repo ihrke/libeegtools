@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file distances.h
- * Distances between: points, signals, trials.
+ * \brief \ref status_unstable Distances between: points, signals, trials.
  */
 #ifndef DISTANCES_H
 # define DISTANCES_H

@@ -283,6 +283,15 @@ void    vector_print( double *v, int n ){
   }
 }
 
+double  vector_mean( double *v, int n ){
+  int i;
+  double r=0.0;
+  for( i=0; i<n; i++ ){
+	 r+=v[i];
+  }
+  return r/(double)n;
+}
+
 void    vector_print_int( int *v, int n ){
   int i;
   fprintf( stderr, "[  ");

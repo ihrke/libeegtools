@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file recurrence_plot.h
- * Functions using nonlinear systems-theory and recurrence-plots.
+ * \brief \ref status_unstable Functions using nonlinear systems-theory and recurrence-plots.
  */
 #ifndef RECURRENCE_PLOT_H
 # define RECURRENCE_PLOT_H

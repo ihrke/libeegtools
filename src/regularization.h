@@ -19,6 +19,7 @@
  ***************************************************************************/
 
 /**\file regularization.h
+	\brief \ref status_unstable Regularization matrices.
  */
 #ifndef REGULARIZATION_H
 # define REGULARIZATION_H

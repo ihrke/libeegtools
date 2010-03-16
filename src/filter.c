@@ -59,10 +59,11 @@ double* running_median(double *d, int n, int win){
   double *tmp, *org;
   int i, awin, ewin;
   double med;
-
+  dprintf("called with %p, of length %i, win=%i\n", d,n,win);
   org = (double*)malloc(n*sizeof(double));
   org = (double*)memcpy(org, d, n*sizeof(double));
   tmp = (double*)malloc((2*win+1)*sizeof(double));
+
 
   for(i=0; i<n; i++){
 	 awin = i-win;
@@ -71,10 +72,12 @@ double* running_median(double *d, int n, int win){
 	 if(ewin>n-1) ewin=n;
     
     tmp = (double*)memcpy(tmp, &(org[awin]), sizeof(double)*(ewin-awin));
-   
     gsl_sort(tmp, 1, ewin-awin);
-    med = gsl_stats_median_from_sorted_data(tmp, 1, ewin-awin);
-
+	 if( (ewin-awin) % 2==0 ){
+		med = (tmp[(ewin-awin)/2]+tmp[(ewin-awin)/2+1])/2.0;
+	 } else {
+		med = tmp[(ewin-awin)/2+1];
+	 }
     d[i] = med;
   }
   free(tmp);
@@ -99,7 +102,7 @@ double* moving_average(double *s, int n, int win){
 	 ewin = i+win;
 	 if(awin<0) awin=0;
 	 if(ewin>n-1) ewin=n;
-	 m = gsl_stats_mean(&(org[awin]), 1, ewin-awin);
+	 m = vector_mean( &(org[awin]), ewin-awin);
 	 s[i] = m;
   }
   free(org);

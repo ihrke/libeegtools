@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file helper.h
- * \brief Helper functions.
+ * \brief \ref status_stable Helper functions.
  */
 #ifndef HELPER_H
 # define HELPER_H

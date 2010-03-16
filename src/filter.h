@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file filter.h
- * \brief Contains functions used for frequency-domain signal filtering.
+ * \brief \ref status_stable Contains functions used for frequency-domain signal filtering.
  *
  */
 

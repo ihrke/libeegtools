@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file nonlinear.h
- \brief Functions using nonlinear systems-theory.
+ \brief \ref status_unstable Functions using nonlinear systems-theory.
 
  Phase-Space reconstruction is done as in
  \f[

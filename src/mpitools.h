@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file mpitools.h
- \brief Tools for using LibEEGTools with MPI.
+ \brief \ref status_stable Tools for using LibEEGTools with MPI.
 	
  */
 #ifndef MPITOOLS_H

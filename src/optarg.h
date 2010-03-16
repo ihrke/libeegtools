@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file optarg.h
- \brief Implementing optional argument lists.
+ \brief \ref status_stable Implementing optional argument lists.
 
  This feature can be used to conveniently pass arguments to 
  functions. This makes sense for generic functions that take

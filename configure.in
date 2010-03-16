@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------
 ### preludes
 # ----------------------------------------------------------------------
-AC_INIT([libeegtools], [0.5.2], [mihrke@gwdg.de])
+AC_INIT([libeegtools], [0.5.3], [mihrke@gwdg.de])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 #AC_DISABLE_SHARED
 
@@ -11,6 +11,8 @@ m4_include([m4/ax_pkg_swig.m4])
 m4_include([m4/ax_swig_enable_cxx.m4])
 m4_include([m4/ax_swig_multi_module_support.m4])
 m4_include([m4/ax_swig_python.m4])
+m4_include([m4/ax_python_module.m4])
+
 
 # ----------------------------------------------------------------------
 ### check for programs
@@ -28,10 +30,6 @@ if test "$TAR" = :; then
 	AC_MSG_ERROR([This package needs tar.])
 #	AC_MSG_WARN([This package needs tar.]) # or warn only
 fi
-
-## cool thing:
-#AC_SUBST(VARIABLE, [VALUE])
-## Define $(VARIABLE) as VALUE in Makefiles
 
 uname=`uname`
 
@@ -151,12 +149,18 @@ AC_ARG_ENABLE(python,
   [with_python=$enableval],
   [with_python=yes]
 )
+enable_python=no
 if test "x${with_python}" = xyes; then
-	AX_PKG_SWIG([], [Found SWIG.], [SWIG is required to build.])
-	AX_SWIG_ENABLE_CXX
-	AX_SWIG_MULTI_MODULE_SUPPORT
+	AX_PKG_SWIG([], [echo "Found SWIG."], [echo "SWIG is required to build."])
+#	AX_SWIG_ENABLE_CXX
+#	AX_SWIG_MULTI_MODULE_SUPPORT
 	AX_SWIG_PYTHON
+	AX_PYTHON_MODULE([numpy])
+	if test "x$HAVE_PYMOD_NUMPY" = xyes; then
+		enable_python=yes
+	fi		
 fi
+AM_CONDITIONAL([BUILD_PYAPI], [test "x$enable_python" = xyes] )
 
 # ----------------------------------------------------------------------
 ### check for headers
@@ -200,8 +204,10 @@ AC_SUBST(DEF_MATIO)
 #							 echo "MatIO not installed, no support for matlab files." 
 #							 with_matio=no])	
 
-
-
+# ----------------------------------------------------------------------
+# for setup.py.in
+SRCDIR=${srcdir}
+AC_SUBST(SRCDIR)
 
 # ----------------------------------------------------------------------
 ### subprojects
@@ -216,7 +222,8 @@ AM_CONFIG_HEADER([config.h])
 AC_OUTPUT(Makefile src/Makefile misc/Makefile programs/Makefile examples/Makefile)
 AC_OUTPUT(src/definitions.h matlab/Makefile)
 AC_OUTPUT(test/Makefile eeglab_plugin/Makefile scipy/Makefile)
-AC_OUTPUT(scipy/pythonapi/setup.py)
+AC_OUTPUT(pythonapi/setup.py)
+AC_OUTPUT(pythonapi/Makefile)
 AC_OUTPUT(libeegtools.pc)
 
 echo "--------------------------------------------------------------"
@@ -245,6 +252,7 @@ echo " MATLAB_PATH     ='${MATLAB_PATH}'"
 echo " MATLAB_INCLUDES ='${MATLAB_INCLUDES}'"
 fi
 
+if test "z${enable_python}" != z; then
 if test "z${SWIG}" != z; then
 echo ""
 echo "Building Python bindings using"
@@ -255,6 +263,10 @@ echo "OPTFLAGS: '${AX_SWIG_PYTHON_OPT}'"
 echo "Python options ${PYTHON_VERSION}"
 echo "CFLAGS : ${PYTHON_CPPFLAGS}"
 echo "LDFLAGS: ${PYTHON_LDFLAGS}"
+else
+echo "WARNING: requested Python Modules, but cannot build"
+echo "         SWIG is missing."
+fi
 fi
 
 if test "x${with_matio}" = xyes; then

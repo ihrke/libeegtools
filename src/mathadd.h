@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /** \file mathadd.h
-	 \brief Additional math-functions.
+	 \brief \ref status_unstable Additional math-functions.
 */
 
 #ifndef MATH_ADD_H
@@ -179,6 +179,7 @@ extern "C" {
   void    vector_shuffle_int( int *permut, int n );
   void    vector_print( double *v, int n );
   void    vector_print_int( int *v, int n );
+  double  vector_mean( double *v, int n );
   /** \} */
 
   /* ---------------------------------------------------------------------------- 

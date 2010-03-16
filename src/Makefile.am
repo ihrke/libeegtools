@@ -1,5 +1,5 @@
 # set the include path found by configure
-AM_CPPFLAGS =  -DT_LINUX -Isrc $(all_includes) -fPIC --std=gnu99 -Wall @MATIO_CFLAGS@ @DEBUG_FLAGS@ `@GSL_CONFIG@ --cflags`
+AM_CPPFLAGS =  -Isrc $(all_includes) -fPIC --std=gnu99 -Wall @MATIO_CFLAGS@ @DEBUG_FLAGS@ `@GSL_CONFIG@ --cflags`
 
 
 # the library search path.
