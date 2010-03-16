@@ -49,6 +49,7 @@ extern "C" {
   EEG* eeg_extract_trials  ( EEG* eeg, const int *trials,   int ntrials,   bool alloc );
 
   void eeg_append_comment( EEG *eeg, const char *comment );
+  char* eeg_sprint( char *out, const EEG *eeg, int preview );
   void eeg_print( FILE *out,  const EEG *eeg, int preview );
   EEG* eeg_clone( const EEG *eeg, int flags );
   void eeg_free ( EEG *eeg );

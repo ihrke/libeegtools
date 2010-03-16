@@ -1,7 +1,7 @@
 # set the include path found by configure
 AM_CPPFLAGS = -Isrc $(all_includes) -fPIC --std=gnu99 -Wall @MATIO_CFLAGS@ @DEBUG_FLAGS@ `@GSL_CONFIG@ --cflags`
 
-#noinst_HEADERS=libeegtools.i
+
 
 if BUILD_PYAPI
 
@@ -10,6 +10,7 @@ if BUILD_PYAPI
 # interface files.
 BUILT_SOURCES = pyeegtools_wrap.c
 INTERFACES = pyeegtools.i eeg.i numpy.i pythonfunctions.i
+noinst_HEADERS=$(INTERFACES)
 
 pyeegtools_wrap.c: $(INTERFACES)
 	echo "Swigging interface files"

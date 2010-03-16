@@ -54,6 +54,12 @@
 EEG* read_eeglab_file( const char *file );  
 ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans );
 
+%extend ChannelInfo{
+  ChannelInfo __getitem__(int i){
+	 return self[i];
+  }
+}
+
 %extend EEG{
   EEG(int nbchan, int ntrials, int nsamples ){
 	 return eeg_init( nbchan, ntrials, nsamples );
@@ -68,13 +74,13 @@ ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans );
 	 dims[0] = self->nbchan;
 	 dims[1] = self->ntrials;
 	 dims[2] = self->n;
-	 PyObject* a;
+	 PyArrayObject* a;
 	 a=(PyArrayObject *)PyArray_SimpleNewFromData( 3, dims, NPY_DOUBLE, self->data );
-	 return a;
+	 return (PyObject*)a;
   }
 
   PyObject* get_times(){
-	 PyObject *l;
+	 PyArrayObject *l;
 	 npy_intp dims=self->n;
 	 if( self->times == NULL ) {
 		Py_INCREF(Py_None);
@@ -83,11 +89,12 @@ ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans );
 	 
 	 l = (PyArrayObject *)PyArray_SimpleNewFromData( 1, &dims, 
 																	 NPY_DOUBLE, self->times );
-	 return l;
+	 return (PyObject*)l;
   }
 
   char* __str__(){
-	 static char buf[512]="Hallo";
+	 static char *buf;
+	 buf = eeg_sprint(NULL, self, 2 );
 	 return buf;
   }
 };

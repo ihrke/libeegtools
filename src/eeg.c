@@ -333,7 +333,89 @@ void eeg_free( EEG *eeg ){
 	 \return memory for output string
 */
 char* eeg_sprint( char *out, const EEG *eeg, int preview ){
-  
+  char *outptr;
+  int adv;
+  int c,i,j;
+  int n=10000;
+  if( out==ALLOC_IN_FCT ){
+	 out = (char*) malloc( n*sizeof(char));
+  }
+  outptr=out;
+  adv=sprintf(outptr, 
+				  "EEG:\n"
+				  " filename      = '%s'\n"
+				  " comment       = '%s'\n"
+				  " nbchan        = %i\n"
+				  " ntrials       = %i\n"
+				  " n             = %i\n"
+				  " sampling_rate = %f\n",
+				  (eeg->filename)?(eeg->filename):"<NULL>", 
+				  (eeg->comment)?(eeg->comment):"<NULL>",
+				  eeg->nbchan, eeg->ntrials,
+				  eeg->n, eeg->sampling_rate);  
+  outptr+=adv;
+  if( eeg->times!=NULL ){
+	 adv=sprintf(outptr, 
+					 " times[0]      = %f\n", eeg->times[0]);
+	 outptr+=adv;
+	 adv=sprintf(outptr,
+					 " times[n-1]    = %f\n", eeg->times[eeg->n-1]);
+	 outptr+=adv;
+  } else {
+	 adv=sprintf(outptr, 
+					 " times[0]      = <NULL>\n");
+	 outptr+=adv;
+  }
+  adv=sprintf(outptr,   
+				  " chaninfo      = %p\n", eeg->chaninfo);
+  outptr+=adv;
+  adv=sprintf( outptr, " data = \n" );
+  outptr+=adv;  
+  if( eeg->data!=NULL ){
+	 for( c=0; c<MIN(eeg->nbchan,preview); c++ ){
+		for( i=0; i<MIN(eeg->ntrials, preview); i++ ){
+		  for( j=0; j<MIN(eeg->n, preview); j++ ){
+			 adv=sprintf(outptr, 
+						"  [%i][%i][%i] = %f\n", c,i,j,eeg->data[c][i][j] );
+			 outptr+=adv;
+		  }
+		}
+	 }
+  } else {
+	 adv=sprintf(outptr, 
+			 " data          = <NULL>\n");
+	 outptr+=adv;
+  }  
+
+  adv=sprintf(outptr, " markers       = \n");
+  outptr+=adv;
+  if( eeg->markers ){
+	 for( i=0; i<MIN( eeg->ntrials, preview ); i++ ){
+		for( j=0; j<MIN( eeg->nmarkers[i], preview ); j++ ){
+		  adv=sprintf(outptr, "  [%i][%i] = %i\n", i,j, eeg->markers[i][j] );
+		  outptr+=adv;
+		}
+	 }
+  } else {
+	 adv=sprintf(outptr, "  <NULL>\n");
+	 outptr+=adv;
+  }
+
+  adv=sprintf(outptr, " marker_labels = \n");
+  outptr+=adv;
+  if( eeg->marker_labels ){
+	 for( i=0; i<MIN(eeg->ntrials, preview ); i++ ){
+		for( j=0; j<MIN(eeg->nmarkers[i], preview ); j++ ){
+		  adv=sprintf(outptr, "  [%i][%i] = %s\n", i,j, eeg->marker_labels[i][j] );
+		  outptr+=adv;
+		}
+	 }
+  } else {
+	 adv=sprintf(outptr,
+					 "  <NULL>\n");
+	 outptr+=adv;
+  }
+  return out;
 }
 
 /** Pretty-print an EEG - struct.

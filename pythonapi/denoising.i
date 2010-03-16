@@ -3,20 +3,18 @@
 #include "eeg.h"
 #include "wavelet.h"
 #include "definitions.h"
+#include "distances.h"
 %}
 
-
-typedef double  (*ThresholdSelectionFunction)   (const double*,int);
-typedef double  (*ThresholdFunction)            (double,double);
-typedef double* (*SignalExtensionFunction)      (double*,int,int);
 
 %apply (double* INPLACE_ARRAY1, int DIM1) {(double* d, int n)}
 double* running_median(double *d, int n, int win);
 double* moving_average(double *d, int n, int win);
-double* weighted_running_median( double *d, int n, int win, 
-											PointDistanceFunction dist);
 
 
+%typemap(in) (bool alloc){
+  $1 = 1;
+}
 EEG*    eeg_filter_running_median( EEG *eeg, int win, bool alloc );
 EEG*    eeg_filter_weighted_running_median( EEG *eeg, int win, bool alloc );
 
@@ -35,7 +33,7 @@ double sureshrink                        ( const double *data, int n );
 double heuristic_sure                    ( const double *data, int n );
 
 
-
+double   pointdist_euclidean(double x, double y); 
 
 double* sigext_zeros(double *data, int ns, int n);
 double* sigext_zerosr(double *data, int ns, int n);
