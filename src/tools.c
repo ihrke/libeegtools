@@ -54,9 +54,9 @@ EEG* eeg_remove_baseline( EEG *eeg, double win_from, double win_to, bool alloc )
   }
   for( c=0; c<eeg->nbchan; c++ ){
 	 for( i=0; i<eeg->ntrials; i++ ){
-		mean = gsl_stats_mean( eeg->data[c][i]+lim[0], 1, lim[1]-lim[0] );
+		mean=dblp_mean( eeg->data[c][i]+lim[0], lim[1]-lim[0] );
 		// printf(" mean=%f\n", mean);
-		vector_minus_scalar( eeg->data[c][i], eeg->n, mean );
+		dblp_minus_scalar( eeg->data[c][i], eeg->n, mean );
 	 }
   }
 

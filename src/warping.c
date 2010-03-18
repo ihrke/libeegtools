@@ -34,10 +34,10 @@
 void      dtw_regularize_matrix( double **d, const double **R, int M, int N ){
   double maxdist;
 
-  maxdist = matrix_max( (const double**)d, M, N, NULL, NULL );
-  scalar_minus_matrix( maxdist, d, M, N );
-  matrix_dottimes_matrix( d, (const double**)R, M, N );
-  scalar_minus_matrix( maxdist, d, M, N ); 
+  maxdist = dblpp_max( (const double**)d, M, N, NULL, NULL );
+  scalar_minus_dblpp( maxdist, d, M, N );
+  dblpp_dottimes_dblpp( d, (const double**)R, M, N );
+  scalar_minus_dblpp( maxdist, d, M, N ); 
 }
 
 
@@ -122,8 +122,8 @@ void      dtw_cumulate_matrix  ( double **d, int M, int N, OptArgList *optargs )
   }
   dprintf("using slope constraint '%i'\n", constraint );
 
-  D = matrix_init( M, N );
-  matrix_copy( d, D, M, N );
+  D = dblpp_init( M, N );
+  dblpp_copy( (const double**)d, D, M, N );
 
    /* computing D_jk */
   for(j=0; j<M; j++){
@@ -139,8 +139,8 @@ void      dtw_cumulate_matrix  ( double **d, int M, int N, OptArgList *optargs )
     }
   }
   
-  matrix_copy( D, d, M, N );
-  matrix_free( D, M );
+  dblpp_copy( (const double**)D, d, M, N );
+  dblpp_free( D, M );
 }
 /**
 
@@ -228,12 +228,12 @@ WarpPath* dtw_backtrack        ( const double **d, int M, int N, WarpPath *P ){
 	 \param weights are the weights according to the above equation
 	 \return outmarkers
  */
-int*      warp_adjust_time_markers(const int *m1, const int *m2, 
-											  int nmarkers, int *outmarkers,
+unsigned int* warp_adjust_time_markers(const unsigned int *m1, const unsigned int *m2, 
+											  int nmarkers, unsigned int *outmarkers,
 											  const double weights[2] ){
   int i;
   if(!outmarkers){
-	 outmarkers = (int*)malloc(nmarkers*sizeof(int) );
+	 outmarkers = (unsigned int*)malloc(nmarkers*sizeof(unsigned int) );
   }
   for( i=0; i<nmarkers; i++ ){
 	 outmarkers[i] = m1[i]*weights[0] + m2[i]*weights[1];
@@ -328,15 +328,13 @@ EEG* eeg_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
   Dendrogram *T, *Tsub; 
   EEG *eeg;
   WarpPath *P;
-  int nsamples, nmarkers, n, N;
+  int nmarkers, n, N;
   int i, idx1, idx2, c,
 	 trials_left;
   double *s1, *s2, *s1s2;
-  int    *s1s2_markers;
-  int    **markers;
+  unsigned int    *s1s2_markers;
+  unsigned int    **markers=NULL;
   double **G, **d;
-  double maxdist;
-  double srate;
   double weights[2]={1.0,1.0}; 			  /* this is for recursive averaging */
   int    *indices;				  /* n-array containing number averagings for each trial */
   void *ptr;
@@ -398,11 +396,11 @@ EEG* eeg_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
   nmarkers = eeg->nmarkers[0]+2; /* trivial markers */
 
   /* what about optional arguments? */
-  OptArg *tmp_arg;
+  OptArg *tmp_arg=NULL;
   if( pass_trial_markers_in_optargs ){ /* create own optarg memory*/
-	 markers = (int**) malloc( 2*sizeof(int*));
-	 markers[0] = (int*) malloc( nmarkers*sizeof(int) ); 
-	 markers[1] = (int*) malloc( nmarkers*sizeof(int) );
+	 markers = (unsigned int**) malloc( 2*sizeof(unsigned int*));
+	 markers[0] = (unsigned int*) malloc( nmarkers*sizeof(unsigned int) ); 
+	 markers[1] = (unsigned int*) malloc( nmarkers*sizeof(unsigned int) );
 	 markers[0][0] = 0; /* trivial markers */
 	 markers[0][nmarkers-1] = n-1;
 	 markers[1][0] = 0;
@@ -436,8 +434,8 @@ EEG* eeg_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
   T = agglomerative_clustering( (const double**)distmatrix, eeg->ntrials, linkage );
 
 
-  G = matrix_init( n, n );
-  d = matrix_init( n, n );  
+  G = dblpp_init( n, n );
+  d = dblpp_init( n, n );  
   indices = (int*)malloc( N*sizeof(int) );
   for( i=0; i<N; i++ ){
 	 indices[i] = 1;
@@ -515,7 +513,7 @@ EEG* eeg_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
 		dprintf(" ...done\n");  
 		if( regularize ){
 		  dprintf(" Regularize d\n");
-		  dtw_regularize_matrix( d, G, n, n );
+		  dtw_regularize_matrix( d, (const double**)G, n, n );
 		  dprintf(" ...done\n");  
 		}
 		dprintf(" Compute path\n");  
@@ -527,7 +525,7 @@ EEG* eeg_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
 		s1s2_markers = warp_adjust_time_markers( eeg->markers[idx1], 
 															  eeg->markers[idx2], 
 															  nmarkers-2, ALLOC_IN_FCT,
-															  weights );
+															  (const double*)weights );
 		dprintf(" ...done\n");  
 
 		/* replace trials with ADTW */
@@ -576,8 +574,8 @@ EEG* eeg_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
   if( pass_trial_markers_in_optargs ){
 	 optarglist_free( new_optargs );
   }
-  matrix_free( d, n );
-  matrix_free( G, n );
+  dblpp_free( d, n );
+  dblpp_free( G, n );
   dgram_free( T );
   free( indices );
   free_warppath( P );

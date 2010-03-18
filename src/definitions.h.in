@@ -36,6 +36,9 @@ extern "C" {
 	 TRUE
   } bool;
 #endif
+  typedef unsigned int uint;
+  typedef unsigned long ulong;
+
 
 #define SWAPT( Type, a, b ) { Type tmp; tmp=(a); (a)=(b); (b)=(tmp); }
 
@@ -203,7 +206,7 @@ extern "C" {
   typedef double**(*RegularizationFunction)       (double**,int,OptArgList*);
   typedef double  (*LinkageFunction)              (const double**,int,const Dendrogram*,const Dendrogram*);
 
-  typedef double**(*PointwiseDistanceFunction)    (const double*,int,const double*,int,double**,OptArgList*);
+  typedef double**(*PointwiseDistanceFunction)    (double*,int,double*,int,double**,OptArgList*);
   typedef double  (*VectorDistanceFunction)       (const double*,const double*,int,OptArgList*);
   typedef double  (*PointDistanceFunction)        (double,double);
 
@@ -285,6 +288,7 @@ extern "C" {
 	 ---------------------------------------------------------*/
   /** This is: distance = f( location of node i, location of node j, the model, current time );
 	*/
+  struct som_struct;
   typedef double(*NeighbourhoodFunction)(int,int,struct som_struct*, int t);
 
   /** This is: alpha = f( t, nruns, nruns in initial_phase )

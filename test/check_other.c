@@ -96,18 +96,18 @@ START_TEST (test_nnprepare)
   int* nn_idx = (int*)malloc( k*sizeof(int));
   double *nnd = (double*)malloc( k*sizeof(double));
   dprintf("looking for k=%i neighbours of vector\n",k);
-  vector_print( q, p );
+  dblp_print( q, p );
 
   nn_search_k( S, q, k, nn_idx, nnd );
   dprintf("Finished searching, result: \n");
-  vector_print( nnd, k );
-  vector_print_int(nn_idx, k);
+  dblp_print( nnd, k );
+  dblp_print_int(nn_idx, k);
 
   dprintf("slow searching:\n");
   //  nn_search_k_slow( X, N, p, q, k, nn_idx, nnd, NULL );
   dprintf("Finished searching, result: \n");
-  vector_print( nnd, k );
-  vector_print_int(nn_idx, k);
+  dblp_print( nnd, k );
+  dblp_print_int(nn_idx, k);
 
   for( i=0; i<N; i++){
 	 free( X[i] );

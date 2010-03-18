@@ -85,9 +85,10 @@ extern "C" {
 												 const double *s2, int n2, 
 												 const WarpPath *P, double *avg,
 												 const double weights[2]);
-  int*      warp_adjust_time_markers(const int *m1, const int *m2, 
-												 int nmarkers, int *outmarkers,
-												 const double weights[2] );
+  unsigned int* warp_adjust_time_markers(const unsigned int *m1, const unsigned int *m2, 
+													  int nmarkers, unsigned int *outmarkers,
+													  const double weights[2] );
+
   /** \} */
 
   /** \addtogroup hierarchical		

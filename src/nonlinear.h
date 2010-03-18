@@ -27,6 +27,8 @@
  \f]
  where \f$ \tau = \nu \Delta t\f$ is a multiple of the sampling step.
 	
+ \todo multi-channel phase-spaces
+
  */
 #ifndef NONLINEAR_H
 # define NONLINEAR_H

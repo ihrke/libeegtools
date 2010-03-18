@@ -39,12 +39,12 @@
  */
 double** som_generate_connectivity_matrix( SOMConnectivityType type, double **m, int n ){
   int i,j;
-  int sqrtn;
+  int sqrtn=0;
   int ix,iy;
   int jx,jy;	
-  double ret, diff;
+  double diff;
   if( m==ALLOC_IN_FCT) {
-	 m = matrix_init( n,n );
+	 m = dblpp_init( n,n );
   }
   switch( type ){
   case ONED_LINEAR:
@@ -56,7 +56,7 @@ double** som_generate_connectivity_matrix( SOMConnectivityType type, double **m,
 	 }
 	 break;
   case TWOD_GRID:
-	 if( SQR( sqrtn=sqrt((double)n)) != n ){
+	 if( SQR( sqrtn=sqrt((double)n) ) != n ){
 		warnprintf("for a 2D-grid, n should be the square of an integer\n");
 	 }
 	 for( i=0; i<n; i++ ){
@@ -124,7 +124,7 @@ Som* som_init( int dimension, int n, int nruns, SOMConnectivityType connectivity
   s->distancefct_parameters=NULL;  
 
   gsl_rng_env_setup();
-  s->random_number_type = gsl_rng_default;
+  s->random_number_type = (gsl_rng_type *)gsl_rng_default;
   s->rng = gsl_rng_alloc (s->random_number_type);
 
   return s;
@@ -189,9 +189,9 @@ double som_neighbourhood_gaussian( int x, int bmu, struct som_struct *s, int t )
  */
 void som_train_from_data( Som *s, double **X, int dim, int nsamples ){
   int i, j, t;
-  int bmu; /* best matching unit */
+  int bmu=0; /* best matching unit */
   double h, tmp; 
-  double bmu_score; /* best matching unit score */
+  double bmu_score=0; /* best matching unit score */
   double *input;
   double alpha;
 

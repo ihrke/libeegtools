@@ -52,7 +52,20 @@
 #define ERR_FATAL 1
 #define ERR_NOFATAL 0
 
-
+  /** convenience memory alloc macro. use as follows:
+		\code
+		double *a;
+		MALLOC( a, 100, double );
+		double **b;
+		MALLOC( b, 100, double* ); 
+		\endcode
+  */
+#define MALLOC( ptr, nmemb, type )						\
+  ptr = (type*)malloc(nmemb*sizeof(type));			\
+  if( ptr==NULL ){											\
+	 errprintf("Could not allocate memory\n");		\
+  }
+  
 /** debugging macros */
 #ifdef DEBUG
 /*#define dprintf(...) fprintf(stderr, ## __VA_ARGS__)*/
@@ -147,7 +160,7 @@ extern "C" {
   /** \addtogroup progressbar 
 		\{  
   */
-  static ProgressBarStatus progress_status;
+  ProgressBarStatus progress_status;
   void   progressbar_rotating( int flag, int num );
   /** \} */
 

@@ -19,6 +19,7 @@
  ***************************************************************************/
 #include "mathadd.h"
 #include <stdlib.h>
+#include <math.h>
 #include <time.h>
 #include <gsl/gsl_sort.h>
 #include <gsl/gsl_statistics.h>
@@ -276,14 +277,14 @@ double* lininterp(const double *x1, const double *y1, int n1,
    -- vector ops                                                             -- 
    ---------------------------------------------------------------------------- */
 
-void    vector_print( double *v, int n ){
+void    dblp_print( double *v, int n ){
   int i;
   for( i=0; i<n; i++ ){
 	 fprintf( stderr, "%f\n", v[i] );
   }
 }
 
-double  vector_mean( double *v, int n ){
+double  dblp_mean( double *v, int n ){
   int i;
   double r=0.0;
   for( i=0; i<n; i++ ){
@@ -292,7 +293,7 @@ double  vector_mean( double *v, int n ){
   return r/(double)n;
 }
 
-void    vector_print_int( int *v, int n ){
+void    dblp_print_int( int *v, int n ){
   int i;
   fprintf( stderr, "[  ");
   for( i=0; i<n; i++ ){
@@ -307,7 +308,7 @@ void    vector_print_int( int *v, int n ){
 	 \param idx the index in v where v[i] is minimal
 	 \return v[i]
  */
-double vector_min( double *v, int n, int *idx ){
+double dblp_min( double *v, int n, int *idx ){
   int i;
   double min=DBL_MAX;
   *idx=-1;
@@ -327,7 +328,7 @@ double vector_min( double *v, int n, int *idx ){
 	 \param idx the index in v where v[i] is max
 	 \return v[i]
  */
-double vector_max( double *v, int n, int *idx ){
+double dblp_max( double *v, int n, int *idx ){
   int i;
   double max=DBL_MIN;
   if( idx )
@@ -345,9 +346,9 @@ double vector_max( double *v, int n, int *idx ){
 }
 
 /** create a random permutation of the elements in permut.
-	 This is crude and simple, the function graps n pairs of indices and swaps them.
+	 This is crude and simple, the function grabs n pairs of indices and swaps them.
  */
-void vector_shuffle_int( int *permut, int n ){
+void dblp_shuffle_int( int *permut, int n ){
   int i1,i2, i;
 
   for( i=0; i<n; i++){
@@ -360,7 +361,7 @@ void vector_shuffle_int( int *permut, int n ){
 
 /** remove a scalar from all values in a vector.
  */
-void  vector_minus_scalar( double *v, int n, double val ){
+void  dblp_minus_scalar( double *v, int n, double val ){
   int i;
   for( i=0; i<n; i++ ){
 	 v[i] = v[i]-val;
@@ -372,7 +373,7 @@ void  vector_minus_scalar( double *v, int n, double val ){
 	 \param val - set v[i]=val for all i=0,...,n-1
 	 \return v
  */
-double* vector_init( double *v, int n, double val ){
+double* dblp_init( double *v, int n, double val ){
   int i;
   if( v==NULL){
 	 v = (double*)malloc( n*sizeof(double) );
@@ -386,7 +387,7 @@ double* vector_init( double *v, int n, double val ){
 
 /** calculate \f$ |\vec{v_1} - \vec{v_2}|^2 \f$ 
  */
-double vector_euclidean_distance( const double *v1, const double *v2, int n ){
+double dblp_euclidean_distance( const double *v1, const double *v2, int n ){
   int i;
   double r=0;
   for( i=0; i<n; i++ ){
@@ -401,12 +402,12 @@ double vector_euclidean_distance( const double *v1, const double *v2, int n ){
 
 /** fills m with uniformely drawn random values from [lower, upper].
  */
-double** matrix_rand( double **m, int N, int M, double lower, double upper ){
+double** dblpp_rand( double **m, int N, int M, double lower, double upper ){
   int i,j;
   
   srand((long)time(NULL));
   if( !m ){
-	 m = matrix_init( N, M );
+	 m = dblpp_init( N, M );
   }
   for( i=0; i<N; i++ ){
 	 for( j=0; j<M; j++ ){
@@ -421,11 +422,11 @@ double** matrix_rand( double **m, int N, int M, double lower, double upper ){
 	 \hat{M} = \frac{1}{\mbox{max}(M)} M
 	 \f]
  */
-void     matrix_normalize_by_max( double **m, int M, int N ){
+void     dblpp_normalize_by_max( double **m, int M, int N ){
   double max; 
 
-  max = matrix_max( (const double**) m, M, N, NULL, NULL );
-  matrix_divide_scalar( m, M, N, max);
+  max = dblpp_max( (const double**) m, M, N, NULL, NULL );
+  dblpp_divide_scalar( m, M, N, max);
 }
 
 /** Delete a row in a matrix. Memory remains allocated and the row pointer
@@ -435,7 +436,7 @@ void     matrix_normalize_by_max( double **m, int M, int N ){
  * \param n - num of cols
  * \param row- num of row to delete
  */
-double** matrix_delrow(double **m, int N, int n, int row){
+double** dblpp_delrow(double **m, int N, int n, int row){
   double *tmp;
   int i;
   massert(row>N-1, "cannot delete row %i because only %i rows\n", row, N);
@@ -449,7 +450,7 @@ double** matrix_delrow(double **m, int N, int n, int row){
 
 /** return a 0-initialized matrix of dimension NxM
  */
-double** matrix_init(int N, int M){
+double** dblpp_init(int N, int M){
   int i,j;
   double **d;
   d = (double**) malloc( N*sizeof(double*) );
@@ -464,7 +465,7 @@ double** matrix_init(int N, int M){
 }
 /** return a 0-initialized integer matrix of dimension NxM
  */
-int** matrix_init_int(int N, int M){
+int** dblpp_init_int(int N, int M){
   int i,j;
   int **d;
   /* dprintf("N,M=(%i,%i)\n", N, M); */
@@ -488,7 +489,7 @@ int** matrix_init_int(int N, int M){
  * \param n - num of cols
  * \param col- num of col to delete
  */
-double** matrix_delcol(double **m, int N, int n, int col){
+double** dblpp_delcol(double **m, int N, int n, int col){
   int i, j;
   double tmp;
   massert(col>n-1, "cannot delete col %i because only %i cols\n", col, n);
@@ -506,7 +507,7 @@ double** matrix_delcol(double **m, int N, int n, int col){
  * \param m, N, n - Nxn matrix
  * \param i1,i2 - pointer to indices of min-element. If NULL, ignored.
  */
-double matrix_min(const double **m, int N, int n, int *i1, int *i2){
+double dblpp_min(const double **m, int N, int n, int *i1, int *i2){
   int i,j;
   double minel=DBL_MAX;
   for(i=0; i<N; i++){
@@ -522,9 +523,9 @@ double matrix_min(const double **m, int N, int n, int *i1, int *i2){
   } 
 
   if(i1 && i2){
-	 dprintf("matrix_min: m(%i,%i)=%f (%f)\n", *i1, *i2, m[*i1][*i2], minel);
+	 dprintf("dblpp_min: m(%i,%i)=%f (%f)\n", *i1, *i2, m[*i1][*i2], minel);
   } else {
-	 dprintf("matrix_min: m=%f\n",  minel);
+	 dprintf("dblpp_min: m=%f\n",  minel);
   }
   return minel;
 }
@@ -532,7 +533,7 @@ double matrix_min(const double **m, int N, int n, int *i1, int *i2){
  * \param m, N, n - Nxn matrix
  * \param i1,i2 - pointer to indices of max-element. If NULL, ignored.
  */
-double matrix_max(const double **m, int N, int n, int *i1, int *i2){
+double dblpp_max(const double **m, int N, int n, int *i1, int *i2){
   int i,j;
   double maxel=DBL_MIN;
   for(i=0; i<N; i++){
@@ -547,9 +548,9 @@ double matrix_max(const double **m, int N, int n, int *i1, int *i2){
     }
   }
   if(i1 && i2){
-	 dprintf("matrix_max: m(%i,%i)=%f (%f)\n", *i1, *i2, m[*i1][*i2], maxel);
+	 dprintf("dblpp_max: m(%i,%i)=%f (%f)\n", *i1, *i2, m[*i1][*i2], maxel);
   } else {
-	 dprintf("matrix_max: %f\n", maxel);
+	 dprintf("dblpp_max: %f\n", maxel);
   }
   return maxel;
 }
@@ -557,7 +558,7 @@ double matrix_max(const double **m, int N, int n, int *i1, int *i2){
 
 /** print a matrix.
  */
-void matrix_print(const double **m, int N, int n){
+void dblpp_print(const double **m, int N, int n){
   int i,j;
 
   for(i=0; i<N; i++){
@@ -573,7 +574,7 @@ void matrix_print(const double **m, int N, int n){
 }
 /** add matrix m2 to matrix m1 (must be of equal dimensions
  */
-void matrix_add_matrix(double **m1, const double **m2, int N, int n){
+void dblpp_add_dblpp(double **m1, const double **m2, int N, int n){
   int i, j;
 
   for( i=0; i<N; i++){
@@ -586,7 +587,7 @@ void matrix_add_matrix(double **m1, const double **m2, int N, int n){
 /** subtract matrix src from matrix dest (must be of equal dimensions).
 	 result is written to dest.
  */
-void matrix_sub_matrix(double **dest, const double **src, int N, int n){
+void dblpp_sub_dblpp(double **dest, const double **src, int N, int n){
   int i, j;
 
   for( i=0; i<N; i++){
@@ -603,7 +604,7 @@ void matrix_sub_matrix(double **dest, const double **src, int N, int n){
 	 \param m1,m2
 	 \param N,M dimensions of m1 and m2 
  */
-void     matrix_dottimes_matrix( double **m1, const double **m2, int N, int M ){
+void     dblpp_dottimes_dblpp( double **m1, const double **m2, int N, int M ){
   int i,j;
 
   for( i=0; i<N; i++){
@@ -615,7 +616,7 @@ void     matrix_dottimes_matrix( double **m1, const double **m2, int N, int M ){
 
 /** copy matrix src to dest with dimensions N,M
  */
-void     matrix_copy( const double **src, double **dest, int N, int M ){
+void     dblpp_copy( const double **src, double **dest, int N, int M ){
   int i,j;
 
   for( i=0; i<N; i++ ){
@@ -626,7 +627,7 @@ void     matrix_copy( const double **src, double **dest, int N, int M ){
 }
 /** divide all entries in m by s
  */
-void matrix_divide_scalar(double **m, int N, int n, double s){
+void dblpp_divide_scalar(double **m, int N, int n, double s){
   int i, j;
 
   for( i=0; i<N; i++){
@@ -635,7 +636,7 @@ void matrix_divide_scalar(double **m, int N, int n, double s){
 	 }
   }
 }
-void     matrix_add_scalar(double **m, int N, int n, double s){
+void     dblpp_add_scalar(double **m, int N, int n, double s){
   int i, j;
 
   for( i=0; i<N; i++){
@@ -646,7 +647,7 @@ void     matrix_add_scalar(double **m, int N, int n, double s){
 }
 /** multiply all entries in m by s
  */
-void matrix_mul_scalar(double **m, int N, int n, double s){
+void dblpp_mul_scalar(double **m, int N, int n, double s){
   int i, j;
 
   for( i=0; i<N; i++){
@@ -658,7 +659,7 @@ void matrix_mul_scalar(double **m, int N, int n, double s){
 
 /** free matrix memory 
  */
-void matrix_free(double **m, int N){
+void dblpp_free(double **m, int N){
   int i;
   if( !m ){
 	 return;
@@ -1065,8 +1066,8 @@ double** disttransform_deadreckoning(int **I, int X, int Y, double **d){
    double d2=sqrt(2);
    int **P1, **P2;
 
-	P1 = matrix_init_int( X, Y );
-	P2 = matrix_init_int( X, Y );
+	P1 = dblpp_init_int( X, Y );
+	P2 = dblpp_init_int( X, Y );
 
    /* P1 = (int**) malloc(X*sizeof(int*)); */
    /* P2 = (int**) malloc(X*sizeof(int*)); */
@@ -1080,7 +1081,7 @@ double** disttransform_deadreckoning(int **I, int X, int Y, double **d){
 	/* printf("fdas\n"); */
 
 	if( d==NULL ){
-	  d = matrix_init( X, Y );
+	  d = dblpp_init( X, Y );
 	}
   
    for(y=0; y<Y; y++){
@@ -1199,7 +1200,7 @@ double gaussian( double x, double sigma, double mu ){
 
 /** Computes: m[i][j] = scalar-m[i][j]
  */
-void scalar_minus_matrix( double scalar, double **m, int N, int M ){
+void scalar_minus_dblpp( double scalar, double **m, int N, int M ){
   int i,j;
 
 
@@ -1329,12 +1330,12 @@ Complex* expand_polynomial_from_roots( const Complex *roots, int n, Complex *coe
 	 \param vc complex vector
 	 \param vr real vector of size n, or ALLOC_IN_FCT
 */
-double* vector_complex_to_real( const Complex *vc, double *vr, int n ){
+double* dblp_complex_to_real( const Complex *vc, double *vr, int n ){
   int i;
   dprintf("entering\n");
   if( vr==ALLOC_IN_FCT ){
 	 warnprintf("allocating in fct\n");
-	 vr = vector_init( vr, n, 0.0 );
+	 vr = dblp_init( vr, n, 0.0 );
   }
   for( i=0; i<n; i++ ){
 	 vr[i] = vc[i].re;

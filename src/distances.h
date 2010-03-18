@@ -41,16 +41,16 @@ extern "C" {
 	  for two signals \f$ s_1(t), s_2(t)\f$ and some metric \f$||\cdot ||\f$.
 	*\{
 	*/  
-  double** signaldist_euclidean( const double *s1, int n1, const double *s2, int n2, 
+  double** signaldist_euclidean( double *s1, int n1, double *s2, int n2, 
 											double **d, 
 											OptArgList *optargs );
-  double** signaldist_euclidean_derivative( const double *s1, int n1, const double *s2, int n2, 
+  double** signaldist_euclidean_derivative( double *s1, int n1, double *s2, int n2, 
 														  double **d, 
 														  OptArgList *optargs );
-  double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, 
+  double** signaldist_stft( double *s1, int n1, double *s2, int n2, 
 									 double **d, 
 									 OptArgList *optargs );
-  double** signaldist_recplot_los( const double *s1, int n1, const double *s2, int n2, 
+  double** signaldist_recplot_los( double *s1, int n1, double *s2, int n2, 
 											  double **d, 
 											  OptArgList *optargs );
   /*\}*/

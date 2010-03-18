@@ -197,7 +197,7 @@ EEG* eeg_extract_channels( EEG* eeg, const int *channels, int nchannels, bool al
 	 \return 0 if ok; something else if not															\
 */
 int eeg_check( EEG *eeg, int flags ){
-
+  return -1;
 }
 
 /** extract a list of trials from the EEG-struct eeg (data markers).

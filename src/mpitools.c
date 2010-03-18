@@ -19,6 +19,7 @@
  ***************************************************************************/
 
 #include "mpitools.h"
+#include "eeg.h"
 
 ulonglong_t sizeof_channelinfos( const ChannelInfo *chaninfo, int nbchan ){
   if( !chaninfo )
@@ -267,7 +268,7 @@ EEG*  stream_to_eeg( const char *stream, ulonglong_t n, EEG *eeg ){
 	 memcpy( eeg->nmarkers, t, ntrials*sizeof(unsigned int) );
 	 t += ntrials*sizeof(unsigned int);
 	 for( i=0; i<ntrials; i++ ){
-		eeg->markers[i] = (unsigned int) malloc( eeg->nmarkers[i]*sizeof(unsigned int) );
+		eeg->markers[i] = (unsigned int*) malloc( eeg->nmarkers[i]*sizeof(unsigned int) );
 		memcpy( eeg->markers[i], t, eeg->nmarkers[i]*sizeof(unsigned int) );
 		t += eeg->nmarkers[i]*sizeof(unsigned int);
 	 }

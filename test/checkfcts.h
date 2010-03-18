@@ -11,7 +11,7 @@
 #ifndef   	CHECKFCTS_H_
 # define   	CHECKFCTS_H_
 
-#define CHECKDATADIR "./data"
+
 #include <check.h>
 #include <stdio.h>
 #include <stdlib.h>

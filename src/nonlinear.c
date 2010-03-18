@@ -94,7 +94,7 @@ double      phspace_predict_simple( PhaseSpace *p, double *sample, int npredict,
   double *s; /* compare to sample */
   double dist; 
 
-  s = vector_init( NULL, p->m, 0.0 );
+  s = dblp_init( NULL, p->m, 0.0 );
   for( nfound=0; nfound==0; epsilon*=1.2 ){ /* increase epsilon if no matching point is found */
 	 dprintf("epsilon=%f\n", epsilon );
 	 for( i=0; i<p->xn-npredict; i++ ){
@@ -140,7 +140,7 @@ double phspace_simple_nonlinear_prediction_error( PhaseSpace *reference, double 
   double *ysample;
   double pred; 
   Y = phspace_init( reference->m, reference->tau, y, yn );
-  ysample = vector_init( NULL, reference->m, 0.0 );
+  ysample = dblp_init( NULL, reference->m, 0.0 );
 
   for( i=0; i<yn-npredict; i++ ){
 	 phspace_index_i( Y, i, ysample );
@@ -195,7 +195,7 @@ double** eeg_nonlinear_prediction_error( const EEG *eeg, int embedding_dim, int 
 
   /* output allocation */
   if( !output ){
-	 output = matrix_init( eeg->ntrials, eeg->ntrials );
+	 output = dblpp_init( eeg->ntrials, eeg->ntrials );
   }
 
   /* calculation */
@@ -298,14 +298,14 @@ int         phspace_estimate_timelag_mutual( PhaseSpace *p, long partitions, lon
   }
 
   for( i=0; i<corrlength; i++ ) {
-	 dprintf("mutual[%li,%i] = %f,%f\n", i,i+1, mutual[i], mutual[i+1]); 
+	 dprintf("mutual[%li,%li] = %f,%f\n", i,i+1, mutual[i], mutual[i+1]); 
 	 if( mutual[i+1]>mutual[i] ){
 		tau = i;
 		break;
 	 }
   }
 
-  //  vector_min( mutual, corrlength+1, &tau );
+  //  dblp_min( mutual, corrlength+1, &tau );
 
   free( h1 );
   free( h11 );
@@ -353,10 +353,12 @@ int         phspace_estimate_timelag_autocorr( PhaseSpace *p ){
 	 (1992) vol. 45 (6) pp. 3403-3411
 
 	 \param 
+	 \todo implement this (it's easy!)
 	 \return 
  */
 int         phspace_estimate_dimension_fnn( PhaseSpace *p, double Rtol, double Atol, int num_dim  ){
   errprintf("Not implemented ?!?!?\n");
+  return -1;
 }
 
 /** Estimate number of false-nearest-neighbours as proposed in
@@ -378,7 +380,7 @@ int         phspace_estimate_dimension_fnn( PhaseSpace *p, double Rtol, double A
  */
 double  phspace_fnn_ratio( PhaseSpace *p, double Rtol, double Atol ){
   int i, j;
-  int i_nn;							  /* index nearest_neighbour */
+  int i_nn=0;							  /* index nearest_neighbour */
   double d_nn;						  /* dist nn */
   int nfnn;							  /* number of false nearest neighbours */
   double ratio_fnn;
@@ -397,12 +399,14 @@ double  phspace_fnn_ratio( PhaseSpace *p, double Rtol, double Atol ){
   Ra = phspace_attractor_size( p );
   dprintf( "Ra=%f\n", Ra);
   /* create distance matrix between points in phase-space */
-  X = matrix_init( p->xn, p->m );
+  X = dblpp_init( p->xn, p->m );
   for( i=0; i<p->xn; i++ ){
 	 phspace_index_i( p, i, X[i] );
   }
-  d = vectordist_distmatrix( vectordist_euclidean, X, p->xn, p->m, ALLOC_IN_FCT, NULL, NULL );
-  dprintf( "dmin,dmax=%f,%f\n", matrix_min(d,p->xn,p->xn,NULL,NULL), matrix_max(d,p->xn,p->xn,NULL,NULL) );
+  d = vectordist_distmatrix( vectordist_euclidean, (const double**)X, p->xn, p->m, ALLOC_IN_FCT, NULL, NULL );
+  dprintf( "dmin,dmax=%f,%f\n", 
+			  dblpp_min((const double**)d,p->xn,p->xn,NULL,NULL), 
+			  dblpp_max((const double**)d,p->xn,p->xn,NULL,NULL) );
   /* for each column, find minimum entry in d -> nearest neighbour;
 	  for this neighbour, determine if it is a false one, or not 
   */
@@ -434,10 +438,11 @@ double  phspace_fnn_ratio( PhaseSpace *p, double Rtol, double Atol ){
 	 }
 
 	 /* crit (2) */
-	 dprintf( "crit2=%f, Rtol=%f\n", crit2, Rtol );
 	 crit2 = sqrt( SQR( d_nn ) + 
 						SQR( phspace_index_ij(&pnext, i, p->m) - 
 							  phspace_index_ij(&pnext, i_nn, p->m) ) )/Ra;
+	 dprintf( "crit2=%f, Rtol=%f\n", crit2, Rtol );
+
 	 if( crit2 > Atol ){
 		dprintf(" Crit 2 for %i failed\n", i);
 		nfnn++;
@@ -447,8 +452,8 @@ double  phspace_fnn_ratio( PhaseSpace *p, double Rtol, double Atol ){
   ratio_fnn = nfnn/(double)p->xn*100.0;
   dprintf(" nfnn=%i, ratio=%f\n", nfnn, ratio_fnn );
 
-  matrix_free( X, p->xn );
-  matrix_free( d, p->xn );
+  dblpp_free( X, p->xn );
+  dblpp_free( d, p->xn );
 
   return ratio_fnn;
 }

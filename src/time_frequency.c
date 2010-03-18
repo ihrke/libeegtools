@@ -273,7 +273,7 @@ Spectrogram* spectrogram_init( int N_freq, int N_time ){
   s->powerspect = (double**) malloc( N_time*sizeof(double*) );
   for( i=0; i<N_time; i++ ){
 	 s->sgram[i] = (Complex*) malloc( N_freq*sizeof(Complex) );
-	 s->powerspect[i] = vector_init( NULL, N_freq, -1.0 ); /*(double*) malloc( N_freq*sizeof(double) );*/
+	 s->powerspect[i] = dblp_init( NULL, N_freq, -1.0 ); /*(double*) malloc( N_freq*sizeof(double) );*/
   }
   return s;
 }

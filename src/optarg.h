@@ -76,7 +76,7 @@ extern "C" {
   /**\ingroup optarg
 	*\{
 	*/ 
-  OptArgList* optarglist( const char *format, ... );
+  OptArgList* optarglist( char *format, ... );
 
   bool     optarglist_has_key( OptArgList *list, const char *key );
 

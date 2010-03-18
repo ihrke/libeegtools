@@ -102,7 +102,7 @@ double* moving_average(double *s, int n, int win){
 	 ewin = i+win;
 	 if(awin<0) awin=0;
 	 if(ewin>n-1) ewin=n;
-	 m = vector_mean( &(org[awin]), ewin-awin);
+	 m = dblp_mean( &(org[awin]), ewin-awin);
 	 s[i] = m;
   }
   free(org);

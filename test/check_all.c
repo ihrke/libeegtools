@@ -12,22 +12,24 @@
 
 int main (void){
   int number_failed;
-  Suite *s  = init_checkfct_suite ();
-  Suite *s2 = init_denoising_suite();
-  Suite *s3 = init_distance_suite ();
-  Suite *s4 = init_hmm_suite      ();
-  Suite *s5 = init_list_suite     ();
-  Suite *s6 = init_other_suite    ();
-  Suite *s7 = init_nonlinear_suite    ();
+  Suite *cfct = init_checkfct_suite ();
+  Suite *den  = init_denoising_suite();
+  Suite *dist = init_distance_suite ();
+  Suite *hmm  = init_hmm_suite      ();
+  Suite *list = init_list_suite     ();
+  Suite *other= init_other_suite    ();
+  Suite *nlin = init_nonlinear_suite();
+  Suite *arr  = init_array_suite    ();
 
 
-  SRunner *sr = srunner_create (s);
-  /*  srunner_add_suite(sr, s2);
-  srunner_add_suite(sr, s3);
-  srunner_add_suite(sr, s4);*/
-  srunner_add_suite(sr, s5);
-  srunner_add_suite(sr, s6);
-  //  srunner_add_suite(sr, s7);
+  SRunner *sr = srunner_create (cfct);
+  srunner_add_suite( sr, den  );
+  srunner_add_suite( sr, dist );
+  srunner_add_suite( sr, hmm  );
+  srunner_add_suite( sr, list );
+  srunner_add_suite( sr, other);
+  srunner_add_suite( sr, nlin );
+  srunner_add_suite( sr, arr  );
 
 
   srunner_set_log(sr, "test.log");

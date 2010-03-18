@@ -43,7 +43,7 @@ extern "C" {
   EEG*     read_continuous_eeg_from_binfile(const char *file, int C, int n);
   double** read_double_matrix_ascii(const char *fname, int xdim, int ydim, double **d);
   EEG*     read_eeg_from_raw(const char *file);
-  double*  read_double_vector_ascii( const char *fname, int N, double *v );
+  double*  read_dblp_ascii( const char *fname, int N, double *v );
 
 
 #ifdef MATIO

@@ -3,7 +3,10 @@ AM_LDFLAGS = `@GSL_CONFIG@ --libs`
 
 METASOURCES = AUTO
 
-noinst_PROGRAMS = nnsearch
+noinst_PROGRAMS = nnsearch array
 
 nnsearch_SOURCES = nnsearch.c
 nnsearch_LDADD = $(top_builddir)/src/libeegtools.la
+
+array_SOURCES = array.c
+array_LDADD = $(top_builddir)/src/libeegtools.la

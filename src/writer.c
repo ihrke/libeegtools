@@ -1,6 +1,7 @@
 #include "writer.h"
 #include "eeg.h"
 #include "optarg.h"
+#include <math.h>
 #include <matio.h>
 
 #ifdef MATIO
@@ -13,13 +14,13 @@
 */
 int write_eeglab_file( EEG* eeg, const char *file ){
   mat_t *mfile;
-  matvar_t *meeg;
+  matvar_t *meeg=NULL;
   if( !(mfile=Mat_Create( file, NULL )) ){
-	 errprintf("Could not open '%s' for writing\n");
+	 errprintf("Could not open '%s' for writing\n", file);
 	 return -1;
   }
 
-  int dims[2]={1,1}, rank=2;
+  //int dims[2]={1,1}, rank=2;
   //meeg = Mat_VarCreate( "EEG", MAT_T_STRUCT, , rank, dims, NULL, 0 );
   
   Mat_VarWrite( mfile, meeg, 0 );
@@ -55,14 +56,14 @@ void write_raw_header( FILE *f, int nbchan, int nbtrials, int nsamples,
 	 \param opts may contain
 	 - "precision=int" number of significant digits (after comma); default=6;
 */
-void write_double_matrix_ascii_file(const char *fname, const double **d, int xdim, int ydim, OptArgList *opts){
+void write_double_dblpp_ascii_file(const char *fname, const double **d, int xdim, int ydim, OptArgList *opts){
   FILE *f;
 
   dprintf("opening '%s'\n", fname );
   if((f=fopen(fname, "w"))==NULL)
 	 errormsg(ERR_IO, 1);
   
-  write_double_matrix_ascii(f, d, xdim, ydim, opts);
+  write_double_dblpp_ascii(f, d, xdim, ydim, opts);
 
   fclose(f);
 }
@@ -71,7 +72,7 @@ void write_double_matrix_ascii_file(const char *fname, const double **d, int xdi
 	 \param opts may contain
 	 - "precision=int" number of significant digits (after comma); default=6;
  */
-void write_double_matrix_ascii(FILE *out, const double **d, int xdim, int ydim, OptArgList *opts){
+void write_double_dblpp_ascii(FILE *out, const double **d, int xdim, int ydim, OptArgList *opts){
   int x, y;
   int precision;
   char tformat[20];
@@ -95,7 +96,7 @@ void write_double_matrix_ascii(FILE *out, const double **d, int xdim, int ydim, 
 }
 
 		  
-void write_double_vector_ascii(FILE *out, const double *v, int n){
+void write_double_dblp_ascii(FILE *out, const double *v, int n){
   int x;
   for( x=0; x<n; x++ ){
 	 fprintf(out, "%f ", v[x]);
@@ -105,19 +106,19 @@ void write_double_vector_ascii(FILE *out, const double *v, int n){
 
 
 		  
-void write_double_vector_ascii_file(const char *fname, const double *v, int n){
+void write_double_dblp_ascii_file(const char *fname, const double *v, int n){
   FILE *f;
 
   if((f=fopen(fname, "w"))==NULL)
 	 errormsg(ERR_IO, 1);
 
-  write_double_vector_ascii(f, v, n);
+  write_double_dblp_ascii(f, v, n);
   fclose(f);
 }
 
 
 		  
-void write_int_vector_ascii(FILE *out, const int *v, int n){
+void write_int_dblp_ascii(FILE *out, const int *v, int n){
   int x;
   for( x=0; x<n; x++ ){
 	 fprintf(out, "%i ", v[x]);
@@ -127,13 +128,13 @@ void write_int_vector_ascii(FILE *out, const int *v, int n){
 
 
 		  
-void write_int_vector_ascii_file(const char *fname, const int *v, int n){
+void write_int_dblp_ascii_file(const char *fname, const int *v, int n){
   FILE *f;
 
   if((f=fopen(fname, "w"))==NULL)
 	 errormsg(ERR_IO, 1);
 
-  write_int_vector_ascii(f, v, n);
+  write_int_dblp_ascii(f, v, n);
   fclose(f);
 }
 

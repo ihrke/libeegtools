@@ -165,47 +165,47 @@ extern "C" {
   double snr (const double *r, const double *d, int n);
 
   /* ---------------------------------------------------------------------------- 
-	  -- vector ops                                                             -- 
+	  -- dblp ops                                                             -- 
 	  ---------------------------------------------------------------------------- */  
-  /** \ingroup vectorops
+  /** \ingroup dblpops
 		\{
   */
-  double  vector_min( double *v, int n, int *idx );
-  double  vector_max( double *v, int n, int *idx );
-  double* vector_init( double *v, int n,  double val );
-  void    vector_minus_scalar( double *v, int n, double val );
-  double* vector_complex_to_real( const Complex *vc, double *vr, int n );
-  double  vector_euclidean_distance( const double *v1, const double *v2, int n );
-  void    vector_shuffle_int( int *permut, int n );
-  void    vector_print( double *v, int n );
-  void    vector_print_int( int *v, int n );
-  double  vector_mean( double *v, int n );
+  double  dblp_min( double *v, int n, int *idx );
+  double  dblp_max( double *v, int n, int *idx );
+  double* dblp_init( double *v, int n,  double val );
+  void    dblp_minus_scalar( double *v, int n, double val );
+  double* dblp_complex_to_real( const Complex *vc, double *vr, int n );
+  double  dblp_euclidean_distance( const double *v1, const double *v2, int n );
+  void    dblp_shuffle_int( int *permut, int n );
+  void    dblp_print( double *v, int n );
+  void    dblp_print_int( int *v, int n );
+  double  dblp_mean( double *v, int n );
   /** \} */
 
   /* ---------------------------------------------------------------------------- 
-	  -- Matrix ops                                                             -- 
+	  -- Dblpp ops                                                             -- 
 	  ---------------------------------------------------------------------------- */ 
-  /** \ingroup matrixops
+  /** \ingroup dblppops
 		\{
   */
-  double** matrix_delrow(double **m, int N, int n, int row);
-  double** matrix_delcol(double **m, int N, int n, int col);
-  double   matrix_min(const double **m, int N, int n, int *i1, int *i2);
-  double   matrix_max(const double **m, int N, int n, int *i1, int *i2);
-  void     matrix_print(const double **m, int N, int n);
-  double** matrix_init(int N, int M);
-  int**    matrix_init_int(int N, int M);
-  void     matrix_divide_scalar(double **m, int N, int n, double s);
-  void     matrix_add_scalar(double **m, int N, int n, double s);
-  void     matrix_mul_scalar(double **m, int N, int n, double s);
-  void     matrix_normalize_by_max( double **m, int M, int N );
-  void     matrix_add_matrix(double **m1, const double **m2, int N, int n);
-  void     matrix_sub_matrix(double **dest, const double **src, int N, int n);
-  void     matrix_dottimes_matrix( double **m1, const double **m2, int N, int M );
-  void     matrix_copy( const double **src, double **dest, int N, int M );
-  void     scalar_minus_matrix( double scalar, double **m, int N, int M );
-  double** matrix_rand( double **m, int N, int M, double lower, double upper );
-  void     matrix_free(double **m, int N);
+  double** dblpp_delrow(double **m, int N, int n, int row);
+  double** dblpp_delcol(double **m, int N, int n, int col);
+  double   dblpp_min(const double **m, int N, int n, int *i1, int *i2);
+  double   dblpp_max(const double **m, int N, int n, int *i1, int *i2);
+  void     dblpp_print(const double **m, int N, int n);
+  double** dblpp_init(int N, int M);
+  int**    dblpp_init_int(int N, int M);
+  void     dblpp_divide_scalar(double **m, int N, int n, double s);
+  void     dblpp_add_scalar(double **m, int N, int n, double s);
+  void     dblpp_mul_scalar(double **m, int N, int n, double s);
+  void     dblpp_normalize_by_max( double **m, int M, int N );
+  void     dblpp_add_dblpp(double **m1, const double **m2, int N, int n);
+  void     dblpp_sub_dblpp(double **dest, const double **src, int N, int n);
+  void     dblpp_dottimes_dblpp( double **m1, const double **m2, int N, int M );
+  void     dblpp_copy( const double **src, double **dest, int N, int M );
+  void     scalar_minus_dblpp( double scalar, double **m, int N, int M );
+  double** dblpp_rand( double **m, int N, int M, double lower, double upper );
+  void     dblpp_free(double **m, int N);
   /**\}*/
 
 #ifdef __cplusplus

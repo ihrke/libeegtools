@@ -69,13 +69,13 @@ SearchTree* nn_prepare( const double **X, int N, int m, OptArgList *optargs ){
   S->distfct = distfct;
   S->optargs = optargs;
   S->m=m;
-  matrix_print( X, N, m );
-  matrix_print( (const double**)D, N, N );
+  dblpp_print( X, N, m );
+  dblpp_print( (const double**)D, N, N );
   S->root = tnode_init(); 
   S->root->c = (int)(random() / (RAND_MAX / N+1)); 
   S->root->start=0;
   S->root->end=N-1;
-  S->root->R = vector_max( D[S->root->c], N, NULL );
+  S->root->R = dblp_max( D[S->root->c], N, NULL );
   dprintf("root center: %i, radius=%f\n", S->root->c, S->root->R );
   
   build_tree_recursive( S->root, D, N, A, max_numel );
@@ -161,9 +161,9 @@ void nn_search_k( const SearchTree *S, const double *x, int k, int *nn_idx,
   }
 #ifdef DEBUG
   dprintf(" initial m_k\n");
-  vector_print_int( nn_idx, k );
+  dblp_print_int( nn_idx, k );
   dprintf(" initial d(m_k,q)\n");
-  vector_print( nn_dist, k );
+  dblp_print( nn_dist, k );
 #endif
 
   /* insert root node */
@@ -298,7 +298,7 @@ void build_tree_recursive( TreeNode *C, double **D, int N, int *A, int maxel ){
 		}
 		ir--;
 	 }
-	 vector_print_int( A, N );
+	 dblp_print_int( A, N );
 	 dprintf("ptrs: il,ir=(%i,%i)\n", il, ir);
 		
 	 if( il<ir ){
@@ -328,7 +328,7 @@ void build_tree_recursive( TreeNode *C, double **D, int N, int *A, int maxel ){
 		R->R = D[A[i]][R->c];
   }
 
-  vector_print_int( A, N );
+  dblp_print_int( A, N );
   dprintf("L->R=%f, R->R=%f\n", L->R, R->R);
 
   /* terminal node? */

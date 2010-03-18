@@ -47,7 +47,7 @@ double** regularization_linear_points( double **d, int n, OptArgList *optargs ){
   void *ptr;
 
   if( d==ALLOC_IN_FCT ){
-	 d=matrix_init( n, n );
+	 d=dblpp_init( n, n );
   } 
 
   /* defaults */
@@ -136,7 +136,7 @@ double** regularization_linear_points( double **d, int n, OptArgList *optargs ){
 double** regularization_gaussian_line( double **d, int n, OptArgList *optargs ){
   int i,j,k;
  
-  double max_sigma;
+  double max_sigma=0.0;
   double sigma;
   double maxdist, dist, closest_dist, normgauss;
   int flag;

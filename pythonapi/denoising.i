@@ -12,19 +12,10 @@ double* running_median(double *d, int n, int win);
 double* moving_average(double *d, int n, int win);
 
 
-%typemap(in) (bool alloc){
-  $1 = 1;
-}
-EEG*    eeg_filter_running_median( EEG *eeg, int win, bool alloc );
-EEG*    eeg_filter_weighted_running_median( EEG *eeg, int win, bool alloc );
+EEG*    eeg_filter_running_median( EEG *eeg, int win, bool alloc=TRUE );
+EEG*    eeg_filter_weighted_running_median( EEG *eeg, int win, bool alloc=TRUE );
 
-EEG* eeg_filter_fidlib( EEG *eeg, const char *spec, bool alloc );
-
-
-%typemap(in) (double *data, int n){
-  $1 = python_list_to_doubleptr($input);
-  $2 = PyList_Size($input);
-}
+EEG* eeg_filter_fidlib( EEG *eeg, const char *spec, bool alloc=TRUE );
 
 %callback("%s_cb");
 double translation_invariant_thresholding( const double *data, int n );

@@ -306,9 +306,10 @@ ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans ){
 /** read xdim x ydim matrix from ascii file with delimiter 'delim';
 	 if NULL is passed as d, the functin allocates memory.
  */
-double** read_double_matrix_ascii(const char *fname, int xdim, int ydim, double **d){
+double** read_double_dblpp_ascii(const char *fname, int xdim, int ydim, double **d){
   FILE *f;
   int x,y;
+  int flag;
 
   if((f=fopen(fname, "r"))==NULL){
 	 errprintf("failed reading %s\n", fname );
@@ -323,7 +324,7 @@ double** read_double_matrix_ascii(const char *fname, int xdim, int ydim, double 
 
   for( y=0; y<ydim; y++ ){
 	 for( x=0; x<xdim; x++ ){
-		fscanf(f, " %lf ", &(d[y][x]));
+		flag=fscanf(f, " %lf ", &(d[y][x]));
 	 }
   }
   fclose(f);
@@ -332,18 +333,18 @@ double** read_double_matrix_ascii(const char *fname, int xdim, int ydim, double 
 
 /** read 1D vector frome file 
  */
-double* read_double_vector_ascii( const char *fname, int N, double *v ){
+double* read_dblp_ascii( const char *fname, int N, double *v ){
   FILE *f;
-  int i;
+  int i,flag;
 
   if((f=fopen(fname, "r"))==NULL)
 	 errormsg(ERR_IO, 1);
 
   if(v==NULL){
-	 v = vector_init( NULL, N, 0.0 );
+	 v = dblp_init( NULL, N, 0.0 );
   }
   for( i=0; i<N; i++ ){
-	 fscanf(f, " %lf ", &(v[i]));
+	 flag=fscanf(f, " %lf ", &(v[i]));
   }
   fclose( f );
   return v;

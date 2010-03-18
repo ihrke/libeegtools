@@ -42,7 +42,7 @@ double** vectordist_distmatrix( VectorDistanceFunction f,
   dprintf("data dim is (%i,%i)\n", n, p);
   if( D==ALLOC_IN_FCT ){
 	 warnprintf(" allocating matrix in fct\n");
-	 D = matrix_init( n, n );
+	 D = dblpp_init( n, n );
   }
   if( progress ){
 	 progress( PROGRESSBAR_INIT, n*(n-1)/2 );
@@ -150,7 +150,7 @@ double   vectordist_dtw( const double *x1, const double *x2, int p, OptArgList *
 		f = (PointwiseDistanceFunction) tmp;
   }
 
-  D = f( x1, p, x2, p, NULL, optargs );
+  D = f( (double*)x1, p, (double*)x2, p, NULL, optargs );
   dtw_cumulate_matrix( D, p, p, NULL );
   P = dtw_backtrack( (const double**)D, p, p, NULL );
 
@@ -165,7 +165,7 @@ double   vectordist_dtw( const double *x1, const double *x2, int p, OptArgList *
 	 d += dist_point_line( path, diag1, diag2 );
   }
 
-  matrix_free( D, p );
+  dblpp_free( D, p );
   free_warppath( P );
 
   return d;
@@ -198,11 +198,11 @@ double   vectordist_regularized_dtw( const double *x1, const double *x2, int p, 
 /** pointwise distance matrix for euclidean metric.
 	 \param optargs is ignored
  */
-double** signaldist_euclidean( const double *s1, int n1, const double *s2, int n2,
+double** signaldist_euclidean( double *s1, int n1, double *s2, int n2,
 										 double **d, OptArgList *optargs ){
   int i,j;
   if( d==ALLOC_IN_FCT ){
-	 d=matrix_init( n1, n2 );
+	 d=dblpp_init( n1, n2 );
   }
 
   for( i=0; i<n1; i++){
@@ -231,7 +231,7 @@ double** signaldist_euclidean( const double *s1, int n1, const double *s2, int n
 	 - <tt>theta2=double</tt>, default is \c 1.0
 	 \return d or NULL (error)
  */
-double** signaldist_euclidean_derivative( const double *s1, int n1, const double *s2, int n2, double **d, OptArgList *optargs ){
+double** signaldist_euclidean_derivative( double *s1, int n1, double *s2, int n2, double **d, OptArgList *optargs ){
   int i, j, k;
   double avg1, avg2,
 	 rms1=0, rms2=0;
@@ -257,7 +257,7 @@ double** signaldist_euclidean_derivative( const double *s1, int n1, const double
 
 
   if( d==ALLOC_IN_FCT ){
-	 d=matrix_init( n1, n2 );
+	 d=dblpp_init( n1, n2 );
   }
 
   avg1 = gsl_stats_mean(s1, 1, n1);
@@ -309,7 +309,7 @@ double** signaldist_euclidean_derivative( const double *s1, int n1, const double
 	 - <tt>corner_freqs=double*</tt> (array with two double entries), default is \c (0.0,250.0)
 	 \return d or NULL (error)
  */
-double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, double **d, OptArgList *optargs ){
+double** signaldist_stft( double *s1, int n1, double *s2, int n2, double **d, OptArgList *optargs ){
   int i, j;
   Spectrogram *sp1, *sp2;
   double *window;
@@ -368,13 +368,13 @@ double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, do
 
   if( d==ALLOC_IN_FCT ){
 	 warnprintf("allocating matrix in fct\n");
-	 d=matrix_init( n1, n2 );
+	 d=dblpp_init( n1, n2 );
   }
 
   /* remove mean from the signals */
   dprintf("Normalization\n");
-  d1 = vector_init( NULL, n1, 0.0 );
-  d2 = vector_init( NULL, n2, 0.0 );
+  d1 = dblp_init( NULL, n1, 0.0 );
+  d2 = dblp_init( NULL, n2, 0.0 );
   mean1 = gsl_stats_mean( s1, 1, n1 );
   mean2 = gsl_stats_mean( s2, 1, n2 );
   for( i=0; i<MAX(n1,n2); i++ ){	  
@@ -401,7 +401,7 @@ double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, do
   dprintf(" Compute distances (%i vectors)\n", sp1->N_freq);
   for( i=0; i<N_time; i++ ){
 	 for( j=0; j<N_time; j++ ){
-		d[i][j] = vector_euclidean_distance( sp1->powerspect[i], sp2->powerspect[j], sp1->N_freq );
+		d[i][j] = dblp_euclidean_distance( sp1->powerspect[i], sp2->powerspect[j], sp1->N_freq );
 	 }
   }
   dprintf("\nDone\n");
@@ -433,7 +433,7 @@ double** signaldist_stft( const double *s1, int n1, const double *s2, int n2, do
 	 - <tt>FAN=int</tt> fixed amount of neighbours for each point in the recplot, default=(int)0.05*n1
 	 - <tt>noiseamp=double</tt> factor to use for adding noise to the recplot, default=\c 0.01
  */
-double** signaldist_recplot_los( const double *s1, int n1, const double *s2, int n2, 
+double** signaldist_recplot_los( double *s1, int n1, double *s2, int n2, 
 											double **d, 
 											OptArgList *optargs ){
   int i,j; 
@@ -469,7 +469,7 @@ double** signaldist_recplot_los( const double *s1, int n1, const double *s2, int
   }
 
   if( d==ALLOC_IN_FCT ){
-	 d=matrix_init( n1, n2 );
+	 d=dblpp_init( n1, n2 );
   }
 
   dprintf("Using Parameters: m=%i, tau=%i, FAN=%i, noiseamp=%f\n",
@@ -482,10 +482,10 @@ double** signaldist_recplot_los( const double *s1, int n1, const double *s2, int
   R = recplot_init( n1, n2, FAN, RPLOT_FAN );
   recplot_calculate( R, p1, p2 );
 
-  matrix_copy( (const double**)R->R, d, R->m, R->n ); 
+  dblpp_copy( (const double**)R->R, d, R->m, R->n ); 
   
   /* flip binary matrix */
-  scalar_minus_matrix( 2.0, d, R->m, R->n );
+  scalar_minus_dblpp( 2.0, d, R->m, R->n );
   
   /* add small amount of noise */
   for( i=0; i<R->m; i++ ){
@@ -521,7 +521,7 @@ double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, double **d, OptArgL
 
   if( d==ALLOC_IN_FCT ){
 	 warnprintf(" allocating matrix in fct\n");
-	 d = matrix_init( eeg->ntrials, eeg->ntrials );
+	 d = dblpp_init( eeg->ntrials, eeg->ntrials );
   }
 
   if( optarglist_has_key( optargs, "progress" ) ){
@@ -621,7 +621,7 @@ double   pathdist_euclidean_dt(WarpPath *p1, WarpPath *p2){
   dprintf(" init done \n");
 	 
   d = disttransform_deadreckoning( I, n, m, ALLOC_IN_FCT );
-  matrix_divide_scalar( d, n, m, matrix_max( d, n, m, NULL, NULL ) );
+  dblpp_divide_scalar( d, n, m, dblpp_max( (const double**)d, n, m, NULL, NULL ) );
   dprintf(" dt done \n");
 
   dist = 0.0;
@@ -641,7 +641,7 @@ double   pathdist_euclidean_dt(WarpPath *p1, WarpPath *p2){
 	 free( I[i] );
   }
   free(I); 
-  //matrix_free( d, m );
+  //dblpp_free( d, m );
 
   return dist;
 }

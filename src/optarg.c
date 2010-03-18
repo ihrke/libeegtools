@@ -78,9 +78,10 @@ void optarglist_print( OptArgList *list, FILE *out ){
 	 </pre>
 	 are ok.
  */
-OptArgList* optarglist( const char *format, ... ){
+OptArgList* optarglist( char *format, ... ){
   va_list ap;
-  char *tmp, *key, *type;
+  char *key, *type;
+  char *tmp;
   char *fmt;
   int nargs, i;
   OptArgList *L;

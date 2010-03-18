@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 #include "clustering.h"
-
+#include "eeg.h"
 
 
 /** run the kmedoids function a couple of times and pick the best
@@ -89,7 +89,7 @@ Clusters* kmedoids(const double **dist, int N, int K){
   permut = (int*)malloc( K*sizeof(int) );
   for( i=0; i<K; i++ )
 	 permut[i]=i;
-  vector_shuffle_int( permut, K ); /* random permut */
+  dblp_shuffle_int( permut, K ); /* random permut */
   for( i=0; i<N; i++ ){
 	 if( i<K ){ /* first each partition gets a guy */
 		r = permut[i];
@@ -911,14 +911,14 @@ int      eeg_best_num_clusters_gapstat( const EEG *eeg, VectorDistanceFunction d
 
   gap = gapstat_init( NULL, max_num_clusters, num_ref_dist );
   gapstat_calculate( gap, meaneeg->data[0], meaneeg->ntrials, meaneeg->n, 
-							distfunction, D );
+							distfunction, (const double**)D );
 
   bestclust = gap->khat;
 #ifdef DEBUG
   gapstat_print( stderr, gap );
 #endif 
 
-  matrix_free( D, meaneeg->ntrials );
+  dblpp_free( D, meaneeg->ntrials );
   eeg_free( meaneeg );
   gapstat_free( gap );
 

@@ -11,7 +11,6 @@
 
 #ifndef   	CHECK_ALL_H_
 # define   	CHECK_ALL_H_
-
 #include<check.h>
 #include<stdlib.h>
 #include<math.h>
@@ -20,9 +19,10 @@
 Suite * init_denoising_suite (void);
 Suite * init_checkfct_suite  (void);
 Suite * init_distance_suite  (void);
-Suite * init_hmm_suite  (void);
-Suite * init_list_suite  (void);
-Suite * init_other_suite  (void);
-Suite * init_nonlinear_suite  (void);
+Suite * init_hmm_suite       (void);
+Suite * init_list_suite      (void);
+Suite * init_other_suite     (void);
+Suite * init_nonlinear_suite (void);
+Suite * init_array_suite     (void);
 
 #endif 	    /* !CHECK_ALL_H_ */

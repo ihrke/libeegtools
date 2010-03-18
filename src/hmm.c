@@ -21,7 +21,8 @@
 #include "hmm.h"
 
 
-/** return state transition probabilities from state i to state j in trace k:
+/** \ref status_inprogress
+	 return state transition probabilities from state i to state j in trace k:
 	 \f[
 	 p^k(\pi_i|\pi_{i-1}) = p^k(\phi_i|\phi_{i-1})p^k(\tau_i|\tau_{i-1})
 	 \f]
@@ -30,9 +31,10 @@
 	 \pi_i = (\phi_i, \tau_i)
 	 \f]
 	 Details see Listgarten et al. 2005
+	 \todo not implemented yes
  */
 double cphmm_get_transition_prob( CPHiddenMarkovModel *m, int k, int i, int j ){
-  double p_phi, p_tau;
+  double p_phi=0, p_tau=0;
 
 
   if( j-i >= 0 && j-i < m->J ){
@@ -74,7 +76,7 @@ CPHiddenMarkovModel* cphmm_alloc( int K, int n, int M, int Q, int J ){
   }
 
   gsl_rng_env_setup();
-  m->random_number_type = gsl_rng_default;
+  m->random_number_type = (gsl_rng_type *)gsl_rng_default;
   m->rng = gsl_rng_alloc (m->random_number_type);
 
   return m;
@@ -97,8 +99,8 @@ void cphmm_init( CPHiddenMarkovModel *m, double **X ){
   double minx, maxx;
   int start;
 
-  minx = vector_min( X[0], m->n, NULL );
-  maxx = vector_max( X[0], m->n, NULL );
+  minx = dblp_min( X[0], m->n, NULL );
+  maxx = dblp_max( X[0], m->n, NULL );
   m->sigma = 0.15*(maxx-minx);
 
   start = (m->M-(2*m->n))/2.0;

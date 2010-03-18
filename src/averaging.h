@@ -37,9 +37,9 @@ extern "C" {
   double*  simple_average_nv   ( const double **s, int N, int n, double *avg );
   double*  alternate_average_nv( const double **s, int N, int n, double *avg );
 
-  EEG*     eeg_simple_average   ( EEG *eeg );
-  EEG*     eeg_alternate_average( EEG *eeg );
-  EEG*     eeg_average_channels ( EEG *eeg );
+  EEG*     eeg_simple_average   ( const EEG *eeg );
+  EEG*     eeg_alternate_average( const EEG *eeg );
+  EEG*     eeg_average_channels ( const EEG *eeg );
 /** \} */
 #ifdef __cplusplus
 }

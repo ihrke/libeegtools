@@ -70,12 +70,10 @@ ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans );
   }
 
   PyObject* get_data(){
-	 npy_intp dims[3];
-	 dims[0] = self->nbchan;
-	 dims[1] = self->ntrials;
-	 dims[2] = self->n;
-	 PyArrayObject* a;
-	 a=(PyArrayObject *)PyArray_SimpleNewFromData( 3, dims, NPY_DOUBLE, self->data );
+	 PyArrayObject *a=doubleptrptrptr_to_pyarray( self->data, 
+																 self->nbchan,
+																 self->ntrials,
+																 self->n );
 	 return (PyObject*)a;
   }
 

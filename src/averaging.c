@@ -31,7 +31,7 @@
 	 \param eeg input
 	 \return freshly allocate EEG-struct
  */
-EEG*     eeg_simple_average( EEG *eeg ){
+EEG*     eeg_simple_average( const EEG *eeg ){
   EEG *out;
   int c;
 
@@ -47,7 +47,7 @@ EEG*     eeg_simple_average( EEG *eeg ){
   }
   eeg_append_comment( out, "output from eegtrials_simple_average()\n" );
   for( c=0; c<eeg->nbchan; c++ ){
-	 out->data[c][0] = simple_average_nv( eeg->data[c], eeg->ntrials, eeg->n, out->data[c][0] );
+	 out->data[c][0] = simple_average_nv( (const double**)eeg->data[c], eeg->ntrials, eeg->n, out->data[c][0] );
   }
   return out;
 }
@@ -58,7 +58,7 @@ EEG*     eeg_simple_average( EEG *eeg ){
 	 \param eeg input
 	 \return freshly allocate EEG-struct
  */
-EEG*     eeg_average_channels( EEG *eeg ){
+EEG*     eeg_average_channels( const EEG *eeg ){
   EEG *out;
   int c, i, j;
 
@@ -89,14 +89,14 @@ EEG*     eeg_average_channels( EEG *eeg ){
 	 \param eeg input
 	 \return freshly allocate EEG-struct
  */
-EEG*     eeg_alternate_average( EEG *eeg ){
+EEG*     eeg_alternate_average( const EEG *eeg ){
   EEG *out;
   int c;
 
   out = eeg_init( eeg->nbchan, 1, eeg->n ); /* the average */
   eeg_append_comment( out, "output from eegtrials_simple_average()\n" );
   for( c=0; c<eeg->nbchan; c++ ){
-	 out->data[c][0] = alternate_average_nv( eeg->data[c], eeg->ntrials, eeg->n, out->data[c][0] );
+	 out->data[c][0] = alternate_average_nv( (const double**)eeg->data[c], eeg->ntrials, eeg->n, out->data[c][0] );
   }
   return out;
 }

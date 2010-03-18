@@ -1,5 +1,5 @@
 # set the include path found by configure
-AM_CPPFLAGS =  -Isrc $(all_includes) -fPIC --std=gnu99 -Wall @MATIO_CFLAGS@ @DEBUG_FLAGS@ `@GSL_CONFIG@ --cflags`
+AM_CPPFLAGS =  -Isrc $(all_includes) -D_GNU_SOURCE -fPIC --std=gnu99 -Wall @MATIO_CFLAGS@ @DEBUG_FLAGS@ `@GSL_CONFIG@ --cflags`
 
 
 # the library search path.
@@ -9,14 +9,14 @@ noinst_HEADERS =
 libeegtools_la_SOURCES = mathadd.c averaging.c averaging.h filter.c wavelet.c \
 	helper.c reader.c clustering.c writer.c tools.c time_frequency.c warping.c \
 	nonlinear.c recurrence_plot.c regularization.c distances.c hmm.c fidlib/fidlib.c \
-	som.c eeg.c optarg.c mpitools.c nnsearch.c pqueue.c
+	som.c eeg.c optarg.c mpitools.c nnsearch.c pqueue.c array.c
 pkginclude_HEADERS = averaging.h filter.h wavelet.h helper.h mathadd.h \
 	definitions.h reader.h clustering.h writer.h\
 	escape_codes.h tools.h time_frequency.h chaninfo.h warping.h \
 	nonlinear.h recurrence_plot.h regularization.h distances.h hmm.h \
 	fidlib/fidlib.h fidlib/fidmkf.h fidlib/fidrf_combined.h fidlib/fidrf_cmdlist.h \
 	fidlib/fidrf_jit.h som.h eeg.h optarg.h mpitools.h nnsearch.h \
-	pqueue.h
+	pqueue.h array.h
 
 libeegtools_la_LDFLAGS =  `@GSL_CONFIG@ --libs` @MATIO_LIBS@
 

@@ -37,8 +37,8 @@ void som_train_from_data2( Som *s, double **X, int dim, int nsamples ){
 	 (*(s->progress))( PROGRESSBAR_INIT, s->nruns );
   }
   double *x, *y;
-  x = vector_init( NULL, s->n, 0.0 );
-  y = vector_init( NULL, s->n, 0.0 );
+  x = dblp_init( NULL, s->n, 0.0 );
+  y = dblp_init( NULL, s->n, 0.0 );
   plot_format_nocopy( x, y, s->n, "r.-" );
   plot_set_limits( -500, 2000, -20, 20 );
   plot_show_in_thread();
@@ -108,7 +108,7 @@ int main(int argc, char **argv){
   print_eegdata_trials(stderr, eeg);
   ntrials = 10;// eeg->ntrials;
 
-  avg = vector_init( NULL, eeg->nsamples, 0.0 );
+  avg = dblp_init( NULL, eeg->nsamples, 0.0 );
   for( i=0; i<ntrials; i++ ){
 	 plot_format_nocopy( eeg->times, eeg->data[i]->d[0], eeg->nsamples, "y.-" ); 
 	 for( j=0; j<eeg->nsamples; j++ ){

@@ -13,6 +13,7 @@
 #include <limits.h>
 #include <float.h>
 #include <stdint.h>
+#include <ctype.h>
 
 /* ---------------------------------------------------------------------------- 
    -- Helper functions                                                       -- 
