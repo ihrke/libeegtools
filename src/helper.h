@@ -52,7 +52,9 @@
 #define ERR_FATAL 1
 #define ERR_NOFATAL 0
 
-  /** convenience memory alloc macro. use as follows:
+  /** \brief convenience memory alloc macro. 
+
+		use as follows:
 		\code
 		double *a;
 		MALLOC( a, 100, double );
@@ -69,6 +71,12 @@
 /** debugging macros */
 #ifdef DEBUG
 /*#define dprintf(...) fprintf(stderr, ## __VA_ARGS__)*/
+
+/** \brief debug-print.
+
+	 This is only printed if the library is compiled with
+	 the DEBUG flag.
+*/
 #define dprintf(...) do{																\
 		fprintf(stderr, ESCAPE_FGYELLOW_STR ESCAPE_BRIGHT_STR "%s (%i), %s(): ", \
 				  __FILE__, __LINE__, __FUNCTION__);								\
@@ -88,12 +96,17 @@
 #define massert(...)	    
 #endif
 
+/** \brief print error.
+
+	 Report an Error.
+*/
 #define errprintf(...) do{ fprintf(stderr, ESCAPE_FGRED_STR ESCAPE_BOLD_STR\
 											  ESCAPE_BGYELLOW_STR "ERROR: %s (%i), %s(): ", \
 											  __FILE__, __LINE__, __FUNCTION__);	\
 	 fprintf(stderr, ## __VA_ARGS__);												\
 	 fprintf(stderr, ESCAPE_RESET_STR); } while(0)
-
+/** \brief print warning.
+*/
 #define warnprintf(...) do{ fprintf(stderr, ESCAPE_FGWHITE_STR ESCAPE_BOLD_STR \
 												ESCAPE_BGBLUE_STR "WARNING: %s (%i), %s(): ", \
 												__FILE__, __LINE__, __FUNCTION__);	\

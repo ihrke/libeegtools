@@ -20,6 +20,7 @@ int main (void){
   Suite *other= init_other_suite    ();
   Suite *nlin = init_nonlinear_suite();
   Suite *arr  = init_array_suite    ();
+  Suite *lalg = init_linalg_suite   ();
 
 
   SRunner *sr = srunner_create (cfct);
@@ -30,6 +31,7 @@ int main (void){
   srunner_add_suite( sr, other);
   srunner_add_suite( sr, nlin );
   srunner_add_suite( sr, arr  );
+  srunner_add_suite( sr, lalg  );
 
 
   srunner_set_log(sr, "test.log");

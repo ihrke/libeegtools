@@ -348,7 +348,7 @@ WarpPath* recplot_los_dtw( const RecurrencePlot *R ){
   /* add a bias such that diagonal is preferred */
   
   
-  dtw_cumulate_dblpp( d, R->m, R->n, NULL );
+  dtw_cumulate_matrix( d, R->m, R->n, NULL );
   //dblpp_normalize_by_max( D, R->m, R->n );
   P = dtw_backtrack( (const double**) d, R->m, R->n, NULL );
 

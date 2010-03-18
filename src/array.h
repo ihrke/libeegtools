@@ -143,7 +143,7 @@ extern "C" {
   default:																				\
 	 warnprintf("Do not know this datatype: %i\n", dtype );				\
   }
-  
+ 
   /** \brief Print an array-datatype.
 		
 		\param out FILE* output stream
@@ -170,6 +170,7 @@ extern "C" {
 	 warnprintf("Do not know this datatype: %i\n", dtype );				\
   }
 
+
   /** \brief Data-types for Array struct. */
   typedef enum {
 	 CHAR,
@@ -180,6 +181,16 @@ extern "C" {
 	 FLOAT,
 	 DOUBLE
   } DType;
+
+  typedef union {
+	 char   tchar;
+	 uint   tuint;
+	 int    tint;
+	 long   tlong;
+	 ulong  tulong;
+	 float  tfloat;
+	 double tdouble;
+  } GenericDType;
 
   /** \brief Numerical Array struct. */
   typedef struct {
@@ -195,6 +206,7 @@ extern "C" {
   Array *array_new ( DType dtype, uint ndim, uint *dims );
   Array *array_new2( DType dtype, uint ndim, ... );
   Array *array_fromptr( DType dtype, uint ndim, void *data, ... );
+  Array *array_new_dummy( DType dtype, uint ndim, ... );
   void   array_free( Array *a );
 
 

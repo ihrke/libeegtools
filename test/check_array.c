@@ -250,8 +250,17 @@ START_TEST (test_slice)
   Array *b = array_slice( a, ":,:" );
   fail_unless( memcmp( a->data, b->data, a->nbytes )==0 );
 
+  Array *c = array_slice( a, "[0 3 2 4 9 0],[1 10]");
+  fail_unless( c->ndim==2 );
+  fail_unless( c->size[0]==6 && c->size[1]==2 );
+  Array *e = array_slice( a, "[3 2 4 9 0],1-10");
+  fail_unless( e->ndim==2 );
+  fail_unless( e->size[0]==6 && e->size[1]==10 );
+
   array_free( a );
   array_free( b );
+  array_free( c );
+  array_free( e );
 }
 END_TEST
 

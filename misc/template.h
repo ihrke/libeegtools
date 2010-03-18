@@ -18,8 +18,8 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/**\file TEMPLATE.h
- \brief \ref status_inprogress TEMPLATE
+/**\file template.h
+ \brief \ref status_inprogress template
 
 TEMPLATE
 	

@@ -331,6 +331,25 @@ Array *array_new2( DType dtype, uint ndim, ... ){
   return a;
 }
 
+/** \brief create array that is filled with values from 
+	        1 to n over all dimensions.
+	 
+	 Mainly used for debugging stuff.
+	 \param dtype the datatype of the array
+	 \param ndim number of dimensions
+	 \param ... the number of elements in each of the dimensions
+	 \return array
+*/
+Array *array_new_dummy( DType dtype, uint ndim, ... ){
+  va_list ap;
+  Array *a;
+  int n;
+  a = array_new2( dtype, ndim, ap );
+  n = a->nbytes/a->dtype_size;
+  
+  return a;
+}
+
 /** \brief Initialize new array struct. 
 
 	 Memory for the data is not allocated 
