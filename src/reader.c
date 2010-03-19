@@ -1,9 +1,9 @@
 #include "reader.h"
 #include "helper.h"
-#include <matio.h>
 #include "eeg.h"
 
 #ifdef MATIO
+#include <matio.h>
 double get_double_from_struct_field( matvar_t *eeg, const char *name, int struct_array_index );
 
 /** This reader uses MatIO to parse EEGlab files and construct
