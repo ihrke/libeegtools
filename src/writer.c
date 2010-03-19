@@ -2,9 +2,9 @@
 #include "eeg.h"
 #include "optarg.h"
 #include <math.h>
-#include <matio.h>
 
 #ifdef MATIO
+#include <matio.h>
 /** This write uses MatIO to create an EEGlab file.
 	 It was developed with EEGlab version 6.01b.
 	 
