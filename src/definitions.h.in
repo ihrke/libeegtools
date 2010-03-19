@@ -12,6 +12,7 @@
 #define @DEF_DEBUG@
 #define @DEF_PLOTTER@
 #define @DEF_MATIO@
+#define @DEF_ANSI_ESCAPE_CODES@
 
 #define ALLOC_IN_FCT NULL
 

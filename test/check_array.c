@@ -91,7 +91,7 @@ START_TEST (test_array_fromptr)
   for( i=0; i<n; i++ ){
 	 m[i] = i;
   }
-  a=array_fromptr( DOUBLE, 2, m, 10, 10 );
+  a=array_fromptr2( DOUBLE, 2, m, 10, 10 );
 
   fail_unless( a->dtype==DOUBLE );
   fail_unless( a->dtype_size==sizeof(double) );
@@ -255,12 +255,58 @@ START_TEST (test_slice)
   fail_unless( c->size[0]==6 && c->size[1]==2 );
   Array *e = array_slice( a, "[3 2 4 9 0],1-10");
   fail_unless( e->ndim==2 );
-  fail_unless( e->size[0]==6 && e->size[1]==10 );
+  fail_unless( e->size[0]==5 && e->size[1]==10 );
+
+  Array *f = array_slice( a, "3,1-10");
+  fail_unless( f->ndim==1 );
+  fail_unless( f->size[0]==10 );
 
   array_free( a );
   array_free( b );
   array_free( c );
   array_free( e );
+  array_free( f );
+}
+END_TEST
+
+START_TEST (test_scale)
+{
+  Array *a=array_new_dummy( INT, 3, 3,4,5 );
+  long i;
+  array_scale( a, 2 );
+  for( i=0; i<a->nbytes/a->dtype_size; i++ ){
+	 fail_unless( *((int*)(a->data+i*a->dtype_size))==(int)i*2,
+					  "%i!=%i", *((int*)a->data+i*a->dtype_size),(int)i*2 );
+  }
+  Array *b=array_new_dummy( DOUBLE, 3, 3,4,5 );
+  array_scale( b, 0.5 );
+  for( i=0; i<b->nbytes/b->dtype_size; i++ ){
+	 fail_unless( cmpdouble( *((double*)(b->data+i*b->dtype_size)), (double)i*0.5, 3 )==0,
+					  "%.2f!=%.2f",*((double*)(b->data+i*b->dtype_size)), (double)i*0.5 );
+  }
+  array_free( a );
+  array_free( b );
+}
+END_TEST
+
+START_TEST (test_copy)
+{
+  Array *a=array_new_dummy( FLOAT, 3, 3,4,5 );
+  Array *b=array_copy( a, TRUE );
+  Array *c=array_copy( a, FALSE );
+
+  fail_unless( b->data != a->data );
+  fail_unless( cmpdouble( array_INDEX3( b, float, 0,0,0),
+								  array_INDEX3( a, float, 0,0,0), 3)==0);
+  fail_unless( b->free_data==TRUE );
+  fail_unless( c->data == a->data );
+  fail_unless( cmpdouble( array_INDEX3( c, float, 0,0,0),
+								  array_INDEX3( a, float, 0,0,0), 3)==0);
+  fail_unless( c->free_data==FALSE );
+
+  array_free( a );
+  array_free( b );
+  array_free( c );
 }
 END_TEST
 
@@ -286,6 +332,8 @@ Suite * init_array_suite (void){
   tcase_add_test (tc_core, test_index2 );
   tcase_add_test (tc_core, test_index3 );
   tcase_add_test (tc_core, test_slice );
+  tcase_add_test (tc_core, test_scale );
+  tcase_add_test (tc_core, test_copy);
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

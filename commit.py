@@ -36,7 +36,7 @@ f.close();
 f = open("configure.in", "w");
 for line in lines:
     if "AC_INIT([libeegtools]," in line.strip().replace(" ", ""):
-        f.write("AC_INIT([libeegtools], [%s], [mihrke@gwdg.de])\n"%(nversion));
+        f.write("AC_INIT([libeegtools], [%s], [ihrke@nld.ds.mpg.de])\n"%(nversion));
     else:
         f.write(line);
 f.close();

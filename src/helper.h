@@ -24,10 +24,10 @@
 #ifndef HELPER_H
 # define HELPER_H
 
-#define _WITH_ANSI_ESCAPE_CODES /* necessary for the esc-codes to show up */
+#include "definitions.h"
 #include "escape_codes.h"
 
-#include "definitions.h"
+
 
 #ifdef HAVE_MATLAB
 #ifndef MATLAB_STARTUP_CMD
@@ -51,6 +51,8 @@
 #define ERR_PARSEMAT -7
 #define ERR_FATAL 1
 #define ERR_NOFATAL 0
+
+#define NOSTRING " \b" 
 
   /** \brief convenience memory alloc macro. 
 
@@ -81,14 +83,14 @@
 		fprintf(stderr, ESCAPE_FGYELLOW_STR ESCAPE_BRIGHT_STR "%s (%i), %s(): ", \
 				  __FILE__, __LINE__, __FUNCTION__);								\
 		fprintf(stderr, ## __VA_ARGS__);												\
-		fprintf(stderr, ESCAPE_RESET_STR);											\
+		fprintf(stderr, NOSTRING ESCAPE_RESET_STR);											\
 	 } while(0)
 
 #define massert(x, text, ...) \
   do{																							\
 	 if(x){																					\
 		fprintf(stderr, ESCAPE_FGRED_STR "Assertion failed: " #text, ## __VA_ARGS__); \
-		fprintf(stderr,  ESCAPE_RESET_STR);											\
+		fprintf(stderr, NOSTRING ESCAPE_RESET_STR);											\
 	 }																							\
   } while(0)
 #else
@@ -104,20 +106,20 @@
 											  ESCAPE_BGYELLOW_STR "ERROR: %s (%i), %s(): ", \
 											  __FILE__, __LINE__, __FUNCTION__);	\
 	 fprintf(stderr, ## __VA_ARGS__);												\
-	 fprintf(stderr, ESCAPE_RESET_STR); } while(0)
+	 fprintf(stderr, NOSTRING ESCAPE_RESET_STR); } while(0)
 /** \brief print warning.
 */
 #define warnprintf(...) do{ fprintf(stderr, ESCAPE_FGWHITE_STR ESCAPE_BOLD_STR \
 												ESCAPE_BGBLUE_STR "WARNING: %s (%i), %s(): ", \
 												__FILE__, __LINE__, __FUNCTION__);	\
 	 fprintf(stderr, ## __VA_ARGS__);												\
-	 fprintf(stderr, ESCAPE_RESET_STR); } while(0)
+	 fprintf(stderr, NOSTRING ESCAPE_RESET_STR); } while(0)
 
 #define oprintf(...) do{ fprintf(stderr, ESCAPE_FGCYAN_STR ESCAPE_BRIGHT_STR \
 											"%s (%i), %s() --> ",						\
 											__FILE__, __LINE__, __FUNCTION__);		\
 	 fprintf(stderr, ## __VA_ARGS__);												\
-	 fprintf(stderr, ESCAPE_RESET_STR); } while(0)
+	 fprintf(stderr, NOSTRING ESCAPE_RESET_STR); } while(0)
 
 #ifdef __cplusplus
 extern "C" {

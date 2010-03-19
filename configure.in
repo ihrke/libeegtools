@@ -86,6 +86,20 @@ fi
 AC_SUBST(DEF_DEBUG)
 AC_SUBST(DEBUG_FLAGS)
 
+##------ COLOURED PRINTING SUPPORT -----#
+AC_ARG_ENABLE(color,
+  [  --enable-color          enable colored printing (default "yes")],
+  [with_color=$enableval],
+  [with_color=yes]
+)
+
+DEF_ANSI_ESCAPE_CODES="NOESCAPECODES"
+if test "x${with_color}" = xyes; then
+        DEF_ANSI_ESCAPE_CODES="_WITH_ANSI_ESCAPE_CODES"       
+fi
+
+AC_SUBST(DEF_ANSI_ESCAPE_CODES)
+
 ##------ MATLAB SUPPORT -----#
 AC_ARG_ENABLE(matlab,
   [  --enable-matlab         enable MATLAB (default="no")],
@@ -288,6 +302,7 @@ fi
 
 echo ""
 echo "Debugging Output enabled: '${with_debug}'"
+echo "Colored printing enabled: '${with_color}'"
 echo "Installing to: '${prefix}'"
 echo "--------------------------------------------------------------"
 echo " Run 'make install' to install the library"

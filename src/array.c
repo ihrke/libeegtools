@@ -23,6 +23,72 @@
 #include <stdarg.h> 
 #include <string.h>
 
+
+/** \brief makes a copy of an array.
+
+	 The flag allocdata determines, whether the memory is copied. 
+	 \param in input
+	 \param allocdata allocate own data, or share 
+	       data between arrays. Shared memory belongs to
+			 to the passed array.
+	 \return the copy 
+ */
+Array* array_copy( const Array *in, bool allocdata ){
+  Array *out;
+  if( allocdata ){
+	 out = array_new( in->dtype, in->ndim, in->size );
+	 memcpy( out->data, in->data, in->nbytes );
+  } else {
+	 out = array_fromptr( in->dtype, in->ndim, in->data, in->size );
+  }
+  return out;
+}
+
+/** \brief Delete unnecessary dimensions (of size 1).
+	 
+	 Dimensions of size 1 are removed from the size-array of the
+	 struct.
+
+	 \param a in-place reduction
+	 \return 0 on success, other on failure
+ */
+int array_dimred( Array *a ){
+  int i,j;
+  int nd=0;
+  uint *nsize;
+  for( i=0; i<a->ndim; i++ ){
+	 if( a->size[i]!=1 )
+		nd++;
+  }
+  if( nd==a->ndim ) return 0;
+
+  MALLOC( nsize, nd, uint );
+  j=0;
+  for( i=0; i<a->ndim; i++ ){
+	 if( a->size[i]!=1 )
+		nsize[j++] = a->size[i];
+  }
+  free( a->size );
+  a->size=nsize;
+  a->ndim=nd;
+
+  return 0;
+}
+
+/** \brief multiply all entries in array with x.
+	 \param a the input/output array
+	 \param x the scalar to multiply a with
+ */
+int array_scale (Array * a, double x){
+  long i;
+  double r;
+  for( i=0; i<a->nbytes/a->dtype_size; i++ ){
+	 array_dtype_to_double( &r, a->data+i*a->dtype_size, a->dtype );
+	 array_MEMSET( a->data+i*a->dtype_size, a->dtype, x*r );
+  }
+  return 0;
+}
+
 /**\cond PRIVATE */
 /* helper for array-slicing */
 uint fill_buffer( void *data, void *buf, int nd, uint **ind, uint *size, uint dtsize, ulong *nbelow ){
@@ -45,40 +111,20 @@ uint fill_buffer( void *data, void *buf, int nd, uint **ind, uint *size, uint dt
 }
 /**\endcond */
 
-/** \brief Extract sub-arrays from array.
 
-	 This is a function for creating array slices from
-	 an existing array. I.e. you can extract sub-arrays
-	 similar to interpreted languages like python or MATLAB. 
-	 
-	 See \ref slicedesc for the format of the slice string.
-
-	 \param a the array
-	 \param slicedesc the description of the slice as described in \ref slicedesc
-	 \return a freshly allocated array containing the slice
- */
-Array* array_slice( const Array *a, const char *slicedesc ){
-  Array *b;
-  char *desc, *tmp, *cptr1, *cptr2, *orgdesc;
-  uint *size, **ind;
+/**\cond PRIVATE */
+/* helper for slicing */
+void parse_slicedesc( const Array *a, const char *slicedesc, uint *size, uint **ind ){ 
   int i,j;
-  desc = strdup( slicedesc );
-  tmp = strdup( slicedesc );
+  char *desc, *cptr1, *cptr2, *orgdesc;
 
-  if( strcount( desc, ',' )!=a->ndim-1 ){
-	 errprintf("Slice Description does not contain enough dimensions (need %i)\n",a->ndim );
-	 return NULL;
-  }
-  MALLOC( size, a->ndim, uint );
-  MALLOC( ind,  a->ndim, uint*);
-  
-  /* parse description */
+  desc = strdup( slicedesc );
+
   orgdesc=desc;
   for( i=0; i<a->ndim; i++ ){
 	 cptr1=strchr( desc, ',' );
 	 if( cptr1 )
 		*cptr1='\0';
-	 strcpy( tmp, desc );
 	 if( strchr( desc,':' ) ){ /* keep dimension */
 		size[i] = a->size[i];
 		MALLOC( ind[i], size[i], uint );
@@ -117,6 +163,36 @@ Array* array_slice( const Array *a, const char *slicedesc ){
 	 }
 	 desc=cptr1+1;
   }
+  free( orgdesc );
+}
+/**\endcond */
+
+/** \brief Extract sub-arrays from array.
+
+	 This is a function for creating array slices from
+	 an existing array. I.e. you can extract sub-arrays
+	 similar to interpreted languages like python or MATLAB. 
+	 
+	 See \ref slicedesc for the format of the slice string.
+
+	 \param a the array
+	 \param slicedesc the description of the slice as described in \ref slicedesc
+	 \return a freshly allocated array containing the slice
+ */
+Array* array_slice( const Array *a, const char *slicedesc ){
+  Array *b;
+  uint *size, **ind;
+  int i;
+
+  if( strcount( slicedesc, ',' )!=a->ndim-1 ){
+	 errprintf("Slice Description does not contain enough dimensions (need %i)\n",a->ndim );
+	 return NULL;
+  }
+  MALLOC( size, a->ndim, uint );
+  MALLOC( ind,  a->ndim, uint*);
+
+  /* parse description */
+  parse_slicedesc( a, slicedesc, size, ind );
 
   /* prepare array slice */
   long bufn=0;
@@ -134,11 +210,12 @@ Array* array_slice( const Array *a, const char *slicedesc ){
 				  bufn, b->nbytes );
   }
 
+  /* remove 1-element dimensions */
+  array_dimred( b );
+
   /* cleaning up */
   free( nbelow );
   free( size );
-  free( orgdesc );
-  free( tmp );
   for( i=0; i<a->ndim; i++ ){
 	 free( ind[i] );
   }
@@ -155,13 +232,14 @@ void dump_data( FILE *out, DType dt, uint dtsize, uint nd, uint nel, void *data,
   if( nel<=0 || nel>=*size )
 	 len=*size;
   if( nd==1 ){ /* base case */
+	 fprintf( out, "[ ");
 	 for( i=0; i<len; i++ ){
 		array_DTYPEPRINT( out, dt, data+i*dtsize );
 		fprintf( out, ", " );
 	 }
 	 if( len<*size )
 		fprintf( out, "... " );
-	 fprintf( out, "\n" );
+	 fprintf( out, "]\n" );
   } else { /* recurse */
 	 fprintf( out, "[ " );
 	 for( i=0; i<len; i++ ){
@@ -190,7 +268,7 @@ void array_print( Array *a, uint nel_per_dim, FILE *out ){
   for( i=1; i<a->ndim; i++ ){
 	 nbelow[i] = nbelow[i-1]/a->size[i-1];
   }
-  char *dt;
+  char *dt=NULL;
   array_DTYPESTRING(dt, a->dtype)
   fprintf( out, "array(%s):", dt );
   dump_data( out, a->dtype, a->dtype_size, a->ndim, nel_per_dim, a->data, a->size, nbelow+1 );
@@ -274,13 +352,14 @@ void*  array_index2( const Array *a, ... ){
 	 \param dims number of elements in each of the dimensions
 	 \return array
 */
-Array *array_new ( DType dtype, uint ndim, uint *dims ){
+Array *array_new ( DType dtype, uint ndim, const uint *dims ){
   Array *a; 
   int i;
   MALLOC( a, 1, Array );
   a->dtype=dtype;
   array_SIZEOF_DTYPE( a->dtype_size, dtype );
   a->ndim=ndim;  
+  a->free_data=TRUE;
   MALLOC( a->size, ndim, uint );
 
   /* get size of dimensions */
@@ -343,48 +422,125 @@ Array *array_new2( DType dtype, uint ndim, ... ){
 Array *array_new_dummy( DType dtype, uint ndim, ... ){
   va_list ap;
   Array *a;
-  int n;
-  a = array_new2( dtype, ndim, ap );
-  n = a->nbytes/a->dtype_size;
+  long i;
+  int n; 
+  uint *size;
+  MALLOC( size, ndim, uint );
   
+  /* get size of dimensions */
+  va_start (ap, ndim ); 
+  for( i=0; i<ndim; i++ ){
+	 size[i] = (uint)va_arg( ap, uint );
+  }
+  va_end (ap);                  /* Clean up. */
+
+  a = array_new( dtype, ndim, size );
+  n = a->nbytes/a->dtype_size;
+  for( i=0; i<n; i++ ){
+	 array_MEMSET( a->data+i*a->dtype_size, a->dtype, i );
+  }
+
+  free( size );
   return a;
 }
 
 /** \brief Initialize new array struct. 
 
 	 Memory for the data is not allocated 
-	 but set to data. \warning the moment you call that function,
-	 the array takes over the responsibility for the memory. I.e. if
-	 you call array_free() it is free'd.
+	 but set to data. 
+	 \warning the  array does NOT take over the responsibility 
+	 for the memory. I.e. if you call array_free() it is NOT free'd.
+	 If you want this to happen, you need to set array->free_data 
+	 to TRUE.
 	 \param dtype the datatype of the array
 	 \param ndim number of dimensions
 	 \param data the data for the array
 	 \param ... the number of elements in each of the dimensions
 	 \return array
 */
-Array *array_fromptr( DType dtype, uint ndim, void *data, ... ){
+Array *array_fromptr2( DType dtype, uint ndim, void *data, ... ){
   va_list ap;
+  Array *a; 
+  int i;
+  uint *size; 
+  MALLOC( size, ndim, uint );
+
+  /* get size of dimensions */
+  va_start (ap, data ); 
+  for( i=0; i<ndim; i++ ){
+	 size[i] = (uint)va_arg( ap, uint );
+  }
+  va_end (ap);                  /* Clean up. */
+
+  a = array_fromptr( dtype, ndim, data, size );
+
+  free( size );
+
+  return a;
+}
+
+/** \brief Initialize new array struct. 
+
+	 Memory for the data is not allocated 
+	 but set to data. 
+	 \warning the  array does NOT take over the responsibility 
+	 for the memory. I.e. if you call array_free() it is NOT free'd.
+	 If you want this to happen, you need to set array->free_data 
+	 to TRUE.
+	 \param dtype the datatype of the array
+	 \param ndim number of dimensions
+	 \param data the data for the array
+	 \param ... the number of elements in each of the dimensions
+	 \return array
+*/
+Array *array_fromptr( DType dtype, uint ndim, void *data, const uint *size ){
   Array *a; 
   int i;
   MALLOC( a, 1, Array );
   a->dtype=dtype;
   array_SIZEOF_DTYPE( a->dtype_size, dtype );
   a->ndim=ndim;  
+  a->free_data=FALSE;
   MALLOC( a->size, ndim, uint );
 
   /* get size of dimensions */
   a->nbytes=1;
-  va_start (ap, data ); 
   for( i=0; i<ndim; i++ ){
-	 a->size[i] = (uint)va_arg( ap, uint );
+	 a->size[i] = size[i];
 	 a->nbytes *= a->size[i];
   }
   a->nbytes *= a->dtype_size;
-  va_end (ap);                  /* Clean up. */
   
   a->data = data;
 
   return a;
+}
+
+/** \brief cast memory of type dt in location mem to double.
+
+	 \param out output double
+	 \param mem the memory
+	 \param dt the DType of mem
+ */
+void   array_dtype_to_double( double *out, void *mem, DType dt ){
+  switch( dt ){
+  case CHAR:	
+	 *out = *((char*)mem);break;
+  case UINT:					
+	 *out = *((uint*)mem);break;
+  case INT:						
+	 *out = *((int*)mem);break;
+  case LONG:					
+	 *out = *((long*)mem);break;
+  case ULONG:					
+	 *out = *((ulong*)mem);break;
+  case FLOAT:						 
+	 *out = *((float*)mem);break;
+  case DOUBLE:					
+	 *out = *((double*)mem);break;
+  default:						
+	 warnprintf("Do not know this datatype: %i\n", dt );		
+  }
 }
 
 
@@ -393,7 +549,7 @@ Array *array_fromptr( DType dtype, uint ndim, void *data, ... ){
  */
 void  array_free( Array *a ){
   if( !a ) return;
-  if( a->data ) free( a->data );
+  if( a->free_data && a->data ) free( a->data );
   if( a->size ) free( a->size );
   free( a );
 }
