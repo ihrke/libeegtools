@@ -82,8 +82,9 @@ extern "C" {
 
   Array* matrix_get_col( Array *m, int col );
   Array* matrix_get_row( Array *m, int row, bool alloc );
-
-
+  
+  Array* matrix_mult( const Array *m1, const Array *m2 );
+  Array* matrix_transpose( Array *m, bool alloc );
 
   Array* matrix_mean( Array *a, int dim );
   Array* matrix_pca( Array *X, Array **var, bool alloc );

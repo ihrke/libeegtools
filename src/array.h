@@ -151,6 +151,7 @@ Examples:
 # define ARRAY_H
 
 #include "definitions.h"
+#include "mathadd.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -289,21 +290,21 @@ extern "C" {
 	 \param i1,...,iN  the index for each of the dimensions
 */
 #define array_INDEX1( array, dtype, i1 )							\
-  (*((dtype*)( (array->data) +										\
-					((i1)*(array->dtype_size)) )))
+  (*((dtype*)( ((array)->data) +										\
+					((i1)*((array)->dtype_size)) )))
 /** \brief fast 2D array indexing typecasting to C-type.
 */
 #define array_INDEX2( array, dtype, i1, i2 )										\
-  (*((dtype*)( (array->data)+															\
-					((i1)*(array->size[1])*(array->dtype_size))+					\
-					((i2)*(array->dtype_size)) )))
+  (*((dtype*)( ((array)->data)+															\
+					((i1)*((array)->size[1])*((array)->dtype_size))+					\
+					((i2)*((array)->dtype_size)) )))
 /** \brief fast 3D array indexing typecasting to C-type.
 */
 #define array_INDEX3( array, dtype, i1, i2, i3 )								\
-  (*((dtype*)( (array->data)+															\
-					((i1)*(array->size[1])*(array->size[2])*(array->dtype_size))+ \
-					((i2)*(array->size[2])*(array->dtype_size))+					\
-					((i3)*(array->dtype_size)) )))
+  (*((dtype*)( ((array)->data)+															\
+					((i1)*((array)->size[1])*((array)->size[2])*((array)->dtype_size))+ \
+					((i2)*((array)->size[2])*((array)->dtype_size))+					\
+					((i3)*((array)->dtype_size)) )))
 
 /** \def array_INDEXMEM1( array, i1 )
 	 \brief fast 1D array indexing returning a void pointer.
@@ -323,21 +324,21 @@ extern "C" {
 	 \param i1,...,iN  the index for each of the dimensions
 */
 #define array_INDEXMEM1( array, i1 )									\
-  ( (array->data) +														\
-	 ((i1)*(array->dtype_size)) )
+  ( ((array)->data) +														\
+	 ((i1)*((array)->dtype_size)) )
 /** \brief fast 2D array indexing returning a void pointer.
 */
 #define array_INDEXMEM2( array, i1, i2 )											\
-  ( (array->data)+																		\
-	 ((i1)*(array->size[1])*(array->dtype_size))+								\
-	 ((i2)*(array->dtype_size)) )
+  ( ((array)->data)+																		\
+	 ((i1)*((array)->size[1])*((array)->dtype_size))+								\
+	 ((i2)*((array)->dtype_size)) )
 /** \brief fast 3D array indexing returning a void pointer.
 */
 #define array_INDEXMEM3( array, i1, i2, i3 )										\
-  ( (array->data)+																		\
-	 ((i1)*(array->size[1])*(array->size[2])*(array->dtype_size))+			\
-	 ((i2)*(array->size[2])*(array->dtype_size))+								\
-	 ((i3)*(array->dtype_size)) )
+  ( ((array)->data)+																		\
+	 ((i1)*((array)->size[1])*((array)->size[2])*((array)->dtype_size))+			\
+	 ((i2)*((array)->size[2])*((array)->dtype_size))+								\
+	 ((i3)*((array)->dtype_size)) )
 
 
   /** \brief Data-types for Array struct. */

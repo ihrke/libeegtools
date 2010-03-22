@@ -133,7 +133,12 @@ Array* matrix_get_row( Array *m, int row, bool alloc ){
   Array *rowvec;
   bool ismatrix;
   matrix_CHECK( ismatrix, m );
-  if( !ismatrix ) return NULL;
+  if( !ismatrix ) return NULL;  
+  if( row<0 || row>=m->size[0] ){
+	 errprintf("Index out of bounds: %i/%i\n", row, m->size[0] );
+	 return NULL;
+  }
+
   if( !alloc ){
 	 rowvec = array_fromptr2( DOUBLE, 1, array_INDEXMEM2( m, row, 0 ), 
 									  m->size[1] );
@@ -165,6 +170,10 @@ Array* matrix_get_col( Array *m, int col ){
   bool ismatrix;
   matrix_CHECK( ismatrix, m );
   if( !ismatrix ) return NULL;
+  if( col<0 || col>=m->size[1] ){
+	 errprintf("Index out of bounds: %i/%i\n", col, m->size[1] );
+	 return NULL;
+  }
   colvec = array_new2( DOUBLE, 1, m->size[0] );
   for( i=0; i<m->size[0]; i++ ){
 	 array_INDEX1( colvec, double, i )=array_INDEX2(m, double, i, col );
@@ -176,11 +185,67 @@ Array* matrix_get_col( Array *m, int col ){
 
 	 m1 and m2 must be matrices such that m1->size[1]==m2->size[0].
 	 \param m1,m2 the matrices
-	 \param alloc if TRUE, m1 is left untouched and a new Array is returned;
-	         otherwise, m1 is overwritten
+	 \return new matrix of size m1->size[1], m2->size[0]
  */
-Array* matrix_mult( Array *m1, const Array *m2, bool alloc ){
+Array* matrix_mult( const Array *m1, const Array *m2 ){
+  Array *out=NULL;
+  int i,j,k;
+  bool ismatrix;
+  matrix_CHECK( ismatrix, m1 ); if( !ismatrix ) return NULL;
+  matrix_CHECK( ismatrix, m2 ); if( !ismatrix ) return NULL;
+  if( m1->size[1] != m2->size[0] ){
+	 errprintf("Mismatch in size, cannot calculate matrix product: %i!=%i\n",
+				  m1->size[1], m2->size[0] );
+	 return NULL;
+  }
+
+  out = array_new2( DOUBLE, 2, m1->size[0], m2->size[1] );
+
+  double *field;
+  for( i=0; i<out->size[0]; i++ ){
+	 for( j=0; j<out->size[1]; j++ ){
+		field=(double*)array_INDEXMEM2( out, i, j );
+		*field=0.0;
+		for( k=0; k<m1->size[1]; k++ ){
+		  *field += array_INDEX2( m1, double, i, k )*
+			 array_INDEX2( m2, double, k, j );
+		}
+	 }
+  }
   
+  return out;
+}
+/** \brief Matrix transpose.
+	 
+	 \todo implement a faster way
+
+	 \param m matrix
+	 \param alloc if TRUE, return a new matrix that is the transpose of m;
+	       else do in-place transpose
+ */
+Array* matrix_transpose( Array *m, bool alloc ){
+  int i,j;
+  bool ismatrix;
+  matrix_CHECK( ismatrix, m );
+  if( !ismatrix ) return NULL;
+
+  Array *out;
+  out = array_new2( DOUBLE, 2, m->size[1], m->size[0] );
+  for( i=0; i<m->size[0]; i++ ){
+	 for( j=0; j<m->size[1]; j++ ){
+		array_INDEX2( out, double, j,i) = array_INDEX2( m, double, i,j);
+	 }
+  }
+  if( !alloc ){
+	 memcpy( m->data, out->data, out->nbytes );
+	 array_free( out );
+	 out = m;
+	 double tmp=out->size[0];
+	 out->size[0]=out->size[1];
+	 out->size[1]=tmp;
+  }
+  
+  return out;
 }
 
 /** \brief Principal Components analysis.
@@ -210,24 +275,21 @@ Array* matrix_pca( Array *X, Array **var, bool alloc ){
   int N,K; /* N observations, K variables */
   N = X->size[0];
   K = X->size[1];
-  if( !alloc ){
-	 out = X;
-  } else {
-	 out = array_copy( X, TRUE );
-  }
 
+  Array *tmp = array_copy( X, TRUE );
 
   /* subtract mean from observations */
   Array *mean=matrix_mean( X, 0 ); 
   for( i=0; i<N; i++ ){ 
 	 for( j=0; j<K; j++ ){
-		array_INDEX2( out, double, i, j ) -=
+		array_INDEX2( tmp, double, i, j ) -=
 		  array_INDEX1( mean, double, j );
 	 }
   }
-  array_scale( out, sqrt( (double)(N-1) ) );
 
-  gsl_matrix *A=matrix_to_gsl( out, TRUE ); /* copy */
+  array_scale( tmp, 1.0/sqrt((double) N-1 ) );
+
+  gsl_matrix *A=matrix_to_gsl( tmp, TRUE ); /* copy */
   gsl_matrix *V=gsl_matrix_alloc( K, K );
   gsl_vector *S=gsl_vector_alloc( K );
   gsl_vector *workspace=gsl_vector_alloc( K );
@@ -236,8 +298,30 @@ Array* matrix_pca( Array *X, Array **var, bool alloc ){
   gsl_linalg_SV_decomp( A, V, S, workspace);
   gsl_matrix_transpose( V );
 
-  
-  
+  if( var ){
+	 (*var)=array_fromptr2( DOUBLE, 1, S->data, S->size );
+	 S->owner=0; /* transfer ownership to array */
+	 (*var)->free_data=1;
+	 for( i=0; i<array_NUMEL( *var ); i++ ){ 
+		array_INDEX1( *var, double, i ) = SQR( array_INDEX1( *var, double, i ) );
+	 }
+  }
+
+  Array *Vp=array_fromptr2( DOUBLE, 2, V->data, V->size1, V->size2 );
+  matrix_transpose( tmp, FALSE );
+  out=matrix_mult( Vp, tmp ); /* PCA'd data */
+  matrix_transpose( out, FALSE );
+
+  if( out->size[0]!=X->size[0] || out->size[1]!=X->size[1] ){
+	 errprintf("Input/Output dimension mismatch: (%i,%i) vs. (%i,%i)\n",
+				  X->size[0], X->size[1], out->size[0], out->size[1] );
+  }
+
+  if( !alloc ){ /* write back out->X */
+	 memcpy( X->data, out->data, out->nbytes );
+	 array_free( out );
+	 out = X;
+  }
 
   /* clean up */
   gsl_matrix_free( A );
@@ -245,6 +329,8 @@ Array* matrix_pca( Array *X, Array **var, bool alloc ){
   gsl_vector_free( S );
   gsl_vector_free( workspace );
   array_free( mean );
+  array_free( Vp );
+  array_free( tmp );
 
   return out;
 }
