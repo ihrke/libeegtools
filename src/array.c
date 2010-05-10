@@ -22,8 +22,60 @@
 #include "helper.h" 
 #include <stdarg.h> 
 #include <string.h>
+#include <gsl/gsl_rng.h>
+#include <time.h>
+   
+/** \brief Reverse order of elements in a (in-place).
+	 
+	 Dimensionality is not considered. I.e., the function
+	 loops over all elements such as they are stored in memory.
+	 
+	 \param a the array
+*/
+void   array_reverse( Array *a ){
+  int i;
+  void *loc1,*loc2;
+  int n = array_NUMEL(a);
+  void *tmp;
+  tmp = malloc( a->dtype_size );
+  for( i=0; i<n/2; i++ ){
+	 loc1=array_INDEXMEM1( a, i );
+	 loc2=array_INDEXMEM1( a, n-i-1 );
+	 memcpy( tmp, loc1, a->dtype_size );
+	 memcpy( loc1, loc2, a->dtype_size );
+	 memcpy( loc2, tmp, a->dtype_size );
+  }
+  free( tmp );
+}
 
+/** \brief Compare two array's dimensions and datatype.
 
+	 \param a,b the two arrays to be tested
+	 \return TRUE if both arrays have same dimensionality, FALSE otherwise.
+*/
+bool array_comparable( const Array *a, const Array *b ){
+  int i;
+  if( a->dtype!=b->dtype ){															
+	 char *dts1="", *dts2="";															
+	 array_DTYPESTRING( dts1, a->dtype );											
+	 array_DTYPESTRING( dts2, b->dtype );											
+	 errprintf("arrays do not have the same datatype: '%s' vs. '%s'\n", dts1, dts2 ); 
+	 return FALSE;
+  } 
+  if( a->ndim != b->ndim ){													
+	 errprintf("arrays do not have the same dimensionality, %i vs. %i\n", a->ndim, b->ndim ); 
+	 return FALSE;
+  } 
+  for( i=0; i<a->ndim; i++ ){
+	 if( a->size[i] != b->size[i] ){
+		errprintf("Arrays differ in dimension %i: %i vs. %i elements\n",
+					 i,  a->size[i], b->size[i] );
+		return FALSE;
+	 }
+  }
+  return TRUE;
+}
+  
 /** \brief makes a copy of an array.
 
 	 The flag allocdata determines, whether the memory is copied. 
@@ -409,6 +461,70 @@ Array *array_new2( DType dtype, uint ndim, ... ){
   free( size );
   return a;
 }
+
+/** \brief create array that is filled with random values 
+	     from [0, ..., 1].
+	 
+	 Mainly used for debugging stuff.
+	 \param seed to use for the random numbers; if seed=0, the current
+	        time is used
+	 \param ndim number of dimensions
+	 \param ... the number of elements in each of the dimensions
+	 \return array
+*/
+Array *array_randunif( unsigned long seed, uint ndim, ... ){
+  va_list ap;
+  Array *a;
+  long i;
+  int n; 
+  uint *size;
+  MALLOC( size, ndim, uint );
+  
+  /* get size of dimensions */
+  va_start (ap, ndim ); 
+  for( i=0; i<ndim; i++ ){
+	 size[i] = (uint)va_arg( ap, uint );
+  }
+  va_end (ap);                  /* Clean up. */
+
+  const gsl_rng_type * T;
+  gsl_rng * r;
+  gsl_rng_env_setup();
+  T = gsl_rng_default;
+  r = gsl_rng_alloc (T);
+  if( seed==0 )
+	 seed=(unsigned long)time(NULL);
+  gsl_rng_set (r, seed );
+  a = array_new( DOUBLE, ndim, size );
+  n = a->nbytes/a->dtype_size;
+  for( i=0; i<n; i++ ){
+	 array_INDEX1( a, double, i )= gsl_rng_uniform (r);
+  }
+     
+  gsl_rng_free (r);
+  free( size );
+  return a;
+}
+
+/** \brief shuffle the entries of an array.
+	 \param a the array (arbitrary type and dimensionality)
+	 \param seed if 0, use time(NULL), else the seed
+ */
+void   array_shuffle( Array *a, unsigned long seed ){
+  const gsl_rng_type * T;
+  gsl_rng * r;
+  gsl_rng_env_setup();
+  T = gsl_rng_default;
+  r = gsl_rng_alloc (T);
+  if( seed==0 )
+	 seed=(unsigned long)time(NULL);
+  gsl_rng_set (r, seed );
+
+  gsl_ran_shuffle( r, a->data, array_NUMEL(a), a->dtype_size );
+
+  gsl_rng_free (r);
+}
+
 
 /** \brief create array that is filled with values from 
 	        1 to n over all dimensions.

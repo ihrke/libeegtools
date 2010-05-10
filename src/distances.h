@@ -23,6 +23,8 @@
  */
 #ifndef DISTANCES_H
 # define DISTANCES_H
+#include "array.h"
+#include "linalg.h"
 #include "clustering.h"
 #include "definitions.h"
 #include "recurrence_plot.h"
@@ -32,28 +34,11 @@
 extern "C" {
 #endif
 
-  /**\addtogroup signaldist
-	  These functions (signaldist_*()) calculate pointwise differences
-	  between individual points in the signals, returning the matrix
-	  \f[
-	  d(t_1, t_2) = ||s_1(t_1) - s_2(t2)||
-	  \f]
-	  for two signals \f$ s_1(t), s_2(t)\f$ and some metric \f$||\cdot ||\f$.
-	*\{
-	*/  
-  double** signaldist_euclidean( double *s1, int n1, double *s2, int n2, 
-											double **d, 
-											OptArgList *optargs );
-  double** signaldist_euclidean_derivative( double *s1, int n1, double *s2, int n2, 
-														  double **d, 
-														  OptArgList *optargs );
-  double** signaldist_stft( double *s1, int n1, double *s2, int n2, 
-									 double **d, 
+  Array* distmatrix_signaldist( VectorDistanceFunction f, const Array *s1,
+										  const Array *s2, Array *out, OptArgList *optargs );
+  Array* matrix_distmatrix( VectorDistanceFunction f, 
+									 const Array *X, Array *D, 
 									 OptArgList *optargs );
-  double** signaldist_recplot_los( double *s1, int n1, double *s2, int n2, 
-											  double **d, 
-											  OptArgList *optargs );
-  /*\}*/
 
   /** \addtogroup vectordist 
 		These distances (functions starting with vectordist_*()) are between 
@@ -90,13 +75,6 @@ extern "C" {
   double   pathdist_euclidean_dt(WarpPath *p1, WarpPath *p2); 
   /** \} */
 
-  /** \addtogroup pointdist 
-		These distances (functions starting with pointdist_*()) are between 
-		two numbers.
-		\{
-  */  
-  double   pointdist_euclidean(double x, double y); 
-  /** \} */
 
   /** \addtogroup otherdist
 		Other distance functions.
@@ -105,6 +83,35 @@ extern "C" {
   double   dist_point_line(double *p, double *x, double *y); 
   /** \} */
   
+
+  /***********************************************************
+    GOING TO BE OBSOLETE 
+  ***********************************************************/
+  
+  /**\addtogroup signaldist GOING TO BE OBSOLETE
+	  These functions (signaldist_*()) calculate pointwise differences
+	  between individual points in the signals, returning the matrix
+	  \f[
+	  d(t_1, t_2) = ||s_1(t_1) - s_2(t2)||
+	  \f]
+	  for two signals \f$ s_1(t), s_2(t)\f$ and some metric \f$||\cdot ||\f$.
+	*\{
+	*/  
+  double** signaldist_euclidean( double *s1, int n1, double *s2, int n2, 
+											double **d, 
+											OptArgList *optargs );
+  double** signaldist_euclidean_derivative( double *s1, int n1, double *s2, int n2, 
+														  double **d, 
+														  OptArgList *optargs );
+  double** signaldist_stft( double *s1, int n1, double *s2, int n2, 
+									 double **d, 
+									 OptArgList *optargs );
+  double** signaldist_recplot_los( double *s1, int n1, double *s2, int n2, 
+											  double **d, 
+											  OptArgList *optargs );
+  /*\}*/
+
+ 
 #ifdef __cplusplus
 }
 #endif

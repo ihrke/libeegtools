@@ -43,13 +43,9 @@ extern "C" {
   /**\addtogroup recplots
 	*\{
 	*/ 
-  
-  RecurrencePlot* recplot_init     ( int m, int n, double epsilon, int flags );
-  void            recplot_free     ( RecurrencePlot *R );
-  void            recplot_print    ( FILE *out, RecurrencePlot *R );
-
-  void            recplot_calculate( RecurrencePlot *R, 
-												 PhaseSpace *p1, PhaseSpace *p2 );
+  Array* recplot( const Array *s1, const Array *s2, Array *out, double epsilon, 
+						OptArgList *optargs );
+  double* recplot_calculate_epsilons( Array *s1, Array *s2, double *eps, int fan );
   /**\addtogroup los
 	*\{
 	*/
@@ -62,6 +58,15 @@ extern "C" {
 
   /*\}*/
   
+  /**********************************************************************/
+  /**********************************************************************/
+
+  RecurrencePlot* recplot_init     ( int m, int n, double epsilon, int flags );
+  void            recplot_free     ( RecurrencePlot *R );
+  void            recplot_print    ( FILE *out, RecurrencePlot *R );
+
+  void            recplot_calculate( RecurrencePlot *R, 
+												 PhaseSpace *p1, PhaseSpace *p2 );
 #ifdef __cplusplus
 }
 #endif

@@ -56,12 +56,32 @@
 #include "definitions.h"
 #include <stdarg.h>
 
+#define NO_OPTARGS NULL
+
 #ifdef __cplusplus
 extern "C" {
 #endif
   /**\ingroup list
 	*\{
 	*/ 
+
+
+  /** \brief Check and assign a scalar from OptArgList.
+		Suppose you got optargs in a function and want to 
+		check for variable "seed" of type "unsigned long",
+		\code
+		double x; // tmp 
+		unsigned long seed;
+		optarg_PARSE_SCALAR( optargs, "seed", seed, unsigned long, x );
+		\endcode
+	*/
+#define optarg_PARSE_SCALAR( opts, label, var, type, tmp )	\
+  if( optarglist_has_key( (opts), (label) ) ){					\
+	 (tmp) = optarglist_scalar_by_key( (opts), (label) );		\
+	 if( !isnan( (tmp) ) ) var=(type)(tmp);						\
+  }
+
+
   /* ------------ List -------------- */
   struct list {
     void *content;
@@ -78,7 +98,7 @@ extern "C" {
 	*/ 
   OptArgList* optarglist( char *format, ... );
 
-  bool     optarglist_has_key( OptArgList *list, const char *key );
+  bool        optarglist_has_key( OptArgList *list, const char *key );
 
   double      optarglist_scalar_by_key( OptArgList *list, const char *key );
   void*       optarglist_ptr_by_key   ( OptArgList *list, const char *key );

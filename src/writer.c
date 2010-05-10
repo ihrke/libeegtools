@@ -1,6 +1,7 @@
 #include "writer.h"
 #include "eeg.h"
 #include "optarg.h"
+#include "linalg.h"
 #include <math.h>
 
 #ifdef MATIO
@@ -26,6 +27,73 @@ int write_eeglab_file( EEG* eeg, const char *file ){
   Mat_VarWrite( mfile, meeg, 0 );
   return 0;
 }
+
+/** \brief save Array-struct as MATLAB .mat file.
+
+	 \todo Currently works only for double-arrays. Should be 
+	      easy to implement for arbitrary types if needed.
+	\todo Currently only for 2D-arrays. Sadly, MATLAB uses column-major
+	     storage, so we need a m-dimensional transpose function
+        for converting our data* to the MATLAB data*.
+
+	 \param a the Array
+	 \param varname MATLAB-name of the array
+	 \param file the filename
+	 \param append if TRUE, the function tries to open() the file, else it is overwritten
+	 \return error code
+ */
+int write_matrix_matlab( const Array *a, const char *varname, const char *file, bool append ){
+  mat_t *mfile;
+  matvar_t *marr=NULL;
+  int i;
+  
+  bool ismatrix;
+  matrix_CHECK( ismatrix, a );
+  if(!ismatrix) return -1;
+
+  if( append ){
+	 if( !(mfile=Mat_Open( file, MAT_ACC_RDWR )) ){
+		errprintf("Could not open '%s', creating new file\n", file);
+	 } 
+  }
+  
+  if( !mfile ){
+	 if( !(mfile=Mat_Create( file, NULL )) ){
+		errprintf("Could not open '%s' for writing\n", file);
+		return -1;
+	 }
+  }
+
+  int ndim = 2; //MAX(2, a->ndim);
+  int *size = (int*)malloc( ndim*sizeof(int));
+  if( a->ndim==1 ){
+	 size[0]=1;
+	 size[1]=a->ndim;
+  } else {
+	 memcpy( size, a->size, ndim*sizeof(int));
+  }
+  dprintf("Writing to file '%s' variable '%s', ndim=%i\n", file, varname, ndim);
+#ifdef DEBUG
+  dblp_print_int( size, ndim );
+#endif 
+
+  Array *b=matrix_transpose( (Array*)a, TRUE );
+  marr = Mat_VarCreate( varname, MAT_C_DOUBLE, MAT_T_DOUBLE, 
+								ndim, size, b->data, MEM_CONSERVE /* Array remains owner */
+								);
+  
+  dprintf("mfile=%p, marr=%p\n", mfile, marr );
+  int succ=Mat_VarWrite( mfile, marr, 0 );
+  dprintf("done writing with succ=%i\n", succ);
+
+  Mat_Close( mfile );
+  Mat_VarFree( marr );
+  array_free( b );
+  free( size );
+
+  return 0;
+}
+
 #endif //MATIO
 
 

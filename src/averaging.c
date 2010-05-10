@@ -22,7 +22,57 @@
 	\copydoc averaging.h
  */
 #include "averaging.h"
+#include "clustering.h"
 #include "eeg.h"
+
+Array* average_example( const Array *data, uint idx[2], double weights[2], OptArgList *optargs ){
+}
+
+/** \brief Calculate a hierarchical average based on a cluster-analysis.
+	 
+	 The data is average based on the first dimension of the data.
+	 I.e., the output is C x n dimensional.
+
+	 A cluster analysis is carried out using the distance-matrix and the 
+	 resulting dendrogram is followed to average two trials at a time:
+
+	 \image html dendrogram.jpg
+
+	 The averaging uses a callback-function to calculate the average of two signals
+	 at a time. This function must be passed by the use of a SignalAverageFunction .
+
+	 \param data 2D or 3D double-array containing: 
+	      - N trials (dimension 1)
+			- of dimensionality C (dimension 2); e.g. channels
+			- and n time-points (dimension 3)
+			if the data is 2D, we assume C=1			
+	\param distmat a distance matrix (N x N) given distances between trials in data
+	\param avgfct a callback-function to calculate the average of two Cxn signals at a time
+	\param optargs may contain:
+  	 - <b>Directly used by this function:</b>
+	 - <tt>linkage=void*</tt> rule for building the dendrogram, default=\c dgram_dist_completelinkage
+	 - <tt>progress=void*</tt> progress-bar function, called every now and then.
+	 - <b>You might want to pass additional optargs for the SignalAverageFunction and the 
+	   linkage function</b>
+	 \return pointer to final average (Cxn)
+ */
+Array* hierarchical_average( const Array *data, const Array *distmat, 
+									  SignalAverageFunction avgfct, OptArgList *optargs ){
+#if 0
+  Dendrogram *T, *Tsub; 
+  ProgressBarFunction progress=NULL;  
+  LinkageFunction linkage=dgram_dist_completelinkage;
+  void *ptr;
+  if( optarglist_has_key( optargs, "linkage" ) ){
+	 ptr = optarglist_ptr_by_key( optargs, "linkage" );
+	 if( ptr ) linkage = (LinkageFunction)ptr;
+  }
+  /* build hierarchical dendrogram */
+  T = agglomerative_clustering( (const double**)distmatrix, eeg->ntrials, linkage );
+#endif
+}
+
+
 
 /** Calculate a simple, pointwise average across trials
 	 \f[
@@ -47,7 +97,7 @@ EEG*     eeg_simple_average( const EEG *eeg ){
   }
   eeg_append_comment( out, "output from eegtrials_simple_average()\n" );
   for( c=0; c<eeg->nbchan; c++ ){
-	 out->data[c][0] = simple_average_nv( (const double**)eeg->data[c], eeg->ntrials, eeg->n, out->data[c][0] );
+	 /* TODO */
   }
   return out;
 }
@@ -80,83 +130,4 @@ EEG*     eeg_average_channels( const EEG *eeg ){
 	 }
   }
   return out;
-}
-
-/** Calculate alternate average of n vectors
-	 \f[
-	 \hat{s}(t) = \frac{1}{N}\sum_{i=1}^{N} (-1)^{i-1}s_i(t)
-	 \f]
-	 \param eeg input
-	 \return freshly allocate EEG-struct
- */
-EEG*     eeg_alternate_average( const EEG *eeg ){
-  EEG *out;
-  int c;
-
-  out = eeg_init( eeg->nbchan, 1, eeg->n ); /* the average */
-  eeg_append_comment( out, "output from eegtrials_simple_average()\n" );
-  for( c=0; c<eeg->nbchan; c++ ){
-	 out->data[c][0] = alternate_average_nv( (const double**)eeg->data[c], eeg->ntrials, eeg->n, out->data[c][0] );
-  }
-  return out;
-}
-
-
-/** Calculate a simple, pointwise average of two vectors. 
-	 \f[ \hat{s}(t) = \frac{(s_1(t)+s_2(t))}{2} \f]
-	 \param avg - user-allocated memory of length n; if NULL, the function 
-	              allocates the memory
- */
-double* simple_average_2v(const double *s1, const double *s2, int n, double *avg){
-  int i;
-  if(!avg)
-    avg = (double*)malloc(n*sizeof(double));
-  for(i=0; i<n; i++)
-    avg[i] = (s1[i]+s2[i])/2.0;
-  return avg;
-}
-
-/** Calculate a simple, pointwise average of n vectors
-	 \f[
-	 \hat{s}(t) = \frac{1}{N}\sum_{i=1}^{N}s_i(t)
-	 \f]
-	 \param s - data N x n (trials x samples)
-	 \param N trials
-	 \param n samples
- * \param avg - user-allocated memory of length n; if NULL, the function 
- *              allocates the memory
- */
-double* simple_average_nv(const double **s, int N, int n, double *avg){
-  int i, j;
-  if(!avg)
-    avg = (double*)malloc(n*sizeof(double));
-  for(i=0; i<n; i++) {
-	 avg[i] = 0;
-	 for( j=0; j<N; j++ ){
-		avg[i] += s[j][i];
-	 }
-	 avg[i] /= (double) N;
-  }
-  return avg;
-}
-
-/** Calculate alternate average of n vectors
-	 \f[
-	 \hat{s}(t) = \frac{1}{N}\sum_{i=1}^{N} (-1)^{i-1}s_i(t)
-	 \f]
- * \param avg - user-allocated memory of length n; if NULL, the function 
- *              allocates the memory
- */
-double* alternate_average_nv(const double **s, int N, int n, double *avg){
-  int i, j;
-  if(!avg)
-    avg = (double*)malloc(n*sizeof(double));
-  for(i=0; i<n; i++) {
-	 avg[i] = 0;
-	 for( j=0; j<N; j++ ){
-		avg[i] += pow(-1, j-1)*s[i][j];
-	 }
-	 avg[i] /= (double) N;
-  }
-  return avg;
 }

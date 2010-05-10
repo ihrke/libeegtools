@@ -340,7 +340,6 @@ extern "C" {
 	 ((i2)*((array)->size[2])*((array)->dtype_size))+								\
 	 ((i3)*((array)->dtype_size)) )
 
-
   /** \brief Data-types for Array struct. */
   typedef enum {
 	 CHAR,
@@ -351,16 +350,6 @@ extern "C" {
 	 FLOAT,
 	 DOUBLE
   } DType;
-
-  typedef union {
-	 char   tchar;
-	 uint   tuint;
-	 int    tint;
-	 long   tlong;
-	 ulong  tulong;
-	 float  tfloat;
-	 double tdouble;
-  } GenericDType;
 
   /** \brief Numerical Array struct. */
   typedef struct {
@@ -379,15 +368,20 @@ extern "C" {
   Array *array_fromptr ( DType dtype, uint ndim, void *data, const uint *size );
   Array *array_fromptr2( DType dtype, uint ndim, void *data, ... );
   Array *array_new_dummy( DType dtype, uint ndim, ... );
+  Array *array_randunif( unsigned long seed, uint ndim, ... );
+  bool   array_comparable( const Array *a, const Array *b );
   Array* array_copy( const Array *in, bool allocdata );
   void   array_free( Array *a );
 
-  
+  void   array_shuffle( Array *a, unsigned long seed );
+
   void*  array_index ( const Array *a, uint *idx );
   void*  array_index2( const Array *a, ... );
   Array* array_slice ( const Array *a, const char *slicedesc );
 
   int    array_scale (Array * a, double x);
+
+  void   array_reverse( Array *a );
 
   int    array_dimred( Array *a );
 

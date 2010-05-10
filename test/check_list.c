@@ -93,6 +93,28 @@ START_TEST (test_optarg_append)
 }
 END_TEST
 
+START_TEST (test_parse_scalar)
+{
+  OptArgList *opts=optarglist( "test=long,"
+										 "test2=void*", (long)6, NULL );
+  long test=0;
+  double x;
+  optarg_PARSE_SCALAR( opts, "test", test, long, x );
+  fail_if( test!=6 );
+  test = 0;
+  optarg_PARSE_SCALAR( opts, "test3", test, long, x );
+  fail_if( test!=0 );  
+  optarg_PARSE_SCALAR( opts, "test2", test, long, x );
+  fail_if( test!=0 );
+}
+END_TEST
+
+/* template
+START_TEST (test_)
+{
+}
+END_TEST
+*/
 
 Suite * init_list_suite (void){
   Suite *s = suite_create ("List/Optarg-Functions");
@@ -101,6 +123,7 @@ Suite * init_list_suite (void){
   tcase_add_test (tc_core, test_optarg_init );
   tcase_add_test (tc_core, test_optarg_get_by_key );
   tcase_add_test (tc_core, test_optarg_append );
+  tcase_add_test (tc_core, test_parse_scalar);
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

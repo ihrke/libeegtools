@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include "array.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,6 +57,9 @@ extern "C" {
 #ifdef MATIO
   /* eeglab/matlab file writer functions if matio library is installed */
   int write_eeglab_file( EEG* eeg, const char *file );
+
+  int write_matrix_matlab( const Array *a, const char *varname, 
+									const char *file, bool append );
 #endif
 
 #ifdef __cplusplus

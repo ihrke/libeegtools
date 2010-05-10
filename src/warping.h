@@ -35,6 +35,25 @@
 extern "C" {
 #endif
 
+  /** \brief is w a warppath?
+		
+		Usage:
+		\code  
+		bool ispath;
+		warppath_CHECK( ispath, X );
+		if( !ispath ) return NULL;
+		\endcode
+		\param flag (output) (bool) set by macro
+		\param w (input) Array* to check
+  */
+#define warppath_CHECK( flag, w )													\
+  if(!( (w)->ndim==2 && (w)->dtype==UINT )){									\
+	 char *dts="";																		\
+	 array_DTYPESTRING( dts, w->dtype );										\
+	 errprintf("not a warppath, ndim=%i, dtype=%s\n", w->ndim, dts );	\
+	 flag=FALSE;																		\
+  } else { flag=TRUE; }																
+  
   /* ---------------------------------------------------------------------------- 
 	  -- Timewarping                                                            -- 
 	  ---------------------------------------------------------------------------- */
@@ -66,15 +85,11 @@ extern "C" {
 		using weights \f$\omega_1,\omega_2\f$. Here, you can use 
 		warp_add_signals_by_path().
 
-		\todo add a high-level interface where a dtw-struct is used
 		\{
 	*/
 
-  void       dtw_regularize_matrix( double **d, const double **R, int M, int N );
-  void       dtw_cumulate_matrix  ( double **d, int M, int N, OptArgList *opts );
-  /* void dtw_cumulate_matrix_chiba_band( double **d, int M, int N, double restriction );*/
-  WarpPath*  dtw_backtrack        ( const double **d, int M, int N, WarpPath *P );
-  
+  Array*  matrix_dtw_cumulate ( Array *mat, bool alloc, OptArgList *optargs );
+  Array*  matrix_dtw_backtrack ( const Array *d );
 
   /** \} */
   
@@ -110,22 +125,29 @@ extern "C" {
   /** \} */
   
 
-  /** \addtogroup structwarppath
-		These are convenience functions for handling the WarpPath struct.
-		\{
-  */
-  WarpPath* init_warppath ( WarpPath *path, int n1, int n2 );
-  void      free_warppath ( WarpPath *p );
-  void      reset_warppath( WarpPath *P, int n1, int n2 );  
-  void      print_warppath( FILE *out, WarpPath *P );
-  /** \} */
-
   /** \addtogroup otherwarp
 	*\{
 	*/  
   EEG* eeg_gibbons( EEG *eeg, int stimulus_marker, int response_marker, double k );
   /** \} */
 
+  /******************************************************************/
+  /** GOING TO BE OBSOLETE */
+  /******************************************************************/
+
+  void       dtw_cumulate_matrix  ( double **d, int M, int N, OptArgList *opts );
+  /* void dtw_cumulate_matrix_chiba_band( double **d, int M, int N, double restriction );*/
+  WarpPath*  dtw_backtrack        ( const double **d, int M, int N, WarpPath *P );
+
+   /** \addtogroup structwarppath
+               These are convenience functions for handling the WarpPath struct.
+               \{
+   */
+   WarpPath* init_warppath ( WarpPath *path, int n1, int n2 );
+   void      free_warppath ( WarpPath *p );
+   void      reset_warppath( WarpPath *P, int n1, int n2 );
+   void      print_warppath( FILE *out, WarpPath *P );
+   /** \} */
 
 #ifdef __cplusplus
 }

@@ -20,33 +20,17 @@
 
 #include "warping.h"
 #include "optarg.h"
+#include "array.h"
+#include "linalg.h"
 #include "eeg.h"
-
-/** This function applies regularization matrix R to distance matrix
-	 d using
-	 \f[
-	 \hat{d}_{jk} = \mbox{max}(d_{jk}) - (  [\mbox{max}(d_{jk})-d_jk] \cdot R_{jk} )
-	 \f]
-	 \param d distance matrix 
-	 \param R regularization matrix
-	 \param M,N dimensions of d and R
- */
-void      dtw_regularize_matrix( double **d, const double **R, int M, int N ){
-  double maxdist;
-
-  maxdist = dblpp_max( (const double**)d, M, N, NULL, NULL );
-  scalar_minus_dblpp( maxdist, d, M, N );
-  dblpp_dottimes_dblpp( d, (const double**)R, M, N );
-  scalar_minus_dblpp( maxdist, d, M, N ); 
-}
-
 
 /** \cond PRIVATE
 
 	 apply slope constraint by using cumulation along different
 	 possible pathes. See Skaoe & Chiba, 1978.
 */
-double _slope_constraint( SlopeConstraint constraint, double **d, double **D, int i, int j ){
+
+double _slope_constraint( SlopeConstraint constraint, Array *d, Array *D, int i, int j ){
   double r;
 
   if( (i==0 || j==0) ){
@@ -54,39 +38,39 @@ double _slope_constraint( SlopeConstraint constraint, double **d, double **D, in
 	 return NAN;
   }
 
-  r = D[i-1][j-1] + 2*d[i][j];
+  r = mat_IDX( D, i-1, j-1 ) + 2*mat_IDX( d, i, j );
   switch( constraint ){
   case SLOPE_CONSTRAINT_NONE:
-	 r = MIN( r, D[i][j-1] + d[i][j] );
-	 r = MIN( r, D[i-1][j] + d[i][j] );
+	 r = MIN( r, mat_IDX( D, i, j-1) + mat_IDX( d, i, j ) );
+	 r = MIN( r, mat_IDX( D, i-1, j) + mat_IDX( d, i, j ) );
 	 break;
   case SLOPE_CONSTRAINT_LAX:
 	 if( j>=3 )
-		r = MIN( r, D[i-1][j-3] + 2*d[i][j-2] + d[i][j-1] + d[i][j] );
+		r = MIN( r, mat_IDX( D, i-1, j-3 ) + 2*mat_IDX( d, i, j-2 ) + mat_IDX( d, i, j-1 ) + mat_IDX( d, i, j ) );
 	 if( j>=2 ){
-		r = MIN( r, D[i-1][j-2] + 2*d[i][j-1] + d[i][j] );
+		r = MIN( r, mat_IDX( D, i-1, j-2 ) + 2*mat_IDX( d, i, j-1 ) + mat_IDX( d, i, j ) );
 	 }
 	 if( i>=2 ){
-		r = MIN( r, D[i-2][j-1] + 2*d[i-1][j] + d[i][j] );
+		r = MIN( r, mat_IDX( D, i-2, j-1 ) + 2*mat_IDX( d, i-1, j ) + mat_IDX( d, i, j ) );
 	 }
 	 if( i>=3 ){
-		r = MIN( r, D[i-3][j-1] + 2*d[i-2][j] + d[i-1][j] + d[i][j] );
+		r = MIN( r, mat_IDX( D, i-3, j-1 ) + 2*mat_IDX( d, i-2, j ) + mat_IDX( d, i-1, j ) + mat_IDX( d, i, j ) );
 	 }
 	 break;
   case SLOPE_CONSTRAINT_MEDIUM:
 	 if( j>=2 ){
-		r = MIN( r, D[i-1][j-2] + 2*d[i][j-1] + d[i][j] );
+		r = MIN( r, mat_IDX( D, i-1, j-2 ) + 2*mat_IDX( d, i, j-1 ) + mat_IDX( d, i, j ) );
 	 }
 	 if( i>=2 ){
-		r = MIN( r, D[i-2][j-1] + 2*d[i-1][j] + d[i][j] );
+		r = MIN( r, mat_IDX( D, i-2, j-1 ) + 2*mat_IDX( d, i-1, j ) + mat_IDX( d, i, j ) );
 	 }
 	 break;
   case SLOPE_CONSTRAINT_SEVERE:
 	 if( i>=2 && j>=3 ){
-		r = MIN( r, D[i-2][j-3] + 2*d[i-1][j-2] + 2*d[i][j-1] + d[i][j] );
+		r = MIN( r, mat_IDX( D, i-2, j-3 ) + 2*mat_IDX( d, i-1, j-2 ) + 2*mat_IDX( d, i, j-1 ) + mat_IDX( d, i, j ) );
 	 }
 	 if( j>=2 && i>=3 ){
-		r = MIN( r, D[i-3][j-2] + 2*d[i-2][j-1] + 2*d[i-1][j] + d[i][j] );
+		r = MIN( r, mat_IDX( D, i-3, j-2 ) + 2*mat_IDX( d, i-2, j-1 ) + 2*mat_IDX( d, i-1, j ) + mat_IDX( d, i, j ) );
 	 }
 	 break;
   default:
@@ -98,124 +82,143 @@ double _slope_constraint( SlopeConstraint constraint, double **d, double **D, in
 }
 /**\endcond*/
 
-/** cumulate a distance matrix d to give
+/** \brief cumulate a distance matrix d for Dynamic Time-Warping.
+
 	 \f[
 	 D_{jk} = \mathbf{d}_{jk}+\min{\{D_{j,k-1}, D_{j-1,k}, D_{j-1, k-1}\}}
 	 \f]
-	 \param d input/output matrix
-	 \param M,N dimensions of d
+	 The formula is modified, depending on the slope constraint.
+
+	 \param mat distance matrix
+	 \param alloc if TRUE, output matrix is freshly allocated; else mat is 
+	        overwritten
 	 \param optargs may contain:						 
-	 - "slope_constraint=int" slope constraint, one of SLOPE_CONSTRAINT_*; default=SLOPE_CONSTRAINT_NONE
+	 - "slope_constraint=int" slope constraint, one of SLOPE_CONSTRAINT_*; 
+	     default=SLOPE_CONSTRAINT_NONE
  */
-void      dtw_cumulate_matrix  ( double **d, int M, int N, OptArgList *optargs ){
+Array*      matrix_dtw_cumulate ( Array *mat, bool alloc, OptArgList *optargs ){
   /* j = 0,...,M-1
 	  k = 0,...,N-1
   */
-  int j, k;
+  int j, k, M, N;
   double x;
-  double **D;
+  Array *D;
   SlopeConstraint constraint = SLOPE_CONSTRAINT_NONE;
-  
+
+  bool ismatrix;
+  matrix_CHECK( ismatrix, mat );
+  if( !ismatrix ) return NULL;
+
   if( optarglist_has_key( optargs, "slope_constraint" ) ){
 	 x = optarglist_scalar_by_key( optargs, "slope_constraint" );
 	 if( !isnan( x ) ) constraint=(SlopeConstraint)x;
   }
   dprintf("using slope constraint '%i'\n", constraint );
 
-  D = dblpp_init( M, N );
-  dblpp_copy( (const double**)d, D, M, N );
+  D = array_copy( mat, TRUE );
 
+  M = mat->size[0];
+  N = mat->size[1];
    /* computing D_jk */
   for(j=0; j<M; j++){
     for(k=0; k<N; k++){
       if(k==0 && j==0) ;
       else if(k==0 && j>0){
-		  D[j][k] = D[j-1][k] + d[j][k];
+		  mat_IDX( D, j,k) = mat_IDX( D, j-1, k ) + mat_IDX( mat, j, k );
 		} else if(k>0 && j==0){
-		  D[j][k] = D[j][k-1] + d[j][k];
+		  mat_IDX( D, j, k) = mat_IDX( D, j, k-1 ) + mat_IDX( mat, j, k );
 		} else { /* j,k > 0 */
-		  D[j][k] = _slope_constraint( constraint, d, D, j, k ); // MIN(MIN(d[j][k-1], d[j-1][k]), d[j-1][k-1]);
+		  mat_IDX( D, j, k) = _slope_constraint( constraint, mat, D, j, k ); 
 		}
     }
   }
-  
-  dblpp_copy( (const double**)D, d, M, N );
-  dblpp_free( D, M );
+  if( !alloc ){
+	 memcpy( mat->data, D->data, D->nbytes );
+	 array_free( D );
+	 D = mat;
+  }
+	 
+  return D;
 }
-/**
 
+/** \brief calculate the warping path.
+	 
+	 \param d is the cumulated distances matrix (usually output from matrix_dtw_cumulate())
+	 \return the warp-Path (2D uint array, 2 x N)
  */
-WarpPath* dtw_backtrack        ( const double **d, int M, int N, WarpPath *P ){ 
-  int j,k; /* j = 0,...,M-1
-				  k = 0,...,N-1  */
+Array* matrix_dtw_backtrack ( const Array *d ){ 
+  int i,j,k, M, N; /* j = 0,...,M-1
+						  k = 0,...,N-1  */
   int idx;
   double left, down, downleft;
 
-  if( P==NULL ){
-	 P = init_warppath( NULL, M, N );
-  }
+  bool isthing;
+  matrix_CHECK( isthing, d );
+  if( !isthing ) return NULL;
 
+  M = d->size[0];
+  N = d->size[1];
+
+  Array *path,
+	 *path2 = array_new2( UINT, 2, 2, M+N ); /* dummy path */
+
+  /*------------ computation -------------------------------*/
   /* Backtracking */
   j=M-1; k=N-1;
 
   idx = 1;
-  P->t1[0] = j;
-  P->t2[0] = k;
-  while( j>0 || k>0 ){
+  array_INDEX2( path2, uint, 0, 0 ) = j;
+  array_INDEX2( path2, uint, 1, 0 ) = k;
+  while( j>0 || k>0 ){ 
 	 if( k==0 ){ /* base cases */
-		j--;
-	 } else if( j==0 ){
-		k--;
-	 } else { /* min( d[j-1][k], d[j-1][k-1], d[j][k-1] ) */
-	  
-		left     = d[j-1][k  ];
-		down     = d[j  ][k-1];
-		downleft = d[j-1][k-1];
+  		j--;
+  	 } else if( j==0 ){
+  		k--;
+  	 } else { /* min( d[j-1][k], d[j-1][k-1], d[j][k-1] ) */
+  		left     = mat_IDX( d, j-1, k );
+  		down     = mat_IDX( d, j  , k-1 );
+  		downleft = mat_IDX( d, j-1, k-1 );
 
-		(isnan( d[j-1][k  ] ) )?(left     = DBL_MAX):(left     = d[j-1][k  ]);
-		(isnan( d[j  ][k-1] ) )?(down     = DBL_MAX):(down     = d[j  ][k-1]);
-		(isnan( d[j-1][k-1] ) )?(downleft = DBL_MAX):(downleft = d[j-1][k-1]);
+  		(isnan( mat_IDX( d, j-1,k  ) ) )?(left=DBL_MAX):(left=mat_IDX( d, j-1, k ) );
+  		(isnan( mat_IDX( d, j  ,k-1) ) )?(down=DBL_MAX):(down=mat_IDX( d, j  ,k-1) );
+  		(isnan( mat_IDX( d, j-1,k-1) ) )?(downleft=DBL_MAX):(downleft=mat_IDX(d,j-1,k-1));
 
-
-		/* this order of comparisons was chosen to ensure, that diagonal
-			steps are preferred in case of equal distances
-		*/
-		if( downleft<=left ){	  /* downleft or down */
-		  if( downleft<=down ){  
-			 k--; j--;			 	  /* downleft */
-		  } else {
-			 k--;						  /* down */
-		  } 
-		} else {						  /* left or down */
-		  if( down<=left ){
-			 k--;						  /* down */
-		  } else {
-			 j--; 					  /* left */
-		  }
-		}
+  		/* this order of comparisons was chosen to ensure, that diagonal
+  			steps are preferred in case of equal distances
+  		*/
+  		if( downleft<=left ){	  /* downleft or down */
+  		  if( downleft<=down ){
+  			 k--; j--;			 	  /* downleft */
+  		  } else {
+  			 k--;						  /* down */
+  		  }
+  		} else {						  /* left or down */
+  		  if( down<=left ){
+  			 k--;						  /* down */
+  		  } else {
+  			 j--; 					  /* left */
+  		  }
+  		}
 
 
-	 }	/* if */
+  	 }	/* if */
 
-	 P->t1[idx] = j;
-	 P->t2[idx] = k;
-	 //	 dprintf("(j, k), idx = (%i,%i), %i\n", j, k, idx);
-	 if(idx>0 && P->t1[idx]>=P->t1[idx-1] && P->t2[idx]>=P->t2[idx-1]  ){
-		warnprintf("P=%p: idx=%i\n", P, idx);
-	 }
-	 idx++;
+  	 array_INDEX2( path2, uint, 0, idx ) = j;
+  	 array_INDEX2( path2, uint, 1, idx ) = k;
+  	 idx++;
   }
-  P->n=idx-1;
-  //  print_warppath( stderr, P );
+  
+  /* now the warppath has wrong order, reverse */ 
+  path = array_new2( UINT, 2, 2, idx );
 
-  /* now the warppath has wrong order, reverse */
-  for( j=0; j<(P->n)/2; j++ ){
-	 swap2i( &(P->t1[j]), &(P->t1[P->n-1-j]) );
-	 swap2i( &(P->t2[j]), &(P->t2[P->n-1-j]) );
+  for( i=0; i<idx; i++ ){
+	 array_INDEX2( path, uint, 0, idx-i-1 )=array_INDEX2( path2, uint, 0, i );
+	 array_INDEX2( path, uint, 1, idx-i-1 )=array_INDEX2( path2, uint, 1, i );
   }
-  //  print_warppath( stderr, P );
+  /*------------ /computation -------------------------------*/
 
-  return P;
+  array_free( path2);
+  return path;
 }
 
 /** Adjust time-markers according to
@@ -325,6 +328,7 @@ double* warp_add_signals_by_path(const double *s1, int n1,
  */  
 EEG* eeg_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
 									EEG *out, OptArgList *optargs ){
+#if 0
   Dendrogram *T, *Tsub; 
   EEG *eeg;
   WarpPath *P;
@@ -513,7 +517,7 @@ EEG* eeg_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
 		dprintf(" ...done\n");  
 		if( regularize ){
 		  dprintf(" Regularize d\n");
-		  dtw_regularize_matrix( d, (const double**)G, n, n );
+		  //		  dtw_regularize_matrix( d, (const double**)G, n, n );
 		  dprintf(" ...done\n");  
 		}
 		dprintf(" Compute path\n");  
@@ -581,6 +585,7 @@ EEG* eeg_dtw_hierarchical( EEG *eeg_in, const double **distmatrix,
   free_warppath( P );
 
   return out;
+#endif
 }
 
 
@@ -703,6 +708,9 @@ EEG* eeg_gibbons( EEG *eeg, int stimulus_marker, int response_marker, double k )
   return eeg_out;
 }
 
+/*****************************************************************************
+GOING TO BE OBSOLETE 
+******************************************************************************/
 
 WarpPath* init_warppath(WarpPath *path, int n1, int n2){
   if(path==NULL){
@@ -764,3 +772,122 @@ void print_warppath( FILE *out, WarpPath *P ){
   fprintf( out, "\n" );
 }
 
+/** cumulate a distance matrix d to give
+	 \f[
+	 D_{jk} = \mathbf{d}_{jk}+\min{\{D_{j,k-1}, D_{j-1,k}, D_{j-1, k-1}\}}
+	 \f]
+	 \param d input/output matrix
+	 \param M,N dimensions of d
+	 \param optargs may contain:						 
+	 - "slope_constraint=int" slope constraint, one of SLOPE_CONSTRAINT_*; default=SLOPE_CONSTRAINT_NONE
+ */
+void      dtw_cumulate_matrix  ( double **d, int M, int N, OptArgList *optargs ){
+  /* j = 0,...,M-1
+	  k = 0,...,N-1
+  */
+  int j, k;
+  double x;
+  double **D;
+  SlopeConstraint constraint = SLOPE_CONSTRAINT_NONE;
+  
+  if( optarglist_has_key( optargs, "slope_constraint" ) ){
+	 x = optarglist_scalar_by_key( optargs, "slope_constraint" );
+	 if( !isnan( x ) ) constraint=(SlopeConstraint)x;
+  }
+  dprintf("using slope constraint '%i'\n", constraint );
+
+  D = dblpp_init( M, N );
+  dblpp_copy( (const double**)d, D, M, N );
+
+   /* computing D_jk */
+  for(j=0; j<M; j++){
+    for(k=0; k<N; k++){
+      if(k==0 && j==0) ;
+      else if(k==0 && j>0){
+		  D[j][k] = D[j-1][k] + d[j][k];
+		} else if(k>0 && j==0){
+		  D[j][k] = D[j][k-1] + d[j][k];
+		} else { /* j,k > 0 */
+		  D[j][k] = _slope_constraint( constraint, d, D, j, k ); // MIN(MIN(d[j][k-1], d[j-1][k]), d[j-1][k-1]);
+		}
+    }
+  }
+  
+  dblpp_copy( (const double**)D, d, M, N );
+  dblpp_free( D, M );
+}
+/**
+
+ */
+WarpPath* dtw_backtrack        ( const double **d, int M, int N, WarpPath *P ){ 
+  int j,k; /* j = 0,...,M-1
+				  k = 0,...,N-1  */
+  int idx;
+  double left, down, downleft;
+
+  if( P==NULL ){
+	 P = init_warppath( NULL, M, N );
+  }
+
+  /* Backtracking */
+  j=M-1; k=N-1;
+
+  idx = 1;
+  P->t1[0] = j;
+  P->t2[0] = k;
+  while( j>0 || k>0 ){
+	 if( k==0 ){ /* base cases */
+		j--;
+	 } else if( j==0 ){
+		k--;
+	 } else { /* min( d[j-1][k], d[j-1][k-1], d[j][k-1] ) */
+	  
+		left     = d[j-1][k  ];
+		down     = d[j  ][k-1];
+		downleft = d[j-1][k-1];
+
+		(isnan( d[j-1][k  ] ) )?(left     = DBL_MAX):(left     = d[j-1][k  ]);
+		(isnan( d[j  ][k-1] ) )?(down     = DBL_MAX):(down     = d[j  ][k-1]);
+		(isnan( d[j-1][k-1] ) )?(downleft = DBL_MAX):(downleft = d[j-1][k-1]);
+
+
+		/* this order of comparisons was chosen to ensure, that diagonal
+			steps are preferred in case of equal distances
+		*/
+		if( downleft<=left ){	  /* downleft or down */
+		  if( downleft<=down ){  
+			 k--; j--;			 	  /* downleft */
+		  } else {
+			 k--;						  /* down */
+		  } 
+		} else {						  /* left or down */
+		  if( down<=left ){
+			 k--;						  /* down */
+		  } else {
+			 j--; 					  /* left */
+		  }
+		}
+
+
+	 }	/* if */
+
+	 P->t1[idx] = j;
+	 P->t2[idx] = k;
+	 //	 dprintf("(j, k), idx = (%i,%i), %i\n", j, k, idx);
+	 if(idx>0 && P->t1[idx]>=P->t1[idx-1] && P->t2[idx]>=P->t2[idx-1]  ){
+		warnprintf("P=%p: idx=%i\n", P, idx);
+	 }
+	 idx++;
+  }
+  P->n=idx-1;
+  //  print_warppath( stderr, P );
+
+  /* now the warppath has wrong order, reverse */
+  for( j=0; j<(P->n)/2; j++ ){
+	 swap2i( &(P->t1[j]), &(P->t1[P->n-1-j]) );
+	 swap2i( &(P->t2[j]), &(P->t2[P->n-1-j]) );
+  }
+  //  print_warppath( stderr, P );
+
+  return P;
+}

@@ -126,7 +126,7 @@ EEG* eeg_filter_weighted_running_median( EEG *eeg, int win, bool alloc){
   }
   for(c=0; c<s->nbchan; c++){
 	 for(i=0; i<s->ntrials; i++){
-		weighted_running_median(s->data[c][i], s->n, win, pointdist_euclidean );
+		weighted_running_median(s->data[c][i], s->n, win );
 	 }
   }
   return s;
@@ -136,8 +136,7 @@ EEG* eeg_filter_weighted_running_median( EEG *eeg, int win, bool alloc){
 /** Weighted Running Median filter.
  * Ref: Schelter et al, 2005, chap. 6 (6.2.1)
  */
-double* weighted_running_median(double *d, int n, int win, 
-				double(*dist)(double,double)){
+double* weighted_running_median(double *d, int n, int win ){
   double *pptr, *wptr;
   int i, j;
   int awin, ewin;
@@ -154,7 +153,7 @@ double* weighted_running_median(double *d, int n, int win,
 
     memcpy(pptr, &(d[awin]), sizeof(double)*(ewin-awin));
     for(j=0; j<(ewin-awin); j++){
-      wptr[j] = (*dist)(i, awin+j);
+      wptr[j] = fabs(i-awin+j);
     }
 /* 	 dprintf("i=%i, awin=%i, ewin=%i\n", i, awin, ewin); */
     med = weighted_median_from_unsorted(pptr, wptr, ewin-awin);

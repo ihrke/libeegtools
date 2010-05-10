@@ -20,70 +20,159 @@
 
 #include "recurrence_plot.h"
 
-/** prepare a recurrence plot. 
-	 \param m,n dimensions of the plot
+/** \brief Calculate a (cross-)recurrence plot. 
+
+	 Given the input multivariate time-series \f$\vec{s}_1(t)\f$
+	 and \f$\vec{s}_2(t)\f$, calculate
+	 \f[
+	 \vec{C}^{\vec{s}_1,\vec{s}_2}(t_1,t_2) =  \Theta(\varepsilon - 
+	  ||\vec{s}_1(t_1)-\vec{s}_2(t_2)||)
+	 \f]
+
+	 If \f$\vec{s}_1(t)=\vec{s}_2(t)\f$, it is a usual recurrence-plot,
+	 else it is a cross-recurrence plot (CRP).
+
+	 \param s1,s2 (multivariate) signals used to construct the 
+	       recurrence plot (1D or 2D arrays)
+	 \param out the recurrence plot or NULL -> memory is alloc'ed; for convenience, 
+	       the recurrence plot is a double-matrix
 	 \param epsilon; either a number given a fixed criterion for the 
 	        distance between points in phase space
 			  or: a fixed amount of nearest neighbours, if flags 
 			  contains RPLOT_FAN
-    \param flags flags beginnging with RPLOT_
+	 \param optargs  may contain:
+	 <ul>
+	 <li> <tt>fan=int</tt> flag, whether to use a "fixed-amount of nearest neighbours"
+	      instead of the epsilon-ball. In this case, the epsilon argument is ignored
+	 <li> optargs for the distance-function (optargs is passed 'as is' to this function)
+	 </ul>
+	 \return out (an N x N double matrix)
  */
-RecurrencePlot* recplot_init( int m, int n, double epsilon, int flags ){
-  RecurrencePlot *R;
-  int i;
+Array* recplot( const Array *s1, const Array *s2, Array *out, double epsilon, 
+					 OptArgList *optargs ){
+  int fan=-1; /* fixed amount of neighbours? */
+  double x;
+  int i,j;
+  if( optarglist_has_key( optargs, "fan" ) ){
+	 x = optarglist_scalar_by_key( optargs, "fan" );
+	 if( !isnan( x ) )
+		fan=(int)x;
+  }
+  if( !array_comparable( s1, s2 ) ){
+	 return NULL;
+  }
+  if( s1->ndim>2 || s2->ndim>2 || s1->dtype!=DOUBLE || s2->dtype!=DOUBLE){
+	 errprintf("Input arrays must be vectors or matrices\n");
+	 return NULL;
+  }
+  
+  /* thin matrix-wrapper (in case of 1D data */
+  Array *s1m, *s2m;
+  s1m = array_fromptr2( DOUBLE, 2, s1->data, s1->size[0], (s1->ndim>1)?(s1->size[1]):1 );
+  s2m = array_fromptr2( DOUBLE, 2, s2->data, s2->size[0], (s2->ndim>1)?(s2->size[1]):1 );
 
-  R = (RecurrencePlot*)malloc( sizeof(RecurrencePlot) );
-  R->m = m;
-  R->n = n;
-  R->nepsilon = 0;
-  R->epsilon = NULL;
-  R->fixed_epsilon = -1;
-  R->fan = 0;
-
-  if( flags & RPLOT_FAN ){
-	 R->fan = (int) epsilon;
+  int N = s1m->size[0];
+  int p = s1m->size[1];
+  if( !out ){
+	 out = array_new2( DOUBLE, 2, N, N );
   } else {
-	 R->fixed_epsilon = epsilon; 
-  }
-
-  R->R = (double**)malloc( m*sizeof(double*) );
-  for( i=0; i<m; i++ ){
-	 R->R[i] = (double*)malloc( n*sizeof(double) );
-  }
-
-  return R;
-}
-
-void recplot_print( FILE *out, RecurrencePlot *R ){
-  int i;
-  fprintf( out, "RecurrencePlot '%p':\n"
-			  " m   = %i\n"
-			  " n   = %i\n"
-			  " fan = %i\n", R, R->m, R->n, R->fan );
-  if( R->fan ){
-	 fprintf( out, " e   = {");
-	 for( i=0; i<R->nepsilon; i++ ){
-		fprintf( out, "%.2f ", R->epsilon[i] );
+	 if( out->ndim!=2 || out->dtype!=DOUBLE || out->size[0]<N || out->size[1]<N ){
+		errprintf("Output must be a N x N matrix (N=%i)\n", N);
+		return out;
 	 }
-	 fprintf( out, "}\n");
-  } else {
-	 fprintf( out, " e = %f\n", R->fixed_epsilon );
   }
+
+  /* init FAN */
+  double *faneps=NULL;
+  if( fan>0 ){
+	 faneps=recplot_calculate_epsilons( s1m, s2m, NULL, fan );
+  }
+
+  /*---------- computation ----------- */
+  double eps;
+  for( i=0; i<N; i++ ){
+	 if( faneps ){	 /* fixed amount of neighbours? */
+		eps = faneps[i];
+	 } else {
+		eps = epsilon;
+	 }
+
+	 for( j=0; j<N; j++ ){
+		if( eps - vectordist_euclidean( (double*)array_INDEXMEM2( s1m, i, 0 ), 
+												  (double*)array_INDEXMEM2( s2m, j, 0 ), 
+												  p, optargs ) > 0 ){
+		  mat_IDX(out, i, j) = 1.0;
+		} else {
+		  mat_IDX(out, i, j) = 0.0;
+		}
+	 }
+  }
+  /*---------- /computation ----------- */
+
+  /* clean up */
+  array_free( s1m ); 
+  array_free( s2m ); 
+  if( faneps ) free( faneps );
+  return out;
 }
 
+/** \brief calculate epsilons for each i such that a fixed amount of neighbours
+	 is included.
+	 
+	 Currently it takes O(n^2) but could probably be done faster.
 
-void recplot_free( RecurrencePlot *R ){
-  int i;
-  for( i=0; i<R->m; i++ ){
-	 free( R->R[i] );
+	 \param s1 2D-array (matrix), N x p
+	 \param s2 2D-array (matrix), N x p
+	 \param eps N-doubles or NULL
+	 \param fan number of neighbours
+	 \return eps (N doubles)
+ */
+double* recplot_calculate_epsilons( Array *s1, Array *s2, double *eps, int fan ){
+  int i,j;
+  bool ismatrix;
+  if( !array_comparable( s1, s2 ) ){
+	 return NULL;
   }
-  free( R->R );
-  free( R->epsilon );
-  free( R );
+  matrix_CHECK( ismatrix, s1 );
+  if( !ismatrix ) return NULL;
+  matrix_CHECK( ismatrix, s2 );
+  if( !ismatrix ) return NULL;
+
+  int N=s1->size[0];
+  int p=s1->size[1];
+
+  if( !eps ){
+	 eps = (double*)malloc( N*sizeof(double) );
+  }
+  double *tmp = (double*)malloc( N*sizeof(double) );
+  double *epst= (double*)malloc( fan*sizeof(double) );
+
+  /*---------- computation ----------- */
+  for( i=0; i<N; i++ ){
+	 for( j=0; j<N; j++ ){
+		tmp[j] = vectordist_euclidean( (double*)array_INDEXMEM2( s1, i, j ), 
+												 (double*)array_INDEXMEM2( s1, i, j ), 
+												 p, NULL );
+	 }
+	 /*int gsl_sort_smallest (double * dest, size_t k, const double *
+		src, size_t stride, size_t n) 
+		This function copies the k smallest elements of the array src,
+		of size n and stride stride, in ascending numerical order into
+		the array dest. The size k of the subset must be less than or
+		equal to n. The data src is not modified by this operation. */
+	 gsl_sort_smallest( epst, fan, tmp, 1, N );
+	 eps[i] = epst[fan-1];
+  } 
+  /*---------- /computation ----------- */
+  
+  free( tmp );
+  free( epst);
+  return eps;
 }
 
 /** calculate epsilons for each i such that a fixed amount of neighbours
 	 is included.
+	 \ref obsolete
  */
 void recplot_fan( RecurrencePlot *R, PhaseSpace *p1, PhaseSpace *p2 ){
   int i,j;
@@ -113,6 +202,74 @@ void recplot_fan( RecurrencePlot *R, PhaseSpace *p1, PhaseSpace *p2 ){
   free( d );
 }
 
+/** prepare a recurrence plot. 
+	 \param m,n dimensions of the plot
+	 \param epsilon; either a number given a fixed criterion for the 
+	        distance between points in phase space
+			  or: a fixed amount of nearest neighbours, if flags 
+			  contains RPLOT_FAN
+    \param flags flags beginnging with RPLOT_	 
+	 \ref obsolete
+ */
+RecurrencePlot* recplot_init( int m, int n, double epsilon, int flags ){
+  RecurrencePlot *R;
+  int i;
+
+  R = (RecurrencePlot*)malloc( sizeof(RecurrencePlot) );
+  R->m = m;
+  R->n = n;
+  R->nepsilon = 0;
+  R->epsilon = NULL;
+  R->fixed_epsilon = -1;
+  R->fan = 0;
+
+  if( flags & RPLOT_FAN ){
+	 R->fan = (int) epsilon;
+  } else {
+	 R->fixed_epsilon = epsilon; 
+  }
+
+  R->R = (double**)malloc( m*sizeof(double*) );
+  for( i=0; i<m; i++ ){
+	 R->R[i] = (double*)malloc( n*sizeof(double) );
+  }
+
+  return R;
+}
+
+/**
+	 \ref obsolete
+*/
+void recplot_print( FILE *out, RecurrencePlot *R ){
+  int i;
+  fprintf( out, "RecurrencePlot '%p':\n"
+			  " m   = %i\n"
+			  " n   = %i\n"
+			  " fan = %i\n", R, R->m, R->n, R->fan );
+  if( R->fan ){
+	 fprintf( out, " e   = {");
+	 for( i=0; i<R->nepsilon; i++ ){
+		fprintf( out, "%.2f ", R->epsilon[i] );
+	 }
+	 fprintf( out, "}\n");
+  } else {
+	 fprintf( out, " e = %f\n", R->fixed_epsilon );
+  }
+}
+
+/**
+	 \ref obsolete
+*/
+void recplot_free( RecurrencePlot *R ){
+  int i;
+  for( i=0; i<R->m; i++ ){
+	 free( R->R[i] );
+  }
+  free( R->R );
+  free( R->epsilon );
+  free( R );
+}
+
 /** calculate the recurrence plot from two signals in phase-space representation
 	 p1,p2. If p1!=p2, it is the cross-recurrence plot.
 	 \f[
@@ -120,6 +277,7 @@ void recplot_fan( RecurrencePlot *R, PhaseSpace *p1, PhaseSpace *p2 ){
 	 \f]	
 	 Depending on the settings in R, epsilon is chosen for each i or a fixed
 	 epsilon is used.
+	 \ref obsolete
 
 	 \param p1,p2
 	 \param R is the recurrence plot. if NULL, own memory is allocated.

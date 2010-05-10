@@ -3,19 +3,6 @@
 #include "distances.h"
 %}
 typedef double  (*VectorDistanceFunction)       (double*,double*,int,OptArgList*);
-double** matrix_init(int N, int M){
-    int i,j;
-    double **d;
-    d = (double**) malloc( N*sizeof(double*) );
-    for( i=0; i<N; i++){
-    d[i] = (double*) malloc( M*sizeof(double) );
-    for( j=0; j<M; j++ ){
-    d[i][j]=0.0;
-    }
-    }
-    
-    return d;
-    }
 
 /* convert numpy 2D matrix to double** */
 %typemap(in) (const double **X, int  n, int p){

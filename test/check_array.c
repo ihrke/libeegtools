@@ -310,6 +310,96 @@ START_TEST (test_copy)
 }
 END_TEST
 
+START_TEST (test_comparable)
+{
+  Array *a=array_new_dummy( FLOAT, 3, 3,4,5 );
+  Array *b=array_copy( a, TRUE );
+  fail_unless( array_comparable( a, b ) );
+  b->size[0]=2;
+  fail_if( array_comparable( a, b ) );
+  array_free( a );
+  array_free( b );
+}
+END_TEST
+
+START_TEST (test_reverse)
+{
+  Array *a=array_new_dummy( DOUBLE, 1, 10 );
+  Array *b=array_new_dummy( DOUBLE, 1, 11 );
+  Array *c=array_copy( a, TRUE );
+  Array *d=array_copy( b, TRUE );
+  Array *e=array_new_dummy( DOUBLE, 3, 10, 11, 12 );
+  Array *f=array_copy( e, TRUE );
+  
+  array_reverse( a );
+  array_reverse( b );
+  array_reverse( f );
+
+  int i;
+  for( i=0; i<10; i++ ){
+	 fail_unless( cmpdouble( array_INDEX1( c, double, i ),
+									 array_INDEX1( a, double, 10-i-1), 2 )==0 );
+  }
+  for( i=0; i<11; i++ ){
+	 fail_if( cmpdouble( array_INDEX1( d, double, i ),
+								array_INDEX1( b, double, 11-i-1), 3)!=0 );
+  }
+
+  for( i=0; i<array_NUMEL( e ); i++ ){
+	 fail_unless( cmpdouble( array_INDEX1( e, double, i ),
+									 array_INDEX1( f, double, array_NUMEL(e)-i-1), 2 )==0 );	 
+  }
+
+  array_free( a );
+  array_free( b );
+  array_free( c );
+  array_free( d );
+  array_free( e );
+  array_free( f );
+}
+END_TEST
+
+START_TEST (test_random)
+{
+  Array *a=array_randunif( 0, 1, 100 );
+  int i;
+  for( i=0; i<array_NUMEL( a ); i++ ){
+	 fail_if( array_INDEX1( a, double, i )<0 ||
+				 array_INDEX1( a, double, i )>1 );
+  }
+  Array *b=array_randunif( 0, 3, 10, 11, 12 );
+  for( i=0; i<array_NUMEL( b ); i++ ){
+	 fail_if( array_INDEX1( b, double, i )<0 ||
+				 array_INDEX1( b, double, i )>1 );
+  }
+
+  array_free(a);
+  array_free(b);
+}
+END_TEST
+
+START_TEST (test_shuffle)
+{
+  int i;
+  Array *a=array_new_dummy( DOUBLE, 1, 100 );
+  Array *b=array_new_dummy( UINT, 3, 11, 12, 13 );
+  array_shuffle( a, 0 );
+  array_shuffle( b, 0 );
+
+  for( i=0; i<array_NUMEL(a); i++ ){
+	 fail_if( array_INDEX1( a, double, i )<0 ||
+				 array_INDEX1( a, double, i )>=array_NUMEL(a) );
+  }
+  for( i=0; i<array_NUMEL(b); i++ ){
+	 fail_if( array_INDEX1( b, double, i )<0 ||
+				 array_INDEX1( b, double, i )>=array_NUMEL(b) );
+  }
+
+  array_free( a );
+  array_free( b );
+}
+END_TEST
+
 /* template
 START_TEST (test_)
 {
@@ -334,6 +424,10 @@ Suite * init_array_suite (void){
   tcase_add_test (tc_core, test_slice );
   tcase_add_test (tc_core, test_scale );
   tcase_add_test (tc_core, test_copy);
+  tcase_add_test (tc_core, test_comparable );
+  tcase_add_test (tc_core, test_reverse );
+  tcase_add_test (tc_core, test_random);
+  tcase_add_test (tc_core, test_shuffle);
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

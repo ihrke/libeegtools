@@ -4,8 +4,6 @@
 
 %}
 
-
-
 %include "typemaps.i"
 %include "carrays.i"
 %include "numpy.i"
@@ -77,6 +75,16 @@ double* python_list_to_doubleptr( PyObject *p ){
 	return a;
  }
 
+ 
+ PyArrayObject* myarray_to_pyarray( Array *a ){
+	int i ;
+	npy_intp dims[2];
+	dims[0]=d1; dims[1]=d2;
+	PyArrayObject* a=PyArray_SimpleNewFromData( 2, dims, NPY_DOUBLE, (void*)d);
+	return a;
+ }
+
+
 %}
 
  /* converting python lists to double arrays */
@@ -93,6 +101,10 @@ double* python_list_to_doubleptr( PyObject *p ){
    free($1);
 }
 
+
+%typemap(in) Array* {
+  $1 = myarray_to_pyarray( $input );
+}
 
 /* low-level access to int* and double* */
 %array_class(int, intArray);
@@ -115,8 +127,8 @@ def buildMatrix( d1, d2 ):
 %}
 
 /* the modules */
-%include eeg.i
-%include denoising.i
+//%include eeg.i
+//%include denoising.i
 %include distances.i
 
-%include pythonfunctions.i
+ //%include pythonfunctions.i

@@ -36,9 +36,8 @@ extern "C" {
 	  -- Robust filtering methods  --
 	  ------------------------------ */
   /** \ingroup robust_filtering\{	*/ 
-  double* running_median         ( double *d, int n, int win);
-  double* weighted_running_median( double *d, int n, int win, 
-											  PointDistanceFunction dist);
+  double* running_median         ( double *d, int n, int win );
+  double* weighted_running_median( double *d, int n, int win );
 
   EEG*    eeg_filter_running_median( EEG *eeg, int win, bool alloc );
   EEG*    eeg_filter_weighted_running_median( EEG *eeg, int win, bool alloc );

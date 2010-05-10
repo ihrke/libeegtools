@@ -19,56 +19,77 @@
  ***************************************************************************/
 
 #include "clustering.h"
+#include "linalg.h"
+#include <time.h>
 #include "eeg.h"
 
 
 /** run the kmedoids function a couple of times and pick the best
 	 in terms of within scatter.
 	 \param dist ance matrix
-	 \param N number of observations
 	 \param K number of medoids to compute
 	 \param repeat number of repetitions
 	 \return clusters - function-allocated memory. contains
 	                    K cluster-structs.
  */
-Clusters* kmedoids_repeat( const double **dist, int N, int K, int repeat ){
+Clusters*    kmedoids_repeat( const Array *distmat, int K, int repeat ){
   Clusters *C;
   Clusters *Cnew;
   int i;
   double ratio, tmp;
+  bool ismatrix;
+  matrix_CHECKSQR( ismatrix, distmat );
+  if( !ismatrix) return NULL;
+  int N = distmat->size[0];
 
-  C = init_cluster( K, N );
+  long initial_seed=(long)time(NULL);
+  OptArgList *opts=optarglist("seed=long", initial_seed );
+
+  C = cluster_init( K, N );
   ratio=DBL_MAX;
   for( i=0; i<repeat; i++ ){
-	 Cnew = kmedoids( dist, N, K );
-	 tmp =  get_within_scatter ( dist, N, Cnew );
-	 tmp /= get_between_scatter( dist, N, Cnew );
+	 optarglist_optarg_by_key( opts, "seed" )->data_scalar=initial_seed+i*10;
+	 Cnew = kmedoids( distmat, K, opts );
+	 tmp = 1.0;
+	 
+	 tmp =  cluster_within_scatter ( distmat, Cnew ); 
+	 tmp /= cluster_between_scatter( distmat, Cnew ); 
 
 	 if( tmp<ratio ){
 		dprintf("Run %i: %f\n", i, tmp);
 		ratio=tmp; 
-		copy_cluster( C, Cnew );
+		cluster_copy( C, Cnew );
 	 }
-	 free_cluster( Cnew );
+	 cluster_free( Cnew );
   }
+  optarglist_free( opts );
 
   return C;
 }
 
 /** do K-Medoids clustering on the distance-matrix.
 	 \param dist ance matrix
-	 \param N number of observations
 	 \param K number of medoids to compute
+    \param optargs may contain:
+	 - <tt>seed=int</tt> seed for initializing the cluster-configuration 
+	 (if 0, use time(NULL))
 	 \return clusters - function-allocated memory. contains
-	                   K cluster-structs.
+	                   K cluster-structs.	
 */
-Clusters* kmedoids(const double **dist, int N, int K){
+Clusters*    kmedoids(const Array *distmat, int K, OptArgList *optargs ){
   Clusters *C, *Cnew;
   int *medoids;
   int i, j, k, r, minidx, num_not_changed;
   double sum, minsum, mindist, curdist;
-  const gsl_rng_type * T;
-  gsl_rng * randgen;
+  bool ismatrix;
+  matrix_CHECKSQR( ismatrix, distmat );
+  if( !ismatrix) return NULL;
+  int N = distmat->size[0];
+
+  /* optional arguments */
+  unsigned long seed=0;
+  double x;
+  optarg_PARSE_SCALAR( optargs, "seed", seed, unsigned long, x );
 
   if( K>N ){
 	 errprintf("K>=N: %i>=%i\n", K, N );
@@ -77,33 +98,40 @@ Clusters* kmedoids(const double **dist, int N, int K){
 
   /* memory alloc */
   medoids = (int*) malloc( K*sizeof(int) );
-  C    = init_cluster(K, N);
-  Cnew = init_cluster(K, N);
+  C    = cluster_init(K, N);
+  Cnew = cluster_init(K, N);
 
-  /* initialization step, random init */
+  /* initialization step, random init */ 
+  const gsl_rng_type * T;
+  gsl_rng * randgen;
   gsl_rng_env_setup();
   T = gsl_rng_default;
   randgen = gsl_rng_alloc (T);
+  if( seed==0 )
+	 seed=(unsigned long)time(NULL);
+  gsl_rng_set (randgen, seed );
 
-  int *permut;
-  permut = (int*)malloc( K*sizeof(int) );
+  Array *permut=array_new2( UINT, 1, K );
   for( i=0; i<K; i++ )
-	 permut[i]=i;
-  dblp_shuffle_int( permut, K ); /* random permut */
+	 array_INDEX1( permut, uint, i )=i;
+  array_shuffle( permut, seed );
   for( i=0; i<N; i++ ){
 	 if( i<K ){ /* first each partition gets a guy */
-		r = permut[i];
+		r = array_INDEX1( permut, uint, i );
 	 } else {
-		r = (random() / (RAND_MAX / K+1));
+		r = gsl_rng_uniform_int( randgen, K );
 	 }
 	 C->clust[r][C->n[r]] = i;
 	 (C->n[r])++;
   }
-  free( permut );
+  array_free( permut );
 
   dprintf("initialized cluster\n");  
-  print_cluster(stderr, C); 
+#ifdef DEBUG
+  cluster_print(stderr, C); 
+#endif
 
+  /*------------------ computation ----------------------------*/
   num_not_changed = 0;
   while(num_not_changed<1){ /* iterate until convergence */
 	 for( i=0; i<K; i++ ){ /* minimize distance to one of trials */
@@ -112,7 +140,7 @@ Clusters* kmedoids(const double **dist, int N, int K){
 		for( j=0; j<C->n[i]; j++ ){
 		  sum = 0;
 		  for( k=0; k<C->n[i]; k++){
-			 sum += dist[C->clust[i][j]][C->clust[i][k]];
+			 sum += mat_IDX( distmat, C->clust[i][j], C->clust[i][k] );
 		  }
 		  
 		  if( sum<minsum ){
@@ -132,7 +160,7 @@ Clusters* kmedoids(const double **dist, int N, int K){
 		mindist = DBL_MAX;
 		minidx = 0;
 		for( j=0; j<K; j++ ){ /* look for closest center */
-		  curdist = dist[medoids[j]][i];
+		  curdist = mat_IDX( distmat, medoids[j], i );
 		  if( curdist<mindist ){
 			 mindist=curdist;
 			 minidx=j;
@@ -143,14 +171,15 @@ Clusters* kmedoids(const double **dist, int N, int K){
 		Cnew->n[minidx] += 1;
 	 }
 
-	 if(!compare_clusters(C, Cnew))
+	 if(!cluster_compare(C, Cnew))
 		num_not_changed++;
 	 else
-		copy_cluster(C, Cnew);
+		cluster_copy(C, Cnew);
   }
+  /*------------------ /computation ----------------------------*/
 
   free(medoids);
-  free_cluster(Cnew);
+  cluster_free(Cnew);
   gsl_rng_free (randgen);
 
   return C;
@@ -161,7 +190,7 @@ Clusters* kmedoids(const double **dist, int N, int K){
 	 does not matter). Superficial tests are first carried out, 
 	 then intense comparison.
 */
-int compare_clusters(const Clusters *c1, const Clusters *c2){
+int cluster_compare(const Clusters *c1, const Clusters *c2){
   int i, j, k, l, found, el;
   int c2i, prev_c2i;
 
@@ -210,7 +239,7 @@ int compare_clusters(const Clusters *c1, const Clusters *c2){
 }
 
 /** assumes that dest is already allocated */
-void copy_cluster(Clusters *dest, const Clusters *src){
+void cluster_copy(Clusters *dest, const Clusters *src){
   int i, j;
 
   dest->K = src->K;
@@ -223,7 +252,7 @@ void copy_cluster(Clusters *dest, const Clusters *src){
   
 }
 
-void free_cluster(Clusters *c){
+void cluster_free(Clusters *c){
   int i;
   free( c->n );
   for( i=0; i<c->K; i++)
@@ -232,7 +261,7 @@ void free_cluster(Clusters *c){
   free(c);
 }
 
-Clusters* init_cluster(int K, int maxN){
+Clusters* cluster_init(int K, int maxN){
   Clusters *c;
   int i;
 
@@ -248,7 +277,7 @@ Clusters* init_cluster(int K, int maxN){
   return c;
 }
 
-void print_cluster(FILE *o,const Clusters *c){
+void cluster_print(FILE *o,const Clusters *c){
   int i, j;
 
   fprintf(o, "Cluster with %i partitions\n", c->K);
@@ -262,7 +291,7 @@ void print_cluster(FILE *o,const Clusters *c){
   fprintf( o, "\n" );
 }
 
-
+#if 0
 /** initialize GapStatistic struct.
 	 \param g - a pointer to allocated mem, or NULL -> own memory is allocated
 	 \param K - max num clusters
@@ -332,9 +361,9 @@ void gapstat_calculate( GapStatistic *gap, double **X, int n, int p,
 	 if( gap->progress )
 		gap->progress( PROGRESSBAR_CONTINUE_LONG, k );
 	 C = kmedoids_repeat( D, n, k, 50 );
-	 //	 print_cluster( stderr, C );
+	 //	 cluster_print( stderr, C );
 	 gap->Wk[k-1] = get_within_scatter( D, n, C );
-	 free_cluster( C );
+	 cluster_free( C );
   }
 
   for( b=0; b<gap->B; b++ ){ /* monte Carlo for ref-data*/
@@ -346,9 +375,9 @@ void gapstat_calculate( GapStatistic *gap, double **X, int n, int p,
 		Xr = gap_get_reference_distribution_simple( (const double **) X, n, p, Xr );
 		Dr = vectordist_distmatrix( distfunction, (const double**)Xr, n, p, Dr, NULL, NULL );
 		C = kmedoids_repeat( (const double**)Dr, n, k, 50 );
-		//		print_cluster(stderr, C );
+		//		cluster_print(stderr, C );
 		gap->Wkref[b][k-1] = get_within_scatter( (const double**)Dr, n, C );
-		free_cluster( C );
+		cluster_free( C );
 	 }
   }
   
@@ -522,50 +551,63 @@ double** gap_get_reference_distribution_svd( const double **X, int n, int p, dou
   return Xr;
 }
 
+#endif
 
-/** compute \f$ W_k = \sum_{r=1}^{k}\frac{1}{2n_r}D_r\f$
+/** \brief get within-scatter within clusters.
+	 compute \f$ W_k = \sum_{r=1}^{k}\frac{1}{2n_r}D_r\f$
 	 where
 	 \f$
 	 D_r = \sum_{i,i'\in C_r}d_{ii'}
 	 \f$
 	 for a given cluster assignment.
-	 \param d - difference matrix (NxN)
-	 \param N - number of entries in d (NxN)
+	 \param d - distance matrix (NxN)
 	 \param c - cluster-assigment (Clusters - struct)
+	 \return the within-scatter
  */
-double   get_within_scatter(const double **d, int N, const Clusters *c){
+double   cluster_within_scatter (const Array *distmat, const Clusters *c){
   double *sums;
   double W;
-  int i, j, k;
-  //  print_cluster( stderr, c);
+  int i, j, k; 
+  bool ismatrix;
+  matrix_CHECKSQR( ismatrix, distmat );
+  if( !ismatrix) return -1;
+
+  //  cluster_print( stderr, c);
   sums = (double*) malloc( c->K*sizeof(double) );
   W = 0;
+  int numcomp=0;
   for( i=0; i<c->K; i++ ){ /* cluster loop */
 	 sums[i] = 0;
 	 for( j=0; j<(c->n[i])-1; j++ ){
 		for( k=j+1; k<c->n[i]; k++){	 
-		  sums[i] += d[c->clust[i][j]][c->clust[i][k]];
+		  sums[i] += mat_IDX( distmat, c->clust[i][j], c->clust[i][k]);
+		  numcomp++;
 		}
 	 }
-	 sums[i] /= (double)2*c->n[i];
+	 //	 sums[i] /= (double)2*c->n[i];
 	 /* dprintf("sums[i]=%f\n", sums[i]); */
 	 W += sums[i];
   }
+  W /= (double)2*numcomp;
 
   free(sums);
 
   return W;
 }
 
-/** compute the between-scatter between clusters 
+/** \brief get within-scatter between clusters.
 	 (sum of distances of means of clusters)
 	 \param d distance matrix (NxN)
 	 \param c the partioning of d
- */
-double get_between_scatter( const double **d, int N, const Clusters *c ){
+	 \return the between-scatter
+ */ 
+double   cluster_between_scatter(const Array *distmat, const Clusters *c){
   double W;
   int k1, k2, i, j;
   int num_comp; 
+  bool ismatrix;
+  matrix_CHECKSQR( ismatrix, distmat );
+  if( !ismatrix) return -1;
 
   W = 0.0; 
   num_comp=0;
@@ -573,7 +615,7 @@ double get_between_scatter( const double **d, int N, const Clusters *c ){
 	 for( k2=k1+1; k2<c->K; k2++ ){ /* compare cluster k1 and k2 */
 		for( i=0; i<c->n[k1]; i++ ){
 		  for( j=0; j<c->n[k2]; j++ ){
-			 W += d[c->clust[k1][i]][c->clust[k2][j]];
+			 W += mat_IDX( distmat, c->clust[k1][i], c->clust[k2][j] );
 			 num_comp++;
 		  }
 		}
@@ -584,24 +626,34 @@ double get_between_scatter( const double **d, int N, const Clusters *c ){
   return W;
 }
 
-/** Agglomerative clustering.
-	 \param d distance matrix for the N objects
-	 \param N number of objects
-	 \param dist function giving the between sub-cluster distance; 
+
+/** \brief Agglomerative clustering.
+	 
+	 The function was tested against MATLAB's hierarchical cluster-analysis.
+
+	 \param distmat distance matrix for the N objects
+	 \param distfct function giving the between sub-cluster distance; 
 	             defined are dgram_dist_singlelinkage(), dgram_dist_completelinkage(),
 					 dgram_dist_averagelinkage()
+    \return Dendrogram 
  */
-Dendrogram* agglomerative_clustering(const double **d, int N, LinkageFunction dist ){
+Dendrogram*  agglomerative_clustering(const Array *distmat, LinkageFunction distfct){
   Dendrogram **nodes, *tmp; /* at the lowest level, we have N nodes */
   double min_d, cur_d=0.0;
   int min_i=0, min_j=0;
   int num_nodes;
   int i, j;
- 
+  bool ismatrix;
+  matrix_CHECKSQR( ismatrix, distmat );
+  if( !ismatrix) return NULL;
+  int N=distmat->size[1];
+
   nodes = (Dendrogram**) malloc( N*sizeof( Dendrogram* ) );
 
+  int clustidx=0;
   for( i=0; i<N; i++ ){ /* initialize terminal nodes */
 	 nodes[i] = dgram_init( i, NULL, NULL );
+	 nodes[i]->clustnum=clustidx++;
   }
   num_nodes = N;
 
@@ -610,7 +662,7 @@ Dendrogram* agglomerative_clustering(const double **d, int N, LinkageFunction di
 	 min_d = DBL_MAX;
 	 for( i=0; i<num_nodes-1; i++ ){
 		for( j=i+1; j<num_nodes; j++ ){ 
-		  cur_d = dist( d, N, nodes[i], nodes[j] );
+		  cur_d = distfct( distmat, nodes[i], nodes[j] );
 		  if( cur_d<=min_d ){
 			 min_d=cur_d;
 			 min_i=i;
@@ -621,15 +673,79 @@ Dendrogram* agglomerative_clustering(const double **d, int N, LinkageFunction di
 	 
 	 /* we know min_i and min_j, now */
 	 tmp = dgram_init( -1, nodes[min_i], nodes[min_j] ); /* link the two nodes */
+	 tmp->height=min_d;
+	 tmp->clustnum=clustidx++;
 	 nodes[min_i] = tmp; /* remove min_i */
 	 tmp = nodes[num_nodes-1]; /* swap with last entry in current list */
 	 nodes[min_j] = tmp;
 	 num_nodes--;
-	 dprintf("Linking (%i,%i)\n", min_i, min_j );
+	 dprintf("Linking (%i,%i), height=%f\n", min_i, min_j, min_d );
   }
   tmp = nodes[0]; /* this is the root-node now */
   free( nodes );
   return tmp;
+}
+
+/** \cond PRIVATE */
+void _dgram_walk_matlab( const Dendrogram *t, Array *a ){
+  if( t->val>=0 ){ /* leave */
+	 return;
+  }
+  mat_IDX( a, t->clustnum, 0 ) = t->left->clustnum+1;
+  mat_IDX( a, t->clustnum, 1 ) = t->right->clustnum+1;
+  mat_IDX( a, t->clustnum, 2 ) = t->height; 
+  _dgram_walk_matlab( t->left, a );
+  _dgram_walk_matlab( t->right, a );
+}
+/** \endcond */
+
+
+/** \brief convert a Dendrogram to a N-1 x 3 array as used by 
+	 MATLAB.
+
+	 This can be used for conveniently plotting a dendrogram in 
+	 MATLAB.
+	 
+	 From the MATLAB-manual about the output format:
+	 (http://www.mathworks.com/access/helpdesk/help/toolbox/stats/linkage.html)
+	 
+	 \verbatim
+	 The output, Z, is an (m-1)-by-3 matrix containing cluster tree
+	 information. The leaf nodes in the cluster hierarchy are the objects
+	 in the original data set, numbered from 1 to m. They are the singleton
+	 clusters from which all higher clusters are built. Each newly formed
+	 cluster, corresponding to row i in Z, is assigned the index m+i, where
+	 m is the total number of initial leaves.
+	 
+	 Columns 1 and 2, Z(i,1:2), contain the indices of the objects that
+	 were linked in pairs to form a new cluster. This new cluster is
+	 assigned the index value m+i. There are m-1 higher clusters that
+	 correspond to the interior nodes of the hierarchical cluster tree.
+	 
+	 Column 3, Z(i,3), contains the corresponding linkage distances between
+	 the objects paired in the clusters at each row i.
+	 
+	 For example, consider a case with 30 initial nodes. If the tenth
+	 cluster formed by the linkage function combines object 5 and object 7
+	 and their distance is 1.5, then row 10 of Z will contain the values
+	 (5, 7, 1.5). This newly formed cluster will have the index
+	 10+30=40. If cluster 40 shows up in a later row, that means this newly
+	 formed cluster is being combined again into some bigger cluster.
+	 \endverbatim
+	 
+	 \param dgram a Dendrogram
+	 \param N number of terminal 
+	 \return a N-1 x 3 Array in the format described above
+*/
+Array* dgram_to_matlab( const Dendrogram *dgram ){
+  int N=dgram_num_leaves( dgram );
+  Array *mat=array_new2( DOUBLE, 2, N+N-1, 3 );
+  _dgram_walk_matlab( dgram, mat );
+  char buf[200];
+  sprintf( buf, "%i-%i,:", N, N+N-2 );
+  Array *rmat=array_slice( mat, buf );
+  array_free(mat);
+  return rmat;
 }
 
 /** Allocate memory for a single Dendrogram Node and set its value to val.
@@ -639,7 +755,8 @@ Dendrogram* dgram_init(int val, Dendrogram *left, Dendrogram *right ){
   Dendrogram *c;
   c = (Dendrogram*) malloc( sizeof(Dendrogram) );
   c->val = val;
-  c->height=0.0;
+  c->height=-1.0;
+  c->clustnum=0;
   c->left = left;
   c->right= right;
   return c;
@@ -682,7 +799,9 @@ void _dgram_preorder_recursive( const Dendrogram *t, int *vals, int *n ){
 }
 /** \endcond */
 
-/** preorder traversal of t. Store all non-negative elements in val and return 
+/** \brief preorder traversal of Dendrogram. 
+
+	 Store all non-negative elements in val and return 
 	 the number of these elements in n[0];
 	 \param t the tree
 	 \param vals output
@@ -706,16 +825,24 @@ void         dgram_preorder( const Dendrogram *t, int *vals, int *n ){
 
   return;
 }
-/** single linkage clustering:
+/** \brief single linkage clustering.
 	 \f[
 	 d_{SL}(G, H) = \min_{i\in G, j\in H} d_{ij}
 	 \f]
  */
-double dgram_dist_singlelinkage  (const double **d, int N, const Dendrogram *c1, const Dendrogram *c2){
+double dgram_dist_singlelinkage  (const Array *d, const Dendrogram *c1, const Dendrogram *c2){
   double dist;
   int *el1, *el2;
   int n1, n2;
   int i, j;
+  bool ismatrix;
+  matrix_CHECK( ismatrix,d );
+  if( !ismatrix ) return -1;
+  if( d->size[0]!=d->size[1] ){	 
+	 errprintf("distmat must be N x N, got (%i,%i)\n",d->size[0],d->size[1]);
+	 return -1; 
+  }
+  int N = d->size[0];
 
   dist = DBL_MAX;
   
@@ -731,8 +858,8 @@ double dgram_dist_singlelinkage  (const double **d, int N, const Dendrogram *c1,
 		  errprintf("something's wrong, el[i] not in range 0-%i\n", N);
 		  return -1;
 		}
-		if( d[el1[i]][el2[j]]<dist ){
-		  dist = d[el1[i]][el2[j]];
+		if( mat_IDX( d, el1[i], el2[j]) < dist ){
+		  dist = mat_IDX( d, el1[i], el2[j]);
 		}
 	 }
   }
@@ -744,16 +871,24 @@ double dgram_dist_singlelinkage  (const double **d, int N, const Dendrogram *c1,
   return dist;
 }
 
-/** complete linkage clustering:
+/** \brief complete linkage clustering.
 	 \f[
 	 d_{CL}(G, H) = \max_{i\in G, j\in H} d_{ij}
 	 \f]
  */
-double dgram_dist_completelinkage(const double **d, int N, const Dendrogram *c1, const Dendrogram *c2){
+double dgram_dist_completelinkage(const Array *d, const Dendrogram *c1, const Dendrogram *c2){
   double dist;
   int *el1, *el2;
   int n1, n2;
   int i, j;
+  bool ismatrix;
+  matrix_CHECK( ismatrix,d );
+  if( !ismatrix ) return -1; 
+  if( d->size[0]!=d->size[1] ){	 
+	 errprintf("distmat must be N x N, got (%i,%i)\n",d->size[0],d->size[1]);
+	 return -1; 
+  }
+  int N = d->size[0];
 
   dist = DBL_MIN;
   
@@ -769,8 +904,8 @@ double dgram_dist_completelinkage(const double **d, int N, const Dendrogram *c1,
 		  errprintf("something's wrong, el[i] not in range 0-%i\n", N);
 		  return -1;
 		}
-		if( d[el1[i]][el2[j]]>dist ){
-		  dist = d[el1[i]][el2[j]];
+		if( mat_IDX( d, el1[i], el2[j] )>dist ){
+		  dist = mat_IDX( d, el1[i], el2[j]);
 		}
 	 }
   }
@@ -782,16 +917,6 @@ double dgram_dist_completelinkage(const double **d, int N, const Dendrogram *c1,
   return dist;
 }
 
-
-/** average linkage clustering:
-	 \f[
-	 d_{AL}(G, H) = \frac{1}{N_G N_H} \sum_{i\in G} \sum_{j\in H} d_{ij}
-	 \f]
-*/
-double dgram_dist_averagelinkage (const double **d, int N, const Dendrogram *c1, const Dendrogram *c2){
-  errprintf(" NOT IMPLEMENTED YET!!\n");
-  return -1;
-}
 
 /** \cond PRIVATE */
 #define END_NODE 0
@@ -846,7 +971,7 @@ Dendrogram* dgram_get_deepest( Dendrogram *c ){
 void _dgram_print_recursive( Dendrogram *t, int level ){
   int i;
 
-  fprintf( stdout, "'%p(%4i)' - ", t, t->val );
+  fprintf( stdout, "'%p(%4i,%.2f,%4i)' - ", t, t->clustnum, t->height, t->val );
   if( t->left ){ /* there is a left tree, print it */
 	 _dgram_print_recursive( t->left, level+1 );
   }  
@@ -866,6 +991,19 @@ void         dgram_print( Dendrogram *t ){
   fprintf( stdout, "\n");
 }
 
+/** \brief return the number of leaves in the Dendrogram.
+ */ 
+int dgram_num_leaves( const Dendrogram *t ){
+  int r=0;
+  if( t==NULL ){
+	 return 0;
+  } else if( t->val!=-1 ){
+	 r=1;
+  }
+  r += dgram_num_leaves( t->left );
+  r += dgram_num_leaves( t->right );
+  return r;
+}
 
 void dgram_print_node( Dendrogram *t ){
   fprintf( stdout, "t=%p, val=%i, height=%f, left=%p, right=%p\n", t, t->val, t->height, t->left, t->right );
@@ -874,7 +1012,7 @@ void dgram_print_node( Dendrogram *t ){
 #undef INTERMEDIATE_NODE 
 #undef NULL_NODE
 
-
+#if 0
 /** return the best number of clusters as returned by the
 	 Gap-Statistic.
 	 To get the data-distribution, all channels in eeg are averaged.
@@ -924,3 +1062,4 @@ int      eeg_best_num_clusters_gapstat( const EEG *eeg, VectorDistanceFunction d
 
   return bestclust;
 }
+#endif

@@ -51,7 +51,36 @@
 	 array_DTYPESTRING( dts, m->dtype );										\
 	 errprintf("not a matrix, ndim=%i, dtype=%s\n", m->ndim, dts );	\
 	 flag=FALSE;																		\
+  } else { flag=TRUE; }	
+															
+/** \brief is m a square matrix?
+
+	 Usage:
+	 \code  
+	 bool ismatrix;
+	 matrix_CHECKSQR( ismatrix, X );
+	 if( !ismatrix ) return NULL;
+	 \endcode
+	 \param flag (output) (bool) set by macro
+	 \param m (input) Array* to check
+*/
+#define matrix_CHECKSQR( flag, m )													\
+  if(!( (m)->ndim==2 && (m)->dtype==DOUBLE )){									\
+	 char *dts="";																			\
+	 array_DTYPESTRING( dts, (m)->dtype );											\
+	 errprintf("not a matrix, ndim=%i, dtype=%s\n", (m)->ndim, dts );		\
+	 flag=FALSE;																			\
+  } else if( (m)->size[0]!=(m)->size[1] ) {										\
+	 errprintf("Matrix is not square, got (%i,%i)\n",(m)->size[0],(m)->size[1]); \
+	 flag=FALSE;																			\
   } else { flag=TRUE; }																
+
+/** \brief index matrix at i,j.
+	 \param m matrix
+	 \param i,j indices
+ */
+#define mat_IDX( m, i, j )								\
+  array_INDEX2( m, double, i, j )
 
 /** \brief is v a vector?
 

@@ -21,17 +21,21 @@ int main (void){
   Suite *nlin = init_nonlinear_suite();
   Suite *arr  = init_array_suite    ();
   Suite *lalg = init_linalg_suite   ();
+  Suite *warp = init_warping_suite  ();
+  Suite *clust= init_cluster_suite  ();
 
 
   SRunner *sr = srunner_create (cfct);
-  srunner_add_suite( sr, den  );
-  srunner_add_suite( sr, dist );
+  srunner_add_suite( sr, den  ); 
+  srunner_add_suite( sr, dist ); 
   srunner_add_suite( sr, hmm  );
   srunner_add_suite( sr, list );
   srunner_add_suite( sr, other);
-  srunner_add_suite( sr, nlin );
-  srunner_add_suite( sr, arr  );
-  srunner_add_suite( sr, lalg  );
+  srunner_add_suite( sr, nlin ); 
+  srunner_add_suite( sr, arr  ); 
+  srunner_add_suite( sr, lalg  ); 
+  srunner_add_suite( sr, warp  ); 
+  srunner_add_suite( sr, clust  ); 
 
 
   srunner_set_log(sr, "test.log");

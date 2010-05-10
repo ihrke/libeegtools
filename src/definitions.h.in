@@ -142,7 +142,7 @@ extern "C" {
   } ProgressBarStatus;
 
   /*-----------------------------------------------------------
-	 - Nonlinear embedding -
+	 - Time-Delay Embedding
 	 ---------------------------------------------------------*/
 
   typedef struct {
@@ -182,9 +182,9 @@ extern "C" {
   /**\ingroup clustering
 	\{ */
   typedef struct{
-	 int **clust; /** indices for the trials in the cluster (Kxn)*/
-	 int K;       /** number of clusters */
-	 int *n;      /** number of trials in each of the K clusters */
+	 int **clust; /**< indices for the trials in the cluster (Kxn)*/
+	 int K;       /**< number of clusters */
+	 int *n;      /**< number of trials in each of the K clusters */
   } Clusters;
 
 
@@ -194,10 +194,11 @@ extern "C" {
 	  Else it is an intermediate node that has at least one child!=NULL.
 	*/
    struct dgram {
-	 int val;            /** content representing object val; if val<0, its an intermediate node */
-	 double height;      /** proportional to between sub-cluster distance */
-	 struct dgram *left;
-	 struct dgram *right;
+	  int val;       /**< content representing object val; if val<0, its an intermediate node */
+	  int clustnum;  /**< number of cluster (index) */ 
+	  double height; /**< proportional to between sub-cluster distance */
+	  struct dgram *left;
+	  struct dgram *right;
   };
   typedef struct dgram Dendrogram;
   /** \} */
@@ -205,7 +206,7 @@ extern "C" {
 	 - Function Pointers
 	 ---------------------------------------------------------*/
   typedef double**(*RegularizationFunction)       (double**,int,OptArgList*);
-  typedef double  (*LinkageFunction)              (const double**,int,const Dendrogram*,const Dendrogram*);
+
 
   typedef double**(*PointwiseDistanceFunction)    (double*,int,double*,int,double**,OptArgList*);
   typedef double  (*VectorDistanceFunction)       (const double*,const double*,int,OptArgList*);

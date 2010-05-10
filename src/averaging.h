@@ -25,6 +25,7 @@
 #define AVERAGING_H
 #include "mathadd.h"
 #include "definitions.h"
+#include "array.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,13 +34,17 @@ extern "C" {
 /** \weakgroup otheravg
  *\{
  */
-  double*  simple_average_2v   ( const double *s1, const double *s2, int n, double *avg );
-  double*  simple_average_nv   ( const double **s, int N, int n, double *avg );
-  double*  alternate_average_nv( const double **s, int N, int n, double *avg );
+
+/** \brief Function for averaging two trials from data.
+ */
+typedef double**(*SignalAverageFunction)( const Array *,uint[2],double[2],OptArgList*);
+
+  Array* hierarchical_average( const Array *data, const Array *distmat, 
+										 SignalAverageFunction avgfct, OptArgList *optargs );
 
   EEG*     eeg_simple_average   ( const EEG *eeg );
-  EEG*     eeg_alternate_average( const EEG *eeg );
   EEG*     eeg_average_channels ( const EEG *eeg );
+
 /** \} */
 #ifdef __cplusplus
 }

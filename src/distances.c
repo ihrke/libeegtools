@@ -30,37 +30,51 @@
 	 \param D output matrix or NULL -> own memory allocation
 	 \param progress NULL or a progressbar
 	 \param optargs may contain arguments for the vectordistancefunction f
+	 - <tt>progress=void*</tt> progress-bar function, called every now and then.
 	 \return the distance matrix between all columns in X
  */
-double** vectordist_distmatrix( VectorDistanceFunction f, 
-										  const double **X, int n, int p, double **D, 
-										  ProgressBarFunction progress,
-										  OptArgList *optargs ){
+Array* matrix_distmatrix( VectorDistanceFunction f, 
+								  const Array *X, Array *D, 
+								  OptArgList *optargs ){
   int i,j;
   int idx;
-  
-  dprintf("data dim is (%i,%i)\n", n, p);
-  if( D==ALLOC_IN_FCT ){
-	 warnprintf(" allocating matrix in fct\n");
-	 D = dblpp_init( n, n );
+  int N,p;
+  void *ptr;
+  ProgressBarFunction progress=NULL; 
+  if( optarglist_has_key( optargs, "progress" ) ){
+	 ptr = optarglist_ptr_by_key( optargs, "progress" );
+	 if( ptr ) progress = (ProgressBarFunction)ptr;
   }
+  
+  bool ismatrix;
+  matrix_CHECK( ismatrix, X );
+  if( !ismatrix ) return NULL;
+  N = X->size[0];
+  p = X->size[1];
+  if( D==ALLOC_IN_FCT ){
+	 D = array_new2( DOUBLE, 2, N, N );
+  } else {
+	 matrix_CHECK( ismatrix, D );
+	 if( !ismatrix ) return NULL;
+	 if( D->size[0]<N || D->size[1]<N ){
+		errprintf("Matrix not large enough, need %i x %i, have %i x %i\n",
+					 N, N, D->size[0], D->size[1] );
+	 }
+  }
+
   if( progress ){
-	 progress( PROGRESSBAR_INIT, n*(n-1)/2 );
+	 progress( PROGRESSBAR_INIT, N*(N-1)/2 );
   }
   
   idx=1;
-  for( i=0; i<n; i++ ){
-	 for( j=i+1; j<n; j++ ){
+  for( i=0; i<N; i++ ){
+	 for( j=i+1; j<N; j++ ){
 		if( progress ){
 		  progress( PROGRESSBAR_CONTINUE_LONG, idx );
 		}
-		D[i][j] = f( (double*)X[i], (double*)X[j], p, optargs );
-		D[j][i] = D[i][j];
-
-
-		if( isnan( D[j][i] ) ){
-		  errprintf("D[%i][%i] is nan\n", j, i);
-		}
+		mat_IDX( D, i, j) = f( (double*)array_INDEXMEM2(X, i, 0), 
+									  (double*)array_INDEXMEM2(X, j, 0), p, optargs );
+		mat_IDX(D, j,i) = mat_IDX( D, i,j);
 		idx++;
 	 }
   }
@@ -71,7 +85,78 @@ double** vectordist_distmatrix( VectorDistanceFunction f,
   return D;
 }
 
-/** Euclidean distance between vector x1 and x2.
+/** \brief Pointwise distance matrix: \f$ d_{ij} = d( s1_i, s2_j ) \f$
+
+	 \param f the distance function between individual points in signals s1,s2
+	 \param s1 a 2D (Nxp) array holding the (multivariate) time-series 1
+	 \param s1 a 2D (Nxp) array holding the (multivariate) time-series 2
+	 \param out either an NxN matrix, or NULL (allocated in function)
+	 \param optargs may contain many different arguments which are passed 
+	        to the VectorDistanceFunction (see details there):
+		 - "symmetric=int", if 1, only N(N-1) computations are computed 
+		    (the upper diagonal of the matrix), else d_ij and d_ji are computed
+			 separately (default)
+    \return a NxN matrix containing the distances (allocated in function, or out)
+ */
+Array* distmatrix_signaldist( VectorDistanceFunction f, const Array *s1, 
+										const Array *s2, Array *out,	OptArgList *optargs ){
+  bool ismatrix;
+  int i,j;
+  if( !array_comparable( s1, s2 ) ){
+	 return NULL;
+  }
+  if( s1->dtype!=DOUBLE ){
+	 errprintf("Input signals must be double-arrays\n");
+	 return NULL;
+  }
+  if( s1->ndim>2 || s2->ndim>2 || s1->ndim != s2->ndim ){
+	 warnprintf("Input signals should be 1D or 2D... continue at your own risk (%i,%i)\n",
+					s1->ndim, s2->ndim );
+  }
+
+  /* thin matrix-wrapper (in case of 1D data */
+  Array *s1m, *s2m;
+  s1m = array_fromptr2( DOUBLE, 2, s1->data, s1->size[0], (s1->ndim>1)?(s1->size[1]):1 );
+  s2m = array_fromptr2( DOUBLE, 2, s2->data, s2->size[0], (s2->ndim>1)?(s2->size[1]):1 );
+
+  int N = s1m->size[0];
+  int p = s1m->size[1];
+  if( out ){
+	 matrix_CHECK( ismatrix, out );
+	 if( !ismatrix ) return NULL;
+	 if( out->size[0] < N || out->size[1] < N ){
+		errprintf("output matrix is not %ix%i: %i,%i\n",
+					 N,N,out->size[0],out->size[1]);
+		return NULL;
+	 }
+  } else {
+	 out = array_new2( DOUBLE, 2, N, N );
+  }
+
+  int symmetric=0;
+  double x;
+  if( optarglist_has_key( optargs, "symmetric" ) ){
+	 x = optarglist_scalar_by_key( optargs, "symmetric" );
+	 if( !isnan( x ) )
+		symmetric=(int)x;
+  }
+
+  for( i=0; i<N; i++ ){
+	 for( j=((symmetric)?(i):0); j<N; j++ ){
+		mat_IDX( out, i, j ) = f( (double*)array_INDEXMEM2( s1m, i, 0 ),
+										  (double*)array_INDEXMEM2( s2m, j, 0 ), p, optargs );
+		if( symmetric ){
+		  mat_IDX( out, j, i ) = mat_IDX( out, i, j );
+		}
+	 }
+  }
+  array_free( s1m );
+  array_free( s2m );
+  return out; 
+}
+
+/** \brief Euclidean distance between vector x1 and x2.
+
 	 \param x1, x2 vectors of size p
 	 \param optargs is ignored
 */
@@ -87,7 +172,8 @@ double vectordist_euclidean( const double *x1, const double *x2, int p, OptArgLi
 
   return d;
 }
-/** Euclidean distance between normalized vector x1 and x2.
+/** \brief Euclidean distance between normalized vector x1 and x2.
+
 	 Normalization is defined by
 	 \f[
 	 \hat{x}_i = \frac{x_i-\langle x_i \rangle_i}{\sqrt{\langle x_i^2\rangle_i}}
@@ -96,7 +182,8 @@ double vectordist_euclidean( const double *x1, const double *x2, int p, OptArgLi
 	 \param x1, x2 vectors of size p
 	 \param optargs is ignored
  */
-double   vectordist_euclidean_normalized( const double *x1, const double *x2, int p, OptArgList *optargs ){
+double   vectordist_euclidean_normalized( const double *x1, const double *x2, int p,
+														OptArgList *optargs ){
   int i;
   double d;
   double avg1, avg2,
@@ -134,7 +221,8 @@ double   vectordist_euclidean_normalized( const double *x1, const double *x2, in
 	 <li> optargs for the distfunction (optargs is passed 'as is' to this function)
 	 </ul>
  */
-double   vectordist_dtw( const double *x1, const double *x2, int p, OptArgList *optargs ){
+double   vectordist_dtw( const double *x1, const double *x2, int p, 
+								 OptArgList *optargs ){
   double d;
   double **D;
   PointwiseDistanceFunction f;
@@ -171,30 +259,151 @@ double   vectordist_dtw( const double *x1, const double *x2, int p, OptArgList *
   return d;
 }
 
-/** \todo
-	 compute the cumulated sum along the regularized warping path.
-	 \param optargs should contain the markers
- */
-double   vectordist_regularized_dtw( const double *x1, const double *x2, int p, OptArgList *optargs ){
-  /* int nmarkers; */
-  /* int **markers; */
-  /* double **G, **D; */
-  /* double maxsigma; */
-  /* double Djk; */
+/** Compute trial-to-trial distance matrix for all trials in eeg-struct.
+	 Average over all channels in the EEG-struct.
 
-  /* nmarkers = *((int*)userdata); */
-  /* userdata = ((int*)userdata)+1; */
-  /* maxsigma = *((double*)userdata); */
-  /* userdata = ((double*)userdata)+1; */
-  /* markers = (int**)userdata; */
-  
-  /* G = regularization_gaussian_line( markers[0], markers[1], nmarkers, p, maxsigma, NULL ); */
-  /** TODO **/
-  errprintf("Not implemented yet, HUA, HUA!\n");
-  return -1;
+	 \param eeg the EEG-data
+	 \param f the function used to compare two ERPs
+	 \param d user allocated memory, or NULL -> own memory is alloc'ed
+	 \param optargs may contain:
+	 - "progress=void*", a progress-bar function; default=NULL;
+	 - <b> userdata is passed to the vectordist_*() function </b>
+ */
+double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, double **d, OptArgList *optargs ){
+  int i,j;
+  int c;
+  void *tmp;
+  ProgressBarFunction progress=NULL;
+
+  if( d==ALLOC_IN_FCT ){
+	 warnprintf(" allocating matrix in fct\n");
+	 d = dblpp_init( eeg->ntrials, eeg->ntrials );
+  }
+
+  if( optarglist_has_key( optargs, "progress" ) ){
+	 tmp = optarglist_ptr_by_key( optargs, "progress" );
+	 if( tmp ) progress = (ProgressBarFunction) tmp;
+  }
+  dprintf("progress=%p\n", progress );
+
+  if( progress ){
+	 progress( PROGRESSBAR_INIT, eeg->ntrials );
+  }
+
+  for( i=0; i<eeg->ntrials; i++ ){
+	 d[i][i] = 0.0;	 
+	 if( progress ){
+		progress( PROGRESSBAR_CONTINUE_LONG, i );
+	 }
+	 for( j=i+1; j<eeg->ntrials; j++ ){
+		d[i][j] = 0.0;
+		for( c=0; c<eeg->nbchan; c++ ){
+		  if( progress ){
+			 progress( PROGRESSBAR_CONTINUE_SHORT, 0 );
+		  }
+		  d[i][j] += f( eeg->data[c][i], 
+							 eeg->data[c][j],
+							 eeg->n, optargs );
+		  if( isnan( d[i][j] ) ){
+			 errprintf("D[%i][%i] is nan\n", i, j);
+		  }
+		}
+		d[i][j] /= (double)eeg->nbchan;
+		d[j][i] = d[i][j];
+	 }
+  }
+  if( progress ){
+	 progress( PROGRESSBAR_FINISH, 0 );
+  }
+  return d;
 }
 
 
+/** \brief Compute distance from point p to the line through points x and y. 
+
+	 \code
+	 d = abs(det([y-x;p-x]))/norm(y-x);
+	 \endcode
+
+	 \param p point in question (x,y)-plane
+	 \param x,y points specify the line x=(x_1,x_2), y=(y_1, y_2)
+ */
+double   dist_point_line(double *p, double *x, double *y){
+  double det=0.0;
+  double d=0.0;
+  det = ((y[0]-x[0])*(p[1]-x[1])) - ((y[1]-x[1])*(p[0]-x[0]));
+  //dprintf("det=%f\n", det);
+  d = (double)ABS( det ) / (double)sqrt( SQR(y[0]-x[0]) + SQR(y[1]-x[1]) );
+
+  return d;
+}
+
+/** \brief computes the distance between two warping-functions. 
+
+	 It is assumed that both pathes have the same starting and endpoint.
+
+	 Algorithm:
+	 \code
+	 1. compute distance transform for p1
+	 2. line-integral of p2 through DT(p1) 
+	 \endcode
+ */
+double   pathdist_euclidean_dt(WarpPath *p1, WarpPath *p2){
+  int **I;
+  int n,m,
+	 i,j;
+  double dist;
+  double **d;
+  
+  n = p1->t1[p1->n-1]+1;
+  m = p1->t2[p1->n-1]+1;
+
+  dprintf("calculate distance with (%i x %i) points\n", n, m );
+
+  I = (int**)malloc( n*sizeof(int*) );
+  for( i=0; i<n; i++){
+	 I[i] = (int*)malloc( m*sizeof(int) );
+	 for( j=0; j<m; j++ ){
+		I[i][j] = 0;
+	 }
+  }
+
+  for( i=0; i<p1->n; i++ ){
+	 //dprintf(" (%i , %i)\n", p1->t1[i], p1->t2[i] );
+	 I[p1->t1[i]][p1->t2[i]]=1;
+  }
+  
+  dprintf(" init done \n");
+	 
+  d = disttransform_deadreckoning( I, n, m, ALLOC_IN_FCT );
+  dblpp_divide_scalar( d, n, m, dblpp_max( (const double**)d, n, m, NULL, NULL ) );
+  dprintf(" dt done \n");
+
+  dist = 0.0;
+  for( i=0; i<p2->n; i++ ){
+	 //	 dprintf(" (%i , %i)\n", p2->t1[i], p2->t2[i] );
+	 if(  p2->t1[i]>=n ||  p2->t2[i]>=n ){
+		warnprintf("points in P2 do not fall in P1,  (%i , %i) -> ignored\n", p2->t1[i], p2->t2[i] );
+	 } else {
+		dist += d[p2->t1[i]][p2->t2[i]];
+	 }
+  }
+  
+  //  dist /= (double)n*m;
+  dprintf(" dist=%f compute done \n", dist);
+ 
+  for( i=0; i<n; i++ ){
+	 free( I[i] );
+  }
+  free(I); 
+  //dblpp_free( d, m );
+
+  return dist;
+}
+
+/**************************************************************
+GOING TO BE OBSOLETE 
+**************************************************************/
 /** pointwise distance matrix for euclidean metric.
 	 \param optargs is ignored
  */
@@ -502,146 +711,51 @@ double** signaldist_recplot_los( double *s1, int n1, double *s2, int n2,
 
   return d;
 }
-
-/** Compute trial-to-trial distance matrix for all trials in eeg-struct.
-	 Average over all channels in the EEG-struct.
-
-	 \param eeg the EEG-data
-	 \param f the function used to compare two ERPs
-	 \param d user allocated memory, or NULL -> own memory is alloc'ed
-	 \param optargs may contain:
-	 - "progress=void*", a progress-bar function; default=NULL;
-	 - <b> userdata is passed to the vectordist_*() function </b>
+/** build a distance matrix D from data X which consists of n observations with
+	 p features each. 
+	 Observations are compared using f.
+	 \param f distance function
+	 \param X data (nxp)
+	 \param D output matrix or NULL -> own memory allocation
+	 \param progress NULL or a progressbar
+	 \param optargs may contain arguments for the vectordistancefunction f
+	 \return the distance matrix between all columns in X
  */
-double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, double **d, OptArgList *optargs ){
+double** vectordist_distmatrix( VectorDistanceFunction f, 
+										  const double **X, int n, int p, double **D, 
+										  ProgressBarFunction progress,
+										  OptArgList *optargs ){
   int i,j;
-  int c;
-  void *tmp;
-  ProgressBarFunction progress=NULL;
-
-  if( d==ALLOC_IN_FCT ){
+  int idx;
+  
+  dprintf("data dim is (%i,%i)\n", n, p);
+  if( D==ALLOC_IN_FCT ){
 	 warnprintf(" allocating matrix in fct\n");
-	 d = dblpp_init( eeg->ntrials, eeg->ntrials );
+	 D = dblpp_init( n, n );
   }
-
-  if( optarglist_has_key( optargs, "progress" ) ){
-	 tmp = optarglist_ptr_by_key( optargs, "progress" );
-	 if( tmp ) progress = (ProgressBarFunction) tmp;
-  }
-  dprintf("progress=%p\n", progress );
-
   if( progress ){
-	 progress( PROGRESSBAR_INIT, eeg->ntrials );
+	 progress( PROGRESSBAR_INIT, n*(n-1)/2 );
   }
-
-  for( i=0; i<eeg->ntrials; i++ ){
-	 d[i][i] = 0.0;	 
-	 if( progress ){
-		progress( PROGRESSBAR_CONTINUE_LONG, i );
-	 }
-	 for( j=i+1; j<eeg->ntrials; j++ ){
-		d[i][j] = 0.0;
-		for( c=0; c<eeg->nbchan; c++ ){
-		  if( progress ){
-			 progress( PROGRESSBAR_CONTINUE_SHORT, 0 );
-		  }
-		  d[i][j] += f( eeg->data[c][i], 
-							 eeg->data[c][j],
-							 eeg->n, optargs );
-		  if( isnan( d[i][j] ) ){
-			 errprintf("D[%i][%i] is nan\n", i, j);
-		  }
+  
+  idx=1;
+  for( i=0; i<n; i++ ){
+	 for( j=i+1; j<n; j++ ){
+		if( progress ){
+		  progress( PROGRESSBAR_CONTINUE_LONG, idx );
 		}
-		d[i][j] /= (double)eeg->nbchan;
-		d[j][i] = d[i][j];
+		D[i][j] = f( (double*)X[i], (double*)X[j], p, optargs );
+		D[j][i] = D[i][j];
+
+
+		if( isnan( D[j][i] ) ){
+		  errprintf("D[%i][%i] is nan\n", j, i);
+		}
+		idx++;
 	 }
   }
   if( progress ){
 	 progress( PROGRESSBAR_FINISH, 0 );
   }
-  return d;
-}
 
-double pointdist_euclidean(double x, double y){
-  return fabs(x-y);
-}
-
-/** Compute distance from point p to the line through points x and y. 
-	 \code
-	 d = abs(det([y-x;p-x]))/norm(y-x);
-	 \endcode
-
-	 \param p point in question (x,y)-plane
-	 \param x,y points specify the line x=(x_1,x_2), y=(y_1, y_2)
- */
-double   dist_point_line(double *p, double *x, double *y){
-  double det=0.0;
-  double d=0.0;
-  det = ((y[0]-x[0])*(p[1]-x[1])) - ((y[1]-x[1])*(p[0]-x[0]));
-  //dprintf("det=%f\n", det);
-  d = (double)ABS( det ) / (double)sqrt( SQR(y[0]-x[0]) + SQR(y[1]-x[1]) );
-
-  return d;
-}
-
-/** computes the distance between two warping-functions. 
-	 It is assumed that both pathes have the same starting and endpoint.
-
-	 Algorithm:
-	 \code
-	 1. compute distance transform for p1
-	 2. line-integral of p2 through DT(p1) 
-	 \endcode
- */
-double   pathdist_euclidean_dt(WarpPath *p1, WarpPath *p2){
-  int **I;
-  int n,m,
-	 i,j;
-  double dist;
-  double **d;
-  
-  n = p1->t1[p1->n-1]+1;
-  m = p1->t2[p1->n-1]+1;
-
-  dprintf("calculate distance with (%i x %i) points\n", n, m );
-
-  I = (int**)malloc( n*sizeof(int*) );
-  for( i=0; i<n; i++){
-	 I[i] = (int*)malloc( m*sizeof(int) );
-	 for( j=0; j<m; j++ ){
-		I[i][j] = 0;
-	 }
-  }
-
-  for( i=0; i<p1->n; i++ ){
-	 //dprintf(" (%i , %i)\n", p1->t1[i], p1->t2[i] );
-	 I[p1->t1[i]][p1->t2[i]]=1;
-  }
-  
-  dprintf(" init done \n");
-	 
-  d = disttransform_deadreckoning( I, n, m, ALLOC_IN_FCT );
-  dblpp_divide_scalar( d, n, m, dblpp_max( (const double**)d, n, m, NULL, NULL ) );
-  dprintf(" dt done \n");
-
-  dist = 0.0;
-  for( i=0; i<p2->n; i++ ){
-	 //	 dprintf(" (%i , %i)\n", p2->t1[i], p2->t2[i] );
-	 if(  p2->t1[i]>=n ||  p2->t2[i]>=n ){
-		warnprintf("points in P2 do not fall in P1,  (%i , %i) -> ignored\n", p2->t1[i], p2->t2[i] );
-	 } else {
-		dist += d[p2->t1[i]][p2->t2[i]];
-	 }
-  }
-  
-  //  dist /= (double)n*m;
-  dprintf(" dist=%f compute done \n", dist);
- 
-  for( i=0; i<n; i++ ){
-	 free( I[i] );
-  }
-  free(I); 
-  //dblpp_free( d, m );
-
-  return dist;
+  return D;
 }

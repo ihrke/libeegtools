@@ -27,6 +27,7 @@
 #include <time.h>
 #include "mathadd.h"
 #include "definitions.h"
+#include "array.h"
 #include "averaging.h"
 #include "warping.h"
 #include "distances.h"
@@ -35,48 +36,56 @@
 extern "C" {
 #endif
 
+  /** \brief Linkage function for hierarchical cluster analysis.
+	*/
+  typedef double  (*LinkageFunction)   (const Array*,const Dendrogram*,const Dendrogram*);
+
   /**\addtogroup clustering
 	*\{
 	*/ 
-  Clusters*    kmedoids(const double **dist, int N, int K);
-  Clusters*    kmedoids_repeat( const double **dist, int N, int K, int repeat );
+  Clusters*    kmedoids(const Array *distmat, int K, OptArgList *optargs );
+  Clusters*    kmedoids_repeat( const Array *distmat, int K, int repeat );
 
-  Dendrogram*  agglomerative_clustering(const double **d, int N, LinkageFunction dist);
+  Dendrogram*  agglomerative_clustering(const Array *distmat, LinkageFunction dist);
 
   /**\addtogroup dendrogram
 	*\{
 	*/ 
 
-  double dgram_dist_singlelinkage  (const double **d, int N, 
-												const Dendrogram *c1, const Dendrogram *c2);
-  double dgram_dist_completelinkage(const double **d, int N, 
-												const Dendrogram *c1 ,const Dendrogram *c2);
-  double dgram_dist_averagelinkage (const double **d, int N, 
-												const Dendrogram *c1, const Dendrogram *c2);
+  double dgram_dist_singlelinkage  (const Array *d, const Dendrogram *c1, const Dendrogram *c2);
+  double dgram_dist_completelinkage(const Array *d, const Dendrogram *c1, const Dendrogram *c2);
 
   void         dgram_print( Dendrogram *t );
   void         dgram_print_node( Dendrogram *t );
   void         dgram_preorder( const Dendrogram *t, int *vals, int *n );
   Dendrogram*  dgram_init(int val, Dendrogram *left, Dendrogram *right);
   void         dgram_free(Dendrogram *t);
-  Dendrogram*  dgram_get_deepest( Dendrogram *c );
+  Dendrogram*  dgram_get_deepest( Dendrogram *c ); 
+  int          dgram_num_leaves( const Dendrogram *t );
+  Array*       dgram_to_matlab( const Dendrogram *dgram );
   /** \} */
 
 
-  void      free_cluster(Clusters *c);
-  void      print_cluster(FILE *out, const Clusters *c);
-  Clusters* init_cluster(int K, int maxN);
-  void      copy_cluster(Clusters *dest, const Clusters *src);
-  int       compare_clusters(const Clusters *c1, const Clusters *c2);
+  void      cluster_free(Clusters *c);
+  void      cluster_print(FILE *out, const Clusters *c);
+  Clusters* cluster_init(int K, int maxN);
+  void      cluster_copy(Clusters *dest, const Clusters *src);
+  int       cluster_compare(const Clusters *c1, const Clusters *c2);
+
+  double   cluster_within_scatter (const Array *distmat, const Clusters *c);
+  double   cluster_between_scatter(const Array *distmat, const Clusters *c);
 
   /** \} */
 
 
   /**\addtogroup gap
 	  Reference paper: Tibshirani, 2001
+	  
+	  \todo rewrite with Array struct
 	  \{
   */
   
+#if 0
   GapStatistic* gapstat_init( GapStatistic *g, int K, int B );
   void          gapstat_free( GapStatistic *g );
   void          gapstat_print( FILE *out, GapStatistic *g );
@@ -85,11 +94,10 @@ extern "C" {
   
   double** gap_get_reference_distribution_simple( const double **X, int n, int p, double **Xr );
   double** gap_get_reference_distribution_svd   ( const double **X, int n, int p, double **Xr );
-  double   get_within_scatter (const double **d, int N, const Clusters *c);
-  double   get_between_scatter(const double **d, int N, const Clusters *c);
 
   int      eeg_best_num_clusters_gapstat( const EEG *eeg, VectorDistanceFunction distfunction,
 														OptArgList *optargs );
+#endif
   /** \} */
 
 

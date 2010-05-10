@@ -22,7 +22,7 @@ PROJECT_NAME           = libeegtools
 # This could be handy for archiving the generated documentation or 
 # if some version control system is used.
 
-PROJECT_NUMBER = 0.5.6
+PROJECT_NUMBER = 0.5.7
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) 
 # base path where the generated documentation will be put. 
@@ -521,7 +521,7 @@ EXAMPLE_RECURSIVE      = YES
 # directories that contain image that are included in the documentation (see 
 # the \image command).
 
-IMAGE_PATH             = ./doc
+IMAGE_PATH             = ./doc ./doc/pics
 
 # The INPUT_FILTER tag can be used to specify a program that doxygen should 
 # invoke to filter for each input file. Doxygen will invoke the filter program 
