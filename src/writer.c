@@ -30,11 +30,9 @@ int write_eeglab_file( EEG* eeg, const char *file ){
 
 /** \brief save Array-struct as MATLAB .mat file.
 
-	 \todo Currently works only for double-arrays. Should be 
-	      easy to implement for arbitrary types if needed.
-	\todo Currently only for 2D-arrays. Sadly, MATLAB uses column-major
-	     storage, so we need a m-dimensional transpose function
-        for converting our data* to the MATLAB data*.
+	 Currently, the function converts all arrays to
+	 double-arrays. Should be easy to implement for arbitrary types if
+	 needed.
 
 	 \param a the Array
 	 \param varname MATLAB-name of the array
@@ -42,15 +40,11 @@ int write_eeglab_file( EEG* eeg, const char *file ){
 	 \param append if TRUE, the function tries to open() the file, else it is overwritten
 	 \return error code
  */
-int write_matrix_matlab( const Array *a, const char *varname, const char *file, bool append ){
+int write_array_matlab( const Array *a, const char *varname, const char *file, bool append ){
   mat_t *mfile;
   matvar_t *marr=NULL;
   int i;
   
-  bool ismatrix;
-  matrix_CHECK( ismatrix, a );
-  if(!ismatrix) return -1;
-
   if( append ){
 	 if( !(mfile=Mat_Open( file, MAT_ACC_RDWR )) ){
 		errprintf("Could not open '%s', creating new file\n", file);
@@ -64,7 +58,7 @@ int write_matrix_matlab( const Array *a, const char *varname, const char *file, 
 	 }
   }
 
-  int ndim = 2; //MAX(2, a->ndim);
+  int ndim = MAX(2, a->ndim);
   int *size = (int*)malloc( ndim*sizeof(int));
   if( a->ndim==1 ){
 	 size[0]=1;
@@ -73,13 +67,19 @@ int write_matrix_matlab( const Array *a, const char *varname, const char *file, 
 	 memcpy( size, a->size, ndim*sizeof(int));
   }
   dprintf("Writing to file '%s' variable '%s', ndim=%i\n", file, varname, ndim);
-#ifdef DEBUG
-  dblp_print_int( size, ndim );
-#endif 
 
-  Array *b=matrix_transpose( (Array*)a, TRUE );
+  /* convert to column major for MATLAB */
+  Array *b=array_convert_rowcolmajor( (Array*)a, TRUE );
+  
+  /* up-cast to DOUBLE - copy of b */
+  Array *c=array_new( DOUBLE, b->ndim, b->size );
+  for( i=0; i<array_NUMEL(b); i++ ){
+	 array_dtype_to_double( array_INDEXMEM1(c,i), array_INDEXMEM1(b,i), b->dtype );
+  }
+  array_free( b );
+
   marr = Mat_VarCreate( varname, MAT_C_DOUBLE, MAT_T_DOUBLE, 
-								ndim, size, b->data, MEM_CONSERVE /* Array remains owner */
+								ndim, size, c->data, MEM_CONSERVE /* Array remains owner */
 								);
   
   dprintf("mfile=%p, marr=%p\n", mfile, marr );
@@ -88,7 +88,7 @@ int write_matrix_matlab( const Array *a, const char *varname, const char *file, 
 
   Mat_Close( mfile );
   Mat_VarFree( marr );
-  array_free( b );
+  array_free( c );
   free( size );
 
   return 0;

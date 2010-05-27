@@ -325,6 +325,8 @@ void recplot_calculate( RecurrencePlot *R, PhaseSpace *p1,
 	 the algorithm in Marwan et al. Cross recurrence plot based synchronization
 	 of time series. Nonlinear Processes in Geophysics (2002) vol. 9 (3-4) pp. 325-331.
 
+	 \todo REPAIR THIS ALGORITHM!
+
 	 Algorithm:
 	 \code
 	 Input: Parameters dx, dy
@@ -463,17 +465,17 @@ WarpPath* recplot_los_marwan( const RecurrencePlot *R, int dx, int dy ){
   int *line;
   line = (int*)malloc( R->m*R->n*2*sizeof(int)); /* much too much */
 
-  for( i=0; i<P->n-1; i++ ){
-	 nump = bresenham_howmany_points( P->t1[i], P->t2[i], P->t1[i+1], P->t2[i+1] );
-	 line = bresenham( P->t1[i], P->t2[i], P->t1[i+1], P->t2[i+1], line );
-	 dprintf(" (%i,%i)->(%i,%i)\n", P->t1[i], P->t2[i], P->t1[i+1], P->t2[i+1] );
-	 for( j=0; j<nump; j++ ){
-		dprintf(" line=(%i,%i)\n", line[(2*j)+0], line[(2*j)+1]);
-		P2->t1[pidx++]=line[(2*j)+0];
-		P2->t2[pidx  ]=line[(2*j)+1];
-	 }
-  }
-  P2->n = pidx;
+  /* for( i=0; i<P->n-1; i++ ){ */
+  /* 	 nump = bresenham_howmany_points( P->t1[i], P->t2[i], P->t1[i+1], P->t2[i+1] ); */
+  /* 	 line = bresenham( P->t1[i], P->t2[i], P->t1[i+1], P->t2[i+1], line ); */
+  /* 	 dprintf(" (%i,%i)->(%i,%i)\n", P->t1[i], P->t2[i], P->t1[i+1], P->t2[i+1] ); */
+  /* 	 for( j=0; j<nump; j++ ){ */
+  /* 		dprintf(" line=(%i,%i)\n", line[(2*j)+0], line[(2*j)+1]); */
+  /* 		P2->t1[pidx++]=line[(2*j)+0]; */
+  /* 		P2->t2[pidx  ]=line[(2*j)+1]; */
+  /* 	 } */
+  /* } */
+  /* P2->n = pidx; */
 
   free_warppath( P );
   free( line );

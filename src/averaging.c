@@ -24,8 +24,41 @@
 #include "averaging.h"
 #include "clustering.h"
 #include "eeg.h"
+#include "linalg.h"
 
+/** \brief example function to pass as SignalAverageFunction doing a pointwise average.
+
+	 This function is only for testing purposes. The "hierarchically" computed
+	 pointwise average should be the same as the normal average.
+
+	 \param input data (N x C x n)
+	 \param index average data[idx[0]] and data[idx[1]]
+	 \param weights number of trials "behind" each average
+	 \param optional arguments
+	 \return the average
+*/
 Array* average_example( const Array *data, uint idx[2], double weights[2], OptArgList *optargs ){
+  int i,j;
+  if( data->ndim!=3 || data->dtype!=DOUBLE ){
+	 errprintf("data must be 3D and DOUBLE, have %i, %i\n", data->ndim, data->dtype );
+	 return NULL;
+  } 
+  int N,C,n;
+  N = data->size[0];
+  C = data->size[1];
+  n = data->size[2];
+  Array *avg = array_new2( DOUBLE, 2, C, n );
+  for( i=0; i<C; i++ ){
+	 for( j=0; j<n; j++ ){
+		mat_IDX( avg, i, j )=
+		  (weights[0]*array_INDEX3( data, double, idx[0], i, j ))+
+		  (weights[1]*array_INDEX3( data, double, idx[1], i, j ));
+	 }
+  }									
+
+  return avg;
+}
+Array* average_warpmarkers( const Array *data, uint idx[2], double weights[2], OptArgList *optargs ){
 }
 
 /** \brief Calculate a hierarchical average based on a cluster-analysis.
@@ -58,17 +91,91 @@ Array* average_example( const Array *data, uint idx[2], double weights[2], OptAr
  */
 Array* hierarchical_average( const Array *data, const Array *distmat, 
 									  SignalAverageFunction avgfct, OptArgList *optargs ){
-#if 0
+#if 1
   Dendrogram *T, *Tsub; 
   ProgressBarFunction progress=NULL;  
   LinkageFunction linkage=dgram_dist_completelinkage;
   void *ptr;
-  if( optarglist_has_key( optargs, "linkage" ) ){
-	 ptr = optarglist_ptr_by_key( optargs, "linkage" );
-	 if( ptr ) linkage = (LinkageFunction)ptr;
+
+  bool ismatrix;
+  matrix_CHECKSQR( ismatrix, distmat );
+  if( !ismatrix ) return NULL;
+  if( data->ndim>3 || data->ndim<2 || data->dtype!=DOUBLE ){
+	 errprintf( "Data needs to be 2D or 3D, got %iD and of type DOUBLE\n", data->ndim );
+	 return NULL;
   }
+
+  optarg_PARSE_PTR( optargs, "linkage", linkage, LinkageFunction, ptr );
+  optarg_PARSE_PTR( optargs, "progress", progress, ProgressBarFunction, ptr );
+
+  int N,C,n;
+  N = data->size[0];
+  C = (data->ndim==2)?1:(data->size[1]);
+  n = (data->ndim==2)?(data->size[1]):(data->size[2]);
+  dprintf("Data is (%i x %i x %i)\n", N, C, n );
+
+  /* wrapper for 2D-data -> work on d instead of data */
+  Array *d=array_copy( data, TRUE );
+  if( d->ndim==2 ){
+	 d->ndim=3;
+	 free( d->size );
+	 d->size=(uint*)malloc( 3*sizeof(uint) );
+	 d->size[0]=N; d->size[1]=C; d->size[2]=n;
+  }
+
+  /*------------------- computation --------------------------*/
   /* build hierarchical dendrogram */
-  T = agglomerative_clustering( (const double**)distmatrix, eeg->ntrials, linkage );
+  T = agglomerative_clustering( distmat, linkage );
+
+  int i;
+  double weights[2];
+  int *indices = (int*)malloc( N*sizeof(int) );
+  for( i=0; i<N; i++ ){
+	 indices[i] = 1;
+  }  
+
+  /* now walk the tree to find pairs of trials to match */
+  Array *new, 
+	 *avg=array_new2( DOUBLE, 2, C, n );
+  int trials_left = N;
+  uint idx[2]={0,0};
+  if( progress ) progress( PROGRESSBAR_INIT, N );
+
+  while( trials_left >= 2 ){
+	 if( progress ) progress( PROGRESSBAR_CONTINUE_LONG, N-trials_left );
+	 
+	 Tsub = dgram_get_deepest( T );
+	 idx[0] = Tsub->left->val;
+	 idx[1] = Tsub->right->val;
+	 
+	 weights[0] = indices[idx[0]]/(double)(indices[idx[0]]+indices[idx[1]]);
+	 weights[1] = indices[idx[1]]/(double)(indices[idx[0]]+indices[idx[1]]);
+	 /* Array* average_example( const AADTWrray *data, uint idx[2], 
+		       double weights[2], OptArgList *optargs ) */
+	 new=avgfct( d, idx, weights, optargs );
+	 memcpy( array_INDEXMEM3( d, idx[0], 0, 0 ),
+				new->data, C*n*sizeof( double ) );
+	 array_free( new );
+
+	 indices[idx[0]] += indices[idx[1]];
+	 indices[idx[1]]=-1; 			  /* never to be used again */
+	 
+	 /* replace node by leaf representing average(idx1, idx2) */
+	 Tsub->val = idx[0];
+	 Tsub->left = NULL;
+	 Tsub->right = NULL;	
+	 trials_left--;
+  }
+  /* idx[0] is the final average */
+  memcpy( avg->data, array_INDEXMEM3( d, idx[0], 0, 0 ),
+			 C*n*sizeof( double ) );
+  /*------------------- /computation --------------------------*/
+
+  free( indices );
+  array_free( d );
+
+  array_dimred( avg );
+  return avg;
 #endif
 }
 

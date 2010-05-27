@@ -47,6 +47,7 @@
 
 #include "helper.h"
 #include "definitions.h"
+#include "complex.h"
 
 /** \ingroup helpermath*/
 #define MAX(a,b) ((a) > (b) ? (a):(b))
@@ -66,32 +67,7 @@ extern "C" {
 #endif
   /* -------- Math ----------- */  
 
-  /* ---------------------------------------------------------------------------- 
-	  -- Complex Arithmetic
-	  ---------------------------------------------------------------------------- */ 
-  /** \ingroup complex 
-		\{
-  */
-  typedef struct {
-	 double re;
-	 double im;
-  } Complex;
-  
-  Complex complex     ( double re, double im );
-  Complex complex_add ( Complex a, Complex b );
-  Complex complex_add_dbl ( Complex a, double b );  
-  Complex complex_sub ( Complex a, Complex b );
-  Complex complex_mul ( Complex a, Complex b );
-  Complex complex_mul_double( Complex a, double b );
-  double  complex_abs ( Complex a );
-  Complex complex_exp ( Complex a );
-  Complex complex_conj( Complex a );
-  Complex complex_neg ( Complex a );
-  Complex complex_div ( Complex a, Complex b);
-  Complex complex_sqrt( Complex x );
-  Complex complex_bilinear_transform(Complex pz);
-  /** \} */
-
+ 
   /**\ingroup helpermath
 	*\{*/
   double  glog(double v, int b);  
@@ -108,10 +84,7 @@ extern "C" {
   int*    linspace(int first, int last);
   double* linspace_dbl(double first, double last, double step, double *v, int *n);
   double  weighted_median_from_unsorted(const double *d, const double *w, int n);
-  int cmpdouble(double d1, double d2, int precision);
-
-  int     bresenham_howmany_points( int xstart,int ystart,int xend,int yend );
-  int*    bresenham(int xstart,int ystart,int xend,int yend, int *points);
+  int     cmpdouble(double d1, double d2, int precision);
 
   void    swap2i(int *v1, int *v2);
   void    swap2d(double *v1, double *v2);
@@ -119,8 +92,6 @@ extern "C" {
   double* flip_array( double *v, int n );
 
   double  gaussian( double x, double sigma, double mu );
-
-  double** disttransform_deadreckoning(int **I, int X, int Y, double **d);
 
   int     next_pow2( int n );
   int     iremainder( double x, double y);

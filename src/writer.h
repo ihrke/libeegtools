@@ -58,8 +58,8 @@ extern "C" {
   /* eeglab/matlab file writer functions if matio library is installed */
   int write_eeglab_file( EEG* eeg, const char *file );
 
-  int write_matrix_matlab( const Array *a, const char *varname, 
-									const char *file, bool append );
+  int write_array_matlab( const Array *a, const char *varname, 
+								  const char *file, bool append );
 #endif
 
 #ifdef __cplusplus

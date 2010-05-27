@@ -21,7 +21,7 @@
 /**\file array.h
  \brief \ref status_inprogress Numerical Arrays.
 
- This is a very efficient implementation of a numerical array of
+ This is an efficient implementation of a numerical array of
  - arbitrary dimension and
  - arbitrary type.
  It wraps a thin layer around a one-dimensional (void *) for 
@@ -157,6 +157,8 @@ Examples:
 extern "C" {
 #endif
 
+#define DIM_ROWS 0
+#define DIM_COLS 1
 
   /** \def array_SIZEOF_DTYPE( size, dtype )
 		\brief get size of datatype.
@@ -370,6 +372,7 @@ extern "C" {
   Array *array_new_dummy( DType dtype, uint ndim, ... );
   Array *array_randunif( unsigned long seed, uint ndim, ... );
   bool   array_comparable( const Array *a, const Array *b );
+
   Array* array_copy( const Array *in, bool allocdata );
   void   array_free( Array *a );
 
@@ -379,11 +382,18 @@ extern "C" {
   void*  array_index2( const Array *a, ... );
   Array* array_slice ( const Array *a, const char *slicedesc );
 
+  Array* array_concatenate( const Array *a, const Array *b, int dim );
+
   int    array_scale (Array * a, double x);
 
   void   array_reverse( Array *a );
 
   int    array_dimred( Array *a );
+
+
+  Array* array_convert_rowcolmajor( Array *a, bool alloc);
+  void   array_calc_colindex( ulong idx, const uint *size, uint nsize, uint *index );
+  void   array_calc_rowindex( ulong idx, const uint *size, uint nsize, uint *index );
 
   void   array_print ( Array *a, uint nel_per_dim, FILE *out );
   void   array_dtype_to_double( double *out, void *mem, DType dt );

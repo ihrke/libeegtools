@@ -21,22 +21,26 @@
 #include "regularization.h"
 #include "optarg.h"
 
-/** Calculate the regularization function that is the distance
-	 transform of $f$, the piecwise linear interpolation between
-	 event-markers (approximated with bresenham-alg). This is a linear
-	 fall-off away from the line passing through all time-marker pairs.
+/** \brief Calculate the regularization function that is the distance
+	 transform of the piecwise linear interpolation between
+	 points.
+	 
+	 (approximated with bresenham-alg). This is a linear
+	 fall-off away from the line passing through all points.
 
 	 \note if you don't pass any arguments, the regularization is done 
-	 along the main diagonal of the DTW-matrix.
-
-	 \param d matrix or NULL (alloc'd in function)
-	 \param n number of points in the returned matrix
-	 \param optargs may contain:
-	 - <tt>markers=int**</tt>time-markers within the nsignal x nsignal matrix, default=<tt>( (0,n-1), (0,n-1) )</tt>
-	 - <tt>nmarkers=int</tt>number of time-marker pairs; REQUIRED if markers is set, default=\c 2
-	 \return d or NULL (error)
+	 along the main diagonal
+	 
+	 \param points defining the piecewise linear function through the regularization matrix;
+	        this is a 2 x M dimensional UINT-array, all points must be within the 
+			  dimensions; if NULL is passed, the function assumes (0,0),(dims) as
+			  points, i.e. the regularization is done along the main diagonal
+    \param dims the dimensions of the output matrix (rows x cols)
+	 \param m the output matrix or NULL -> allocate in function 
+	 \return the regularization matrix or NULL (error)
 */
-double** regularization_linear_points( double **d, int n, OptArgList *optargs ){ 
+Array* regularization_linear_points( const Array *points, uint dims[2], Array *m ){
+#if 0
   int i,j;
   int maxmem, npoints;
   double x;
@@ -46,35 +50,6 @@ double** regularization_linear_points( double **d, int n, OptArgList *optargs ){
   int nmarkers;
   void *ptr;
 
-  if( d==ALLOC_IN_FCT ){
-	 d=dblpp_init( n, n );
-  } 
-
-  /* defaults */
-  nmarkers = 2;
-  markers = NULL;
-
-  /* override */
-  if( optarglist_has_key( optargs, "nmarkers" ) ){
-	 x = optarglist_scalar_by_key( optargs, "nmarkers" );
-	 if( !isnan( x ) ) nmarkers=(int)x;
-  }
-  if( optarglist_has_key( optargs, "markers" ) ){
-	 ptr = optarglist_ptr_by_key( optargs, "markers" );
-	 if( ptr ) markers = (int**)ptr;
-  }
-
-  /* allocate own markers if not provided via optargs */
-  if( !markers ){
-	 nmarkers = 2;
-	 markers = (int**) malloc( 2*sizeof( int* ) );
-	 markers[0] = (int*) malloc( nmarkers*sizeof( int ) );
-	 markers[1] = (int*) malloc( nmarkers*sizeof( int ) );
-	 markers[0][0] = 0;
-	 markers[1][0] = 0;
-	 markers[0][1] = n-1;
-	 markers[1][1] = n-1;
-  }
 	 
   /* memory for distance transform */
   I = (int**) malloc( n*sizeof( int* ) );
@@ -115,6 +90,7 @@ double** regularization_linear_points( double **d, int n, OptArgList *optargs ){
   free( points );
 
   return d;
+#endif
 }
 
 /** Calculate regularization function
@@ -134,6 +110,7 @@ double** regularization_linear_points( double **d, int n, OptArgList *optargs ){
 	 - <tt>max_sigma=double</tt> std of a gaussian applied to the regularization matrix as returned from regularization_linear_points(); default=\c 0.2	 \return d or NULL (error)
  */
 double** regularization_gaussian_line( double **d, int n, OptArgList *optargs ){
+#if 0
   int i,j,k;
  
   double max_sigma=0.0;
@@ -220,5 +197,6 @@ double** regularization_gaussian_line( double **d, int n, OptArgList *optargs ){
   }
 
   return d;
+#endif
 }
 

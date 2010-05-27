@@ -78,9 +78,23 @@ extern "C" {
 #define optarg_PARSE_SCALAR( opts, label, var, type, tmp )	\
   if( optarglist_has_key( (opts), (label) ) ){					\
 	 (tmp) = optarglist_scalar_by_key( (opts), (label) );		\
-	 if( !isnan( (tmp) ) ) var=(type)(tmp);						\
+	 if( !isnan( (tmp) ) ) (var)=(type)(tmp);						\
   }
 
+ /** \brief Check and assign a void-ptr from OptArgList.
+		Suppose you got optargs in a function and want to 
+		check for variable "distfct" of type "DistFct",
+		\code
+		void *ptr; // tmp 
+		DistFct distf;
+		optarg_PARSE_PTR( optargs, "distfct", distf, DistFct, ptr );
+		\endcode
+	*/
+#define optarg_PARSE_PTR( opts, label, var, type, tmp )		\
+  if( optarglist_has_key( (opts), (label) ) ){					\
+	 (tmp) = optarglist_ptr_by_key( (opts), (label) );			\
+	 if( (tmp) ) (var)=(type)(tmp);									\
+  }
 
   /* ------------ List -------------- */
   struct list {

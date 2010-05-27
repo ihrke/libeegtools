@@ -36,8 +36,15 @@ extern "C" {
  */
 
 /** \brief Function for averaging two trials from data.
+	 \param input data (N x C x n)
+	 \param index average data[idx[0]] and data[idx[1]]
+	 \param weights number of trials "behind" each average
+	 \param optional arguments
+	 \return the average
  */
-typedef double**(*SignalAverageFunction)( const Array *,uint[2],double[2],OptArgList*);
+  typedef Array*(*SignalAverageFunction)( const Array *,uint[2],double[2],OptArgList*);
+  Array* average_example( const Array *data, uint idx[2], double weights[2], 
+								  OptArgList *optargs );
 
   Array* hierarchical_average( const Array *data, const Array *distmat, 
 										 SignalAverageFunction avgfct, OptArgList *optargs );

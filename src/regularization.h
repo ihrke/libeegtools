@@ -25,6 +25,7 @@
 # define REGULARIZATION_H
 #include "mathadd.h"
 #include "definitions.h"
+#include "array.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,8 +35,7 @@ extern "C" {
   /** \addtogroup regularization
 	*\{
 	*/
-  double** regularization_linear_points( double **d, int n, 
-													  OptArgList *optargs );
+  Array* regularization_linear_points( const Array *points, uint dims[2], Array *m );
   double** regularization_gaussian_line( double **d, int n, 
 													  OptArgList *optargs );
   /** \} */

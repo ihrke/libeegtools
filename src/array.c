@@ -24,7 +24,178 @@
 #include <string.h>
 #include <gsl/gsl_rng.h>
 #include <time.h>
-   
+
+/** \brief concatenate two arrays.
+
+	 The two arrays must have the same number of elements in all dimensions 
+	 except in the concatenated dimension.
+
+	 \todo currently works only for 1D and 2D. implement nD if necessary.
+
+	 Example:
+	 \verbatim
+	 [ 1 2     [ 7 8 
+	   3 4       9 10
+      5 6 ]    11 12] 
+
+		=> [ 1 2
+		     3 4
+           5 6
+           7 8
+           9 10
+			  11 12 ]
+	 \endverbatim
+
+	 \param a,b the two arrays to concatenate (must be 1D/2D arrays of arbitrary
+	      type); if one of them is NULL, return a copy of the other one
+	 \param dim the dimension along which they are to be concatenated (0-rows, 1-columns)
+	 \return the concatenation of a and b
+ */
+Array* array_concatenate( const Array *a, const Array *b, int dim ){
+  Array *out;
+  if( a==NULL && b==NULL ){
+	 warnprintf("concatenating two NULL-arrays\n");
+	 return NULL;
+  }
+  if( a==NULL ){
+	 out=array_copy( b, TRUE ); return out;
+  }
+  if( b==NULL ){
+	 out=array_copy( a, TRUE ); return out;
+  }
+  if( dim!=0 && dim!=1 ){
+	 errprintf("can only concatenate rows (0) or columns (1), got %i\n",dim);
+	 return NULL;
+  }
+  if( a->dtype!=b->dtype ){
+	 errprintf("Arrays must be of same data-type\n");
+	 return NULL;
+  }
+  if( a->ndim!=b->ndim ){
+	 errprintf("Arrays must be of same dimensionality\n");
+	 return NULL;
+  }
+  if( a->ndim>2 || b->ndim>2 ){
+	 errprintf("Arrays must be 1D or 2D\n");
+	 return NULL;
+  }
+  if( a->size[1-dim]!=b->size[1-dim] ){
+	 errprintf("Arrys must be of same dimension in dim %i, have %i vs. %i\n",
+				  1-dim, a->size[1-dim], b->size[1-dim] );
+	 return NULL;
+  }
+
+  Array *sa,*sb;					  /* wrap 1D arrays */
+  sa = array_fromptr2( a->dtype, 2, a->data, a->size[0], (a->ndim>1)?(a->size[1]):1 );
+  sb = array_fromptr2( b->dtype, 2, b->data, b->size[0], (b->ndim>1)?(b->size[1]):1 );
+
+  int outr, outc;
+  if( dim==0 ){
+	 outr=sa->size[0]+sb->size[0];
+	 outc=sa->size[1];
+  } else {
+	 outr=sa->size[0];
+	 outc=sa->size[1]+sb->size[1];
+  }
+  out = array_new2( a->dtype, 2, outr, outc );
+
+  if( dim==0 ){
+	 memcpy( out->data, sa->data, sa->nbytes );
+	 memcpy( out->data+sa->nbytes, sb->data, sb->nbytes );
+  } else {
+	 int i;
+	 for( i=0; i<a->size[0]; i++ ){
+		memcpy( array_INDEXMEM2( out, i, 0), array_INDEXMEM2( a, i, 0 ), a->dtype_size*a->size[1] );
+		memcpy( array_INDEXMEM2( out, i, a->size[1]), 
+				  array_INDEXMEM2( b, i, 0 ), b->dtype_size*b->size[1] );
+	 }
+  }
+
+  array_free( sa );
+  array_free( sb );
+  
+  array_dimred( out );
+  return out;
+}
+
+
+/** \brief calculate the row-major index-tuple given the offset from element 0.
+
+	 \param offset 
+	 \param size the dimensions of the array
+	 \param nsize number of dimensions
+	 \param index (output) the index tuple
+ */
+void array_calc_rowindex( ulong offset, const uint *size, uint nsize, uint *index ){
+  ulong prod=1;
+  ulong accounted=0;
+  int i;
+  if( nsize<=0 ){
+	 errprintf("invalid dimensionality=%i\n", nsize);
+	 return;
+  }
+  for( i=0; i<nsize; i++ ) prod*=size[i];
+
+  for( i=0; i<nsize; i++ ){
+	 index[i] = (offset-accounted)/(prod/size[i]);
+
+	 prod /= size[i];
+	 accounted += index[i]*prod;
+  }
+}
+
+/** \brief calculate the column-major index-tuple given the offset from element 0.
+
+	 \param offset 
+	 \param size the dimensions of the array
+	 \param nsize number of dimensions
+	 \param index (output) the index tuple
+ */
+void array_calc_colindex( ulong offset, const uint *size, uint nsize, uint *index ){
+  ulong prod=1;
+  ulong accounted=0;
+  int i;
+  if( nsize<=0 ){
+  	 errprintf("invalid dimensionality=%i\n", nsize);
+  	 return;
+  }
+  for( i=0; i<nsize; i++ ) prod*=size[i];
+
+  for( i=0; i<nsize; i++ ){
+  	 index[nsize-i-1] = (offset-accounted)/(prod/size[nsize-i-1]);
+	 
+  	 prod /= size[nsize-i-1];
+  	 accounted += index[nsize-i-1]*prod;
+  }
+}
+
+/** \brief convert a row-major array to col-major.
+	 
+	 This is a d-dimensional matrix-transpose.
+
+	 \param a the row-major array
+	 \param alloc if TRUE, allocate new memory, else overwrite a
+	 \return a new col-major array
+*/
+Array* array_convert_rowcolmajor( Array *a, bool alloc){
+  ulong i;
+  uint *idx=(uint*)malloc( a->ndim*sizeof(uint) );
+  Array *b = array_copy( a, TRUE );
+
+  for( i=0; i<array_NUMEL( a ); i++ ){
+	 array_calc_colindex( i, a->size, a->ndim, idx );
+	 memcpy( array_INDEXMEM1( b, i ), array_index( a, idx ), a->dtype_size );
+  }
+ 
+  if( !alloc ){
+	 memcpy( a->data, b->data, b->nbytes );
+	 array_free( b );
+	 b=a;
+  }
+
+  return b;
+}
+
 /** \brief Reverse order of elements in a (in-place).
 	 
 	 Dimensionality is not considered. I.e., the function
@@ -321,8 +492,12 @@ void array_print( Array *a, uint nel_per_dim, FILE *out ){
 	 nbelow[i] = nbelow[i-1]/a->size[i-1];
   }
   char *dt=NULL;
-  array_DTYPESTRING(dt, a->dtype)
-  fprintf( out, "array(%s):", dt );
+  array_DTYPESTRING(dt, a->dtype);
+  fprintf( out, "array(%s, ", dt ); 
+  for( i=0; i<a->ndim; i++ ){
+	 fprintf( out, "%i, ", a->size[i] );
+  }
+  fprintf( out, "\b\b):\n" );
   dump_data( out, a->dtype, a->dtype_size, a->ndim, nel_per_dim, a->data, a->size, nbelow+1 );
   fprintf( out, "\n");
 
@@ -353,11 +528,11 @@ void*  array_index( const Array *a, uint *idx ){
   }
   cumdim = a->nbytes/a->dtype_size; // total number of elements
   for( i=0; i<a->ndim; i++ ){
-	 if( idx[i]>=a->size[i] ){  /* check array bounds */
-		errprintf("Array out of bounds at dim=%i: i=%i, size=%i\n",
-					 i, idx[i], a->size[i] );
-		return NULL;
-	 }
+ 	 /* if( idx[i]>=a->size[i] ){  /\* check array bounds *\/ */
+	 /* 	errprintf("Array out of bounds at dim=%i: i=%i, size=%i\n", */
+	 /* 				 i, idx[i], a->size[i] ); */
+	 /* 	return NULL; */
+	 /* } */
 	 cumdim /= a->size[i];
 	 index += idx[i]*cumdim*a->dtype_size;
   }

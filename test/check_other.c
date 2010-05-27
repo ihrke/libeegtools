@@ -20,7 +20,8 @@
 #include "pqueue.h"
 #include "mathadd.h"
 #include "nnsearch.h"
-
+#include "imageproc.h"
+#include "writer.h"
      
 START_TEST (test_strip_blank)
 {
@@ -146,15 +147,154 @@ START_TEST (test_pqueue)
 }
 END_TEST
 
+START_TEST (test_bresenham)
+{
+  int as[2]={2,3};
+  int ae[2]={10,12};
+  Array *a=bresenham_line( as, ae );
+  fail_unless( a->ndim==2 );
+  fail_unless( a->size[0]==2 );
+  fail_unless( a->dtype==INT );
+  /* start */
+  fail_unless( array_INDEX2(a,int,0,0)==as[0] &&
+					array_INDEX2(a,int,1,0)==as[1] );
+  /* end */
+  fail_unless( array_INDEX2(a,int,0,a->size[1]-1)==ae[0] &&
+					array_INDEX2(a,int,1,a->size[1]-1)==ae[1] );
+					
+  int i; /* coninuity */
+  for( i=1; i<a->size[1]; i++ ){
+	 fail_if( array_INDEX2(a,int,0,i)-array_INDEX2(a,int,0,i-1)>1 ||
+				 array_INDEX2(a,int,0,i)-array_INDEX2(a,int,0,i-1)<0 );
+	 fail_if( array_INDEX2(a,int,1,i)-array_INDEX2(a,int,1,i-1)>1 ||
+				 array_INDEX2(a,int,1,i)-array_INDEX2(a,int,1,i-1)<0 );
+  }
+  array_free( a );
+  
+  int bs[2]={-100,2};
+  int be[2]={200,30};
+  Array *b=bresenham_line( bs, be );
+  
+  fail_unless( b->ndim==2 );
+  fail_unless( b->size[0]==2 );
+  fail_unless( b->dtype==INT );
 
+
+  /* start */
+  fail_unless( array_INDEX2(b,int,0,0)==bs[0] &&
+					array_INDEX2(b,int,1,0)==bs[1] );
+  /* end */
+  fail_unless( array_INDEX2(b,int,0,b->size[1]-1)==be[0] &&
+					array_INDEX2(b,int,1,b->size[1]-1)==be[1] );
+
+  /* coninuity */
+  for( i=1; i<b->size[1]; i++ ){
+	 fail_if( array_INDEX2(b,int,0,i)-array_INDEX2(b,int,0,i-1)>1 ||
+				 array_INDEX2(b,int,0,i)-array_INDEX2(b,int,0,i-1)<0 );
+	 fail_if( array_INDEX2(b,int,1,i)-array_INDEX2(b,int,1,i-1)>1 ||
+				 array_INDEX2(b,int,1,i)-array_INDEX2(b,int,1,i-1)<0 );
+  }
+
+  array_free( b );
+}
+END_TEST
+
+START_TEST (test_bresenham_segments)
+{
+  /*
+	 load bres.mat
+	 x=zeros(200,200);
+	 for i=1:size(bres,2)
+	    x(bres(1,i),bres(2,i))=1;
+	 end;
+	 imagesc(x);
+	 colormap gray;
+	*/
+  int points[12]={ 3, 7, 100, 50, 10, 150, 
+						 4, 10, 20, 100, 110, 200 };
+  Array *p=array_fromptr2( INT, 2, points, 2, 6 );
+  Array *a=bresenham_linesegments( p );
+
+  array_print( p, -1, stderr );
+
+  fail_unless( a->ndim==2 );
+  fail_unless( a->size[0]==2 );
+  fail_unless( a->dtype==INT );
+  
+  write_array_matlab( a, "bres", "bres.mat", FALSE ); 
+
+  array_free( a );
+  array_free( p );
+}
+END_TEST
+
+START_TEST (test_disttransform)
+{
+  /*
+	 load test.mat
+	 subplot(1,2,1)
+	 imagesc(in)
+	 colorbar
+	 subplot(1,2,2)
+	 imagesc(dt)
+	 colorbar
+	 colormap gray
+  */
+  int nx=100, ny=200;
+  Array *a=array_new2(UINT,2,nx,ny);
+  array_INDEX2(a,uint,nx/2,ny/2)=1;
+  array_INDEX2(a,uint,1,1)=1;
+  array_INDEX2(a,uint,1,ny-1)=1;
+
+  Array *b=disttransform_deadreckoning( a, NULL );
+
+  ulong i; 
+  for( i=0; i<array_NUMEL(b); i++ ){
+	 fail_if( isnan( array_INDEX1(b,double,i) ) );
+	 fail_if( array_INDEX1(b,double,i)>DBL_MAX-2 );
+  }
+
+  int as[2]={2,3};
+  int ae[2]={100,120};
+  Array *l=bresenham_line( as, ae );
+  for( i=0; i<l->size[1]; i++ ){
+	 array_INDEX2(a,uint, array_INDEX2(l,int,0,i),
+					  array_INDEX2(l,int,1,i) )=1;
+  }
+  Array *d=disttransform_deadreckoning( a, NULL );
+ for( i=0; i<array_NUMEL(b); i++ ){
+	 fail_if( isnan( array_INDEX1(d,double,i) ) );
+	 fail_if( array_INDEX1(d,double,i)>DBL_MAX-2 );
+  }
+  /* write_array_matlab( a, "in", "test.mat", FALSE ); */
+  /* write_array_matlab( d, "dt", "test.mat", TRUE ); */
+
+  array_free( a );
+  array_free( b );
+  array_free( l );
+  array_free( d );  
+}
+END_TEST
+
+/* template
+START_TEST (test_)
+{
+}
+END_TEST
+*/
 Suite * init_other_suite (void){
   Suite *s = suite_create ("Other/Misc-Functions");
 
   TCase *tc_core = tcase_create ("OtherCore");
-  //  tcase_add_test (tc_core, test_strip_blank );
-  //  tcase_add_test (tc_core, test_eeg_to_stream );
-    tcase_add_test (tc_core, test_nnprepare );
-	 //tcase_add_test (tc_core, test_pqueue );
+  tcase_add_test (tc_core, test_strip_blank );
+  tcase_add_test (tc_core, test_eeg_to_stream );
+  tcase_add_test (tc_core, test_nnprepare );
+  tcase_add_test (tc_core, test_pqueue );
+  tcase_add_test (tc_core, test_bresenham);
+  tcase_add_test (tc_core, test_bresenham_segments);
+  tcase_add_test (tc_core, test_disttransform);
+
+
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

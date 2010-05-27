@@ -18,7 +18,6 @@ $ cvs up -A oldfile
 LD_LIBRARY_PATH="./src/.libs/:$LD_LIBRARY_PATH" && ./examples/.libs/t_som ~/sloc/data/artdata1.raw
 
 
-
 # migrating cvs from pinguin to sf.net
 #
 pinguin     $ tar cvfz libeegtools_repo.tar.gz /home/share/bccn/cvsroot/libeegtools/
@@ -32,26 +31,6 @@ shell.sf.net$ tar xvfz libeegtools_repo.tar.gz
 shell.sf.net$ cd ; adminrepo --save cvs
 
 
-Moving from EEGdata/EEGdata_trials to EEG:
------------------------------------------
-Files done:
- averaging.h/.c
- filter.h/.c
- wavelet.h/.c
- mathadd.h/.c
- helper.h/.c
- reader.h/.c
- clustering
- hmm
- time_frequency
- regularization
- som
- recurrence_plot.h/.c
- nonlinear.h/.c
- tools.h/.c
- distances.h/.c
- warping.h/.c
-
 Using NAN or INF portably
 -------------------------
 use 0.0/0.0 for NAN
@@ -59,5 +38,28 @@ use 1.0/0.0 for INF
 etc.
 check with isnan(x)
 
+
 List stuff in object files:
+---------------------------
 nm object.o
+
+
+Migration to Array-struct:
+--------------------------
+Done:
+
+averaging
+clustering (no gapstat)
+distances
+linalg
+recurrence_plot
+reader
+writer
+
+
+- all EEG-functions missing!
+
+
+CONTINUE WITH:
+----------------
+regularization.h/.c

@@ -23,6 +23,8 @@ int main (void){
   Suite *lalg = init_linalg_suite   ();
   Suite *warp = init_warping_suite  ();
   Suite *clust= init_cluster_suite  ();
+  Suite *avg  = init_average_suite  ();
+  Suite *io   = init_io_suite  ();
 
 
   SRunner *sr = srunner_create (cfct);
@@ -30,13 +32,14 @@ int main (void){
   srunner_add_suite( sr, dist ); 
   srunner_add_suite( sr, hmm  );
   srunner_add_suite( sr, list );
-  srunner_add_suite( sr, other);
   srunner_add_suite( sr, nlin ); 
-  srunner_add_suite( sr, arr  ); 
   srunner_add_suite( sr, lalg  ); 
   srunner_add_suite( sr, warp  ); 
   srunner_add_suite( sr, clust  ); 
-
+  srunner_add_suite( sr, avg  ); 
+  srunner_add_suite( sr, io  ); 
+  srunner_add_suite( sr, arr  ); 
+  srunner_add_suite( sr, other);
 
   srunner_set_log(sr, "test.log");
   srunner_run_all (sr, CK_VERBOSE);

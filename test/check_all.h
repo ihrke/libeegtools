@@ -27,5 +27,7 @@ Suite * init_array_suite     (void);
 Suite * init_linalg_suite    (void);
 Suite * init_warping_suite    (void);
 Suite * init_cluster_suite    (void);
+Suite * init_average_suite    (void);
+Suite * init_io_suite         (void);
 
 #endif 	    /* !CHECK_ALL_H_ */

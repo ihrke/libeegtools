@@ -400,6 +400,189 @@ START_TEST (test_shuffle)
 }
 END_TEST
 
+START_TEST (test_rowindex)
+{
+  int d1=2, d2=3, d3=4;
+  Array *a=array_new_dummy( UINT, 3, d1, d2, d3 );
+
+  int i,j,k,offset=0;
+  int index[3];
+  for( i=0; i<d1; i++ ){
+	 for( j=0; j<d2; j++ ){
+		for( k=0; k<d3; k++ ){
+		  array_calc_rowindex( offset, a->size, a->ndim, index );
+		  /* dprintf("i,j,k=(%i,%i,%i), index=(%i,%i,%i), offset=%i\n", */
+		  /* 			 i,j,k,index[0],index[1],index[2],offset); */
+		  fail_unless( index[0]==i );
+		  fail_unless( index[1]==j );
+		  fail_unless( index[2]==k );
+		  offset++;
+		}
+	 }
+  }
+
+  array_free( a );
+}
+END_TEST
+
+START_TEST (test_colindex)
+{
+  int d1=2, d2=3, d3=4;
+  Array *a=array_new_dummy( UINT, 3, d1, d2, d3 );
+
+  int i,j,k,offset=0;
+  int index[3];
+  for( i=0; i<d3; i++ ){
+	 for( j=0; j<d2; j++ ){
+		for( k=0; k<d1; k++ ){
+		  array_calc_colindex( offset, a->size, a->ndim, index );
+		  /* dprintf("i,j,k=(%i,%i,%i), index=(%i,%i,%i), offset=%i\n", */
+		  /* 			 i,j,k,index[0],index[1],index[2],offset); */
+		  fail_unless( index[0]==k );
+		  fail_unless( index[1]==j );
+		  fail_unless( index[2]==i );
+		  offset++;
+		}
+	 }
+  }
+
+  array_free( a );
+}
+END_TEST
+START_TEST (test_convertcolrow)
+{
+  int d1=2, d2=3, d3=4;
+  Array *a=array_new_dummy( UINT, 3, d1, d2, d3 );
+  Array *b=array_convert_rowcolmajor( a, TRUE );
+
+  int i,j,k;
+  int offset=0;
+  int index[3];
+  for( i=0; i<d3; i++ ){
+	 for( j=0; j<d2; j++ ){
+		for( k=0; k<d1; k++ ){
+		  dprintf("a(%i,%i,%i)=%i, a+(offset=%i)=%i, b+offset=%i\n",
+					 i,j,k,  array_INDEX3( a, uint,i,j,k),
+					 offset, array_INDEX1( a,uint,offset),
+					 array_INDEX1( b,uint,offset) );
+		  fail_unless( array_INDEX1( b,uint,offset) ==
+							array_INDEX3( a, uint,k,j,i ) );
+			 
+		  /* array_calc_colindex( array_INDEX1( b,uint,offset), */
+		  /* 							  a->size, a->ndim, index ); */
+		  
+		  /* fail_unless( index[0]==i, "index[0]=%i, i=%i", index[0], i ); */
+		  /* fail_unless( index[1]==j, "index[1]=%i, j=%i", index[1], j ); */
+		  /* fail_unless( index[2]==k, "index[2]=%i, k=%i", index[2], k ); */
+
+		  offset++;
+		}
+	 }
+  }
+
+  array_free( a );
+  array_free( b );
+}
+END_TEST
+
+START_TEST (test_concatenate_rows)
+{
+  Array *a=array_new_dummy( UINT, 2, 10, 3 );
+  Array *b=array_new_dummy( UINT, 2, 4, 3 );
+  Array *c=array_concatenate( a, b, 0 );
+
+  
+  /* array_print( a, -1, stderr ); */
+  /* array_print( b, -1, stderr ); */
+  /* array_print( c, -1, stderr ); */
+
+  fail_unless( c!=NULL );
+  int i,j;
+  for( i=0; i<a->size[0]; i++ ){
+	 for( j=0; j<a->size[1]; j++ ){
+		fail_unless( array_INDEX2( c, uint,i,j )==array_INDEX2( a, uint,i,j ) );
+	 }
+  }
+  for( i=0; i<b->size[0]; i++ ){
+	 for( j=0; j<b->size[1]; j++ ){
+		fail_unless( array_INDEX2( c, uint,i+a->size[0],j )==array_INDEX2( b, uint,i,j ) );
+	 }
+  }
+
+  array_free( a );
+  array_free( b );
+  array_free( c );
+}
+END_TEST
+
+START_TEST (test_concatenate_cols)
+{
+  Array *a=array_new_dummy( UINT, 2, 10, 3 );
+  Array *b=array_new_dummy( UINT, 2, 10, 4 );
+  Array *c=array_concatenate( a, b, 1 );
+  
+  /* array_print( a, -1, stderr ); */
+  /* array_print( b, -1, stderr ); */
+  /* array_print( c, -1, stderr ); */
+
+  fail_unless( c!=NULL );
+  int i,j;
+  for( i=0; i<a->size[0]; i++ ){
+	 for( j=0; j<a->size[1]; j++ ){
+		fail_unless( array_INDEX2( c, uint,i,j )==array_INDEX2( a, uint,i,j ) );
+	 }
+  }
+  for( i=0; i<b->size[0]; i++ ){
+	 for( j=0; j<b->size[1]; j++ ){
+		fail_unless( array_INDEX2( c, uint,i,j+a->size[1] )==array_INDEX2( b, uint,i,j ) );
+	 }
+  }
+
+  array_free( a );
+  array_free( b );
+  array_free( c );
+}
+END_TEST
+
+START_TEST (test_concatenate_cols_dbl)
+{
+  Array *a=array_new_dummy( DOUBLE, 2, 10, 3 );
+  Array *b=array_new_dummy( DOUBLE, 2, 10, 4 );
+  Array *c=array_concatenate( a, b, 1 );
+  
+  /* array_print( a, -1, stderr );  */
+  /* array_print( b, -1, stderr ); */
+  /* array_print( c, -1, stderr );  */
+
+  fail_unless( c!=NULL );
+  int i,j;
+  for( i=0; i<a->size[0]; i++ ){
+	 for( j=0; j<a->size[1]; j++ ){
+		fail_unless( cmpdouble( array_INDEX2( c, uint,i,j ),
+										array_INDEX2( a, uint,i,j ),3)==0 );
+	 }
+  }
+  for( i=0; i<b->size[0]; i++ ){
+	 for( j=0; j<b->size[1]; j++ ){
+		fail_unless( cmpdouble( array_INDEX2( c, uint,i,j+a->size[1] ),
+										array_INDEX2( b, uint,i,j ),3)==0 );
+	 }
+  }
+
+  Array *d=array_concatenate( a, NULL, DIM_COLS );
+  fail_unless( array_comparable( a, d ) );
+  for( i=0; i<array_NUMEL(a); i++ ){
+	 fail_unless( cmpdouble( array_INDEX1( a,double,i),
+									 array_INDEX1( d,double,i), 4)==0 );
+  }
+
+  array_free( a );
+  array_free( b );
+  array_free( c );
+  array_free( d );
+}
+END_TEST
+
 /* template
 START_TEST (test_)
 {
@@ -428,6 +611,12 @@ Suite * init_array_suite (void){
   tcase_add_test (tc_core, test_reverse );
   tcase_add_test (tc_core, test_random);
   tcase_add_test (tc_core, test_shuffle);
+  tcase_add_test (tc_core, test_rowindex);
+  tcase_add_test (tc_core, test_colindex);
+  tcase_add_test (tc_core, test_convertcolrow);
+  tcase_add_test (tc_core, test_concatenate_rows);
+  tcase_add_test (tc_core, test_concatenate_cols);
+  tcase_add_test (tc_core, test_concatenate_cols_dbl);
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

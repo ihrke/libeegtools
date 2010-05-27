@@ -24,6 +24,8 @@
 #define PROGRESSBAR_CONTINUE_LONG  2  /**< continue flag for progress bar, major step */
 #define PROGRESSBAR_FINISH         3  /**< cleanup */
 
+#define SEED_RANDOM 0 /**< use a random seed */
+
 #ifdef __cplusplus
 extern "C" { 
 #else

@@ -109,6 +109,29 @@ START_TEST (test_parse_scalar)
 }
 END_TEST
 
+START_TEST (test_parse_ptr)
+{
+  int test[10];
+  double *test2=(double*)malloc( 10*sizeof(double));
+  OptArgList *opts=optarglist( "test=void*,"
+										 "test2=void*", (void*)test,
+										 (void*) test2);
+
+  void *ptr;
+  int *t1;
+  double *t2;
+  optarg_PARSE_PTR( opts, "test", t1, int*, ptr );
+  fail_if( t1!=test );
+  optarg_PARSE_PTR( opts, "test3", t1, int*, ptr );
+  fail_if( test!=t1 );  
+
+  optarg_PARSE_PTR( opts, "test2", t2, double*, ptr );
+  fail_if( t2!=test2 );
+
+  free( test2 );
+}
+END_TEST
+
 /* template
 START_TEST (test_)
 {
@@ -124,6 +147,7 @@ Suite * init_list_suite (void){
   tcase_add_test (tc_core, test_optarg_get_by_key );
   tcase_add_test (tc_core, test_optarg_append );
   tcase_add_test (tc_core, test_parse_scalar);
+  tcase_add_test (tc_core, test_parse_ptr);
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

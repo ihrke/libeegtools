@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2008-2010 by Matthias Ihrke   *
- *   mihrke@uni-goettingen.de   *
+ *   Copyright (C) 2010 by Matthias Ihrke                                  *
+ *   ihrke@nld.ds.mpg.de
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -13,50 +13,37 @@
  *   GNU General Public License for more details.                          *
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
+ *   aint with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/**\file reader.h
- * \brief \ref status_stable Read (EEG)-data from files.
- */
-#ifndef READER_H
-# define READER_H
-#include "definitions.h"
-#include "mathadd.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <strings.h>
-#include "array.h"
+/**\file imageproc.h
+ \brief \ref status_inprogress imageproc
 
-#define MAX_LINE_LENGTH 500
+ Image Processing Functions.
+	
+ */
+#ifndef IMAGEPROC_H
+# define IMAGEPROC_H
+#include "definitions.h"
+#include "array.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-  /** \weakgroup reader
-		\{ */
-  /* -------------------------------------------------------------------- */
-  /* functions */
-  /* -------------------------------------------------------------------- */
-  EEG*     read_continuous_eeg_from_binfile(const char *file, int C, int n);
-  double** read_double_matrix_ascii(const char *fname, int xdim, int ydim, double **d);
-  EEG*     read_eeg_from_raw(const char *file);
-  double*  read_dblp_ascii( const char *fname, int N, double *v );
+
+  /* -------------- FUNCTIONS ---------------- */
+
+  Array*  bresenham_line( int start[2], int end[2] );
+  Array*  bresenham_linesegments( const Array *points );
 
 
-#ifdef MATIO
-  /* eeglab/matlab file reader functions if matio library is installed */
-  EEG* read_eeglab_file( const char *file );
-  Array* read_array_matlab( const char *file, const char *varname );
-#endif
+  Array*  disttransform_deadreckoning( const Array *in, Array *dt );
 
-  ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans );
-  /** \} */
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* IMAGEPROC_H */

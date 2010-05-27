@@ -1,6 +1,7 @@
 #include "reader.h"
 #include "helper.h"
 #include "eeg.h"
+#include <unistd.h>
 
 #ifdef MATIO
 #include <matio.h>
@@ -48,7 +49,7 @@ EEG* read_eeglab_file( const char *file ){
 	 dprintf("Found field: '%s'\n", tmp->name);
   }
 #endif
-
+  
   /* dimensions */
   nbchan = (int)get_double_from_struct_field( meeg, "nbchan",0 );
   ntrials= (int)get_double_from_struct_field( meeg, "trials",0 );
@@ -170,6 +171,82 @@ EEG* read_eeglab_file( const char *file ){
   return eeg;
 }
 
+/** \brief read a MATLAB-array from a .mat file.
+	 
+	 \todo Currently, the returned array is always DOUBLE.
+
+	 \param file the .mat file
+	 \param varname the name of the variable in the .mat file; can be NULL, in this case the
+	       first variable is read.
+	 \return the Array-struct or NULL in case an error occurred
+ */
+Array* read_array_matlab( const char *file, const char *varname ){ 
+  mat_t *mfile;
+  matvar_t *marr=NULL;
+
+  dprintf("Reading variable '%s' from file: '%s'\n", varname, file);
+  mfile = Mat_Open( file, MAT_ACC_RDONLY);
+  if( !mfile ){
+	 errprintf("Error opening MATLAB file '%s'\n", file );
+	 return NULL;
+  }
+  if( varname ){
+	 marr = Mat_VarRead( mfile, varname );
+  } else {
+	 marr = Mat_VarReadNext( mfile );
+  }
+  Mat_Close( mfile );
+  if( !marr ){
+	 errprintf("Something is wrong, could not read variable\n");
+	 return NULL;
+  }
+  Array *out=array_new( DOUBLE, marr->rank, marr->dims );
+
+  ulong i; 
+  uint *index=(uint*)malloc( out->ndim*sizeof(uint));
+  for( i=0; i<marr->nbytes/marr->data_size; i++ ){
+	 array_calc_colindex( i, out->size, out->ndim, index );
+	 
+	 switch( marr->data_type ){
+	 case MAT_T_INT8:
+		*((double*)array_index(out,index))=(double)(*(int8_t*)(marr->data+(i*marr->data_size))); 
+		break;
+	 case MAT_T_UINT8:
+		*((double*)array_index(out,index))=(double)(*(uint8_t*)(marr->data+(i*marr->data_size)));
+		break;
+	 case MAT_T_INT16:
+		*((double*)array_index(out,index))=(double)(*(int16_t*)(marr->data+(i*marr->data_size)));
+		break;
+	 case MAT_T_UINT16:
+		*((double*)array_index(out,index))=(double)(*(uint16_t*)(marr->data+(i*marr->data_size)));
+		break;
+	 case MAT_T_INT32:
+		*((double*)array_index(out,index))=(double)(*(int32_t*)(marr->data+(i*marr->data_size)));
+		break;
+	 case MAT_T_UINT32:
+		*((double*)array_index(out,index))=(double)(*(uint32_t*)(marr->data+(i*marr->data_size)));
+		break;
+	 case MAT_T_INT64:
+		*((double*)array_index(out,index))=(double)(*(int64_t*)(marr->data+(i*marr->data_size)));
+		break;
+	 case MAT_T_UINT64:
+		*((double*)array_index(out,index))=(double)(*(uint64_t*)(marr->data+(i*marr->data_size)));
+		break;
+	 case MAT_T_SINGLE:
+		*((double*)array_index(out,index))=(double)(*(float*)(marr->data+(i*marr->data_size)));
+		break;
+	 case MAT_T_DOUBLE:
+		*((double*)array_index(out,index))=(double)(*(double*)(marr->data+(i*marr->data_size)));
+		break;
+	 default:
+		errprintf("Unknown Data-Type in MATLAB-file!\n");
+		break;
+	 }
+  }
+  free(index);
+  
+  return out;
+}
 
 double get_double_from_struct_field( matvar_t *eeg, const char *name, int struct_array_index ){
   matvar_t *tmp; 

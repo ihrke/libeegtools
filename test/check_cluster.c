@@ -166,11 +166,11 @@ START_TEST (test_dgram_to_matlab)
   fail_if( ml->size[0]!=n-1 );
   fail_if( ml->size[1]!=3 );
 
-  succ=write_matrix_matlab( dat, "dat", "test.mat", FALSE);
+  succ=write_array_matlab( dat, "dat", "test.mat", FALSE);
   fail_if( succ );
-  succ=write_matrix_matlab( dmat, "dmat", "test.mat", TRUE);
+  succ=write_array_matlab( dmat, "dmat", "test.mat", TRUE);
   fail_if( succ );
-  succ=write_matrix_matlab( ml, "dend", "test.mat", TRUE);
+  succ=write_array_matlab( ml, "dend", "test.mat", TRUE);
   fail_if( succ );
 
   dgram_free( dgram );
