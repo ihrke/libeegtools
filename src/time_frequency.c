@@ -19,38 +19,46 @@
  ***************************************************************************/
 
 #include "time_frequency.h"
+#include "linalg.h"
 
-/** Easy interface for spectrogram calculation.
-	 Calculates also the power spectrum.
+/** \brief Easy interface for spectrogram calculation.
 
-	 \param s - data to be spectrogrammified (real function)
-	 \param n - length(s)
+	 \param sig - data to be spectrogrammified (1D DOUBLE array)
 	 \param spectgram - if NULL, own memory is alloated, else use this pointer.
 	 \param optargs may contain:
 	 - <tt>sample_frequency=double</tt> of the signal, default is \c 500 (should really be provided!)
 	 - <tt>winfct=void*</tt> windowing function, default is \c window_hanning
 	 - <tt>timepoints=int*</tt> compute the spectrogram at selected time-points; this array is N_time long
 	 - <tt>winlength=int</tt> size of the window, default is <tt> MAX( SQR( sqrt(next_pow2( n ))-3 ), 5 )</tt>
+	 - <tt>winparam=double</tt> parameter for the window-function (e.g. sigma for gaussian); default=0.0
 	 - <tt>N_freq=int</tt> number of frequency bins, default is \c winlength*4
 	 - <tt>N_time=int</tt> number of time bins, default is \c n
 	 - <tt>corner_freqs=double*</tt> (array with two double entries), default is \c (0.0,250.0)
  */
-Spectrogram* spectrogram( const double *s, int n, Spectrogram *spectgram, 
+Spectrogram* spectrogram( const Array *sig, Spectrogram *spectgram, 
 								  OptArgList *optargs ){
   double x;
   void *ptr;
   double sample_frequency;
   WindowFunction winfct; 
   int winlength;
+  double winparam;
   int N_freq;
   int N_time;
   double corner_freqs[2];
   int *timepoints;
 
+  /* check input */
+  bool isvec;
+  vector_CHECK( isvec, sig );
+  if( !isvec ) return NULL;
+
+  int n=sig->size[0];
   /* defaults */
   sample_frequency = 500.0;
   winfct = window_hanning;
   winlength =  MAX( SQR( sqrt(next_pow2( n ))-3 ), 5 );
+  winparam=0.0;
   N_freq = winlength*4;
   N_time = n;
   corner_freqs[0] = 0.0;
@@ -59,22 +67,11 @@ Spectrogram* spectrogram( const double *s, int n, Spectrogram *spectgram,
   bool N_time_set=FALSE;
 
   /* get params */
-  if( optarglist_has_key( optargs, "sample_frequency" ) ){
-	 x = optarglist_scalar_by_key( optargs, "sample_frequency" );
-	 if( !isnan( x ) ) sample_frequency=x;
-  }
-  if( optarglist_has_key( optargs, "winfct" ) ){
-	 ptr = optarglist_ptr_by_key( optargs, "winfct" );
-	 if( ptr ) winfct = (WindowFunction)ptr;
-  }
-  if( optarglist_has_key( optargs, "winlength" ) ){
-	 x = optarglist_scalar_by_key( optargs, "winlength" );
-	 if( !isnan( x ) ) winlength=(int)x;
-  }
-  if( optarglist_has_key( optargs, "N_freq" ) ){
-	 x = optarglist_scalar_by_key( optargs, "N_freq" );
-	 if( !isnan( x ) ) N_freq=(int)x;
-  }
+  optarg_PARSE_SCALAR( optargs, "sample_frequency", sample_frequency, double, x );
+  optarg_PARSE_PTR( optargs, "winfct", winfct, WindowFunction, ptr );
+  optarg_PARSE_SCALAR( optargs, "winlength", winlength, int, x );
+  optarg_PARSE_SCALAR( optargs, "winparam", winparam, double, x );
+  optarg_PARSE_SCALAR( optargs, "N_freq", N_freq, int, x );
   if( optarglist_has_key( optargs, "N_time" ) ){
 	 x = optarglist_scalar_by_key( optargs, "N_time" );
 	 if( !isnan( x ) ){
@@ -96,31 +93,30 @@ Spectrogram* spectrogram( const double *s, int n, Spectrogram *spectgram,
 	 }
   }
 
+  dprintf("got sfreq=%f, winfct=%p, winlength=%i, winparam=%f, N_f=%i,"
+			 "N_t=%i, cf=(%f,%f), timepoints=%p\n",
+			 sample_frequency, winfct, winlength, winparam, N_freq, N_time, 
+			 corner_freqs[0], corner_freqs[1], timepoints );
 
-  dprintf("got sfreq=%f, winfct=%p, winlength=%i, N_f=%i, N_t=%i, cf=(%f,%f), timepoints=%p\n",
-			 sample_frequency, winfct, winlength, N_freq, N_time, corner_freqs[0], corner_freqs[1],
-			 timepoints );
+  Array *window=winfct( winlength, winparam );
 
-  double *window=winfct( ALLOC_IN_FCT, winlength );
-
-  spectgram = spectrogram_stft( s, n, sample_frequency, 
-										  window, winlength, N_freq,
-										  N_time, corner_freqs, timepoints,
-										  spectgram );
-
-  spectrogram_compute_powerspectrum( spectgram );
+  spectgram = spectrogram_stft( sig, sample_frequency, 
+										  window, N_freq, N_time, corner_freqs, 
+										  timepoints, spectgram );
   return spectgram;
 }
 
 
-/** This function is inspired by (read: 'was shamelessly ripped of from') 
+/** \brief Calculate spectrogram of a signal (using STFT).
+
+	 This function is inspired by (read: 'was shamelessly ripped of from') 
 	 the TIME-FREQUENCY TOOLBOX by  Emmanuel Roy - Manuel DAVY 
 	 (http://www-lagis.univ-lille1.fr/~davy/toolbox/Ctftbeng.html)
 	 It's a bit more efficient and uses different storage formats.
-	 Also it doesn't work with arbitrary time-points for the TFR and not on
-	 complex signals.
+	 It doesn't work on complex signals.
 	 
 	 THE ALGORITHM 
+
 	 Given a signal to analyze in time and frequency, computes the 
 	 Short Time Fourier Transform (STFT) :			                      
 	 \f[
@@ -129,21 +125,25 @@ Spectrogram* spectrogram( const double *s, int n, Spectrogram *spectgram,
 
 	 This function is complex valued. Its computation requires a window, which 
 	 can be computed with one of the window_*() functions.
-	 \param s - data to be spectrogrammified (real function)
-	 \param n - number of samples in s
+
+	 \param sig - data to be spectrogrammified (1D DOUBLE array)
 	 \param sampling_rate - sampling frequency of signal
-	 \param N_freq -  number of frequency bins = number of rows in the TFR matrix
+	 \param window - window for calculating the STFT (1D DOUBLE Array); get from
+	                  window_*() functions
+	 \param N_freq -  number of frequency bins = number of rows in the TFR matrix (the next
+	                  power of 2 is chosen for N_freq)
 	 \param N_time - number of cols in the TFR matrix        
 	 \param corner_freqs - corner frequencies (lower, upper) for the returned
 	                       spectrum at each time-sample in Hz; maximal would be
 								  {0, srate/2} 
     \param timepoints compute the spectrogram at selected time-points; this array is N_time long
 	 \param spectgram - if NULL, own memory is alloated, else use this pointer.
+	 \return the spectrogram
  */
 
-Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
-										const double *Window, int Window_Length,
-										int N_freq, int N_time, double corner_freqs[2], 
+Spectrogram* spectrogram_stft(const Array* sig, double sampling_rate,
+										const Array *Window, int N_freq, int N_time, 
+										double corner_freqs[2], 
 										int *timepoints, Spectrogram *spectgram){
 
   int            Nfft, timepoint, frequency, time;
@@ -154,21 +154,23 @@ Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
   double         inter;
   int            corner_freqs_idx[2]; /* nearest sample in discretized setting */
   int            N_freq_spect;	  /* number of frequencies in spectrgram */
+  int            Window_Length;
 
-  dprintf("n=%i, sf=%f, wl=%i, Nf=%i, Nt=%i\n", n, sampling_rate, Window_Length, N_freq, N_time);
- /*--------------------------------------------------------------------*/
- /*                   checks that the window length is odd             */
- /*--------------------------------------------------------------------*/
-  if ( !ISODD(Window_Length) ){
-	 errprintf ("The window Length must be an ODD number, got %i\n", Window_Length);
-	 return NULL;
-  }
+  /* check for 1D and DOUBLE */
+  bool isvec;
+  vector_CHECK( isvec, sig );
+  if( !isvec ) return NULL;
+  vector_CHECK( isvec, Window );
+  if( !isvec ) return NULL;
   
+  int n=sig->size[0];
+  Window_Length=Window->size[0];
+
   /* normalizing to [0, 100] */
   half_Window_Length = (Window_Length - 1) / 2;
   inter = 0.0;
   for (frequency = 0; frequency <Window_Length; frequency++){
-	 inter += SQR (Window[frequency]);
+	 inter += SQR (vec_IDX(Window,frequency));
   }
   normh = sqrt (inter);
 
@@ -189,21 +191,17 @@ Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
 			 (corner_freqs_idx[1]/(double)N_freq)*sampling_rate/2.0 ); 
   N_freq_spect = corner_freqs_idx[1]-corner_freqs_idx[0];
   
-  /*--------------------------------------------------------------------*/
+
   /*                memory allocation for the windowed signal           */
-  /*--------------------------------------------------------------------*/
   wind_sig_complex = (double *) calloc (2*Nfft, sizeof (double));
 
   if( spectgram==NULL ){
 	 spectgram = spectrogram_init( N_freq_spect, N_time );
-	 dprintf(" spectgram=%p, real[0]=%f\n", spectgram, spectgram->sgram[0][0].re);
   }
   spectgram->low_corner_freq = corner_freqs[0];
   spectgram->up_corner_freq  = corner_freqs[1];
 
-  /*--------------------------------------------------------------------*/
-  /*      computation of the fft for the current windowed signal        */
-  /*--------------------------------------------------------------------*/
+  /* computation of the fft for the current windowed signal */
   for (timepoint = 0; timepoint < N_time; timepoint++) {
 	 /* initialization of the intermediary vector */
 	 for (frequency = 0; frequency < 2*Nfft; frequency++){
@@ -232,7 +230,8 @@ Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
 	 /* The signal is windowed around the current time */
 	 frequency=0;
 	 for (tau = -taumin; tau <= taumax; tau++){
-		wind_sig_complex[2*frequency  ] = s[time + tau] * Window[half_Window_Length + tau] / normh;
+		wind_sig_complex[2*frequency  ] = vec_IDX(sig,time + tau) *
+		  vec_IDX( Window, half_Window_Length + tau ) / normh;
 		wind_sig_complex[2*frequency+1] = 0.0;
 		frequency++;
 	 }
@@ -248,15 +247,38 @@ Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
   } /* for t */
 
  /*--------------------------------------------------------------------*/
- /*                free the memory used in this program                */
- /*--------------------------------------------------------------------*/
   free (wind_sig_complex);
-  dprintf("done\n");
 
   return spectgram;
 }
 
 
+/** \brief Calculate the powerspectrum for a Spectrogram. 
+
+	 Returns a s->N_time x s->N_freq matrix the absolute
+	 value squared of the complex numbers in spectrogram.
+
+	 \param s - the spectrogram
+	 \return the powerspectrum for all time-points
+ */
+Array* spectrogram_powerspectrum( const Spectrogram *s ){
+  int i,j;
+  Array *p = array_new2( DOUBLE, 2, s->N_time, s->N_freq );
+  
+  for( i=0; i<s->N_time; i++ ){
+	 for( j=0; j<s->N_freq; j++ ){
+		mat_IDX( p, i,j) = SQR( complex_abs( s->sgram[i][j] ) );
+	 }
+  }
+  return p;
+}
+
+/**\brief Initialize Spectrogram.
+
+	\param N_freq resolution (number of points) in frequency
+	\param N_time resolution in time
+	\return a freshly allocated Spectrogram struct
+ */
 Spectrogram* spectrogram_init( int N_freq, int N_time ){
   Spectrogram *s;
   int i;
@@ -268,162 +290,148 @@ Spectrogram* spectrogram_init( int N_freq, int N_time ){
   s->N_time = N_time;
   s->low_corner_freq=0;
   s->up_corner_freq=0;
-  s->has_power_spectrum=0;
   s->sgram = (Complex**) malloc( N_time*sizeof(Complex*) );
-  s->powerspect = (double**) malloc( N_time*sizeof(double*) );
   for( i=0; i<N_time; i++ ){
 	 s->sgram[i] = (Complex*) malloc( N_freq*sizeof(Complex) );
-	 s->powerspect[i] = dblp_init( NULL, N_freq, -1.0 ); /*(double*) malloc( N_freq*sizeof(double) );*/
   }
   return s;
 }
 
+/**\brief Free memory associated with Spectrogram.
+ */
 void spectrogram_free( Spectrogram *s ){
   int i;
 
   for( i=0; i<s->N_time;  i++ ){
 	 free( s->sgram[i] );
-	 free( s->powerspect[i] );
   }
   free( s->sgram );
-  free( s->powerspect );
   free( s );
 }
 
+/*----------------- WINDOW-FUNCTIONS ------------------ */
 
-/** fill window with data for a Dirichlet (Rectangular) window.
+/** \brief Dirichlet (Rectangular) window.
+
 	 \f[
 	 w(x) = 1;
 	 \f]
-	 \param window NULL (own memory allocation) or own pointer 
-	 \param n - ODD number for window
+	 \param n - ODD number for window (else it is incremented by one)
+	 \param noparam ignored (just for comparability to \ref WindowFunction)
+	 \return 1D DOUBLE array of size n
  */
-double* window_dirichlet( double *window, int n ){
+Array* window_dirichlet(  int n, double noparam ){
   int i;
 
   if( !ISODD( n ) ){
 	 errprintf("window size must be ODD! Adding 1, n=%i!\n", n+1);
 	 n++;
   }
-  if( window==NULL ){
-	 window = (double*) malloc( n*sizeof(double) );
-  }
+  Array *window = array_new2( DOUBLE, 1, n );
   for( i=0; i<n; i++ ){
-	 window[i] = 1.0;
+	 vec_IDX( window,i ) = 1.0;
   }
 
   return window;
 }
 
-/** fill window with data for a Gaussian window.
+/** \brief Gaussian window.
+
 	 \f[
 	 w(n) = e^{-\frac{1}{2}\left( \frac{n-(N-1)/2}{\sigma(N-1)/2}\right)^2 }
 	 \f]
 	 with \f$ \sigma\le 0.5\f$
-	 \param window NULL (own memory allocation) or own pointer 
-	 \param n - ODD number for window
+
+	 \param n - ODD number for window (else it is incremented by one)	
 	 \param sigma - gaussian std
+	 \return 1D DOUBLE array of size n
  */
-double* window_gaussian( double *window, int n, double sigma ){
+Array* window_gaussian( int n, double sigma ){
   int i;
 
   if( !ISODD( n ) ){
 	 errprintf("window size must be ODD! Adding 1, n=%i!\n", n+1);
 	 n++;
   }
-  if( window==NULL ){
-	 window = (double*) malloc( n*sizeof(double) );
-  }
+
+  Array *window = array_new2( DOUBLE, 1, n );
   for( i=0; i<n; i++ ){
-	 window[i] = exp(-0.5*SQR( (i-(n-1)/2.0)/(double)(sigma*(n-1)/2.0)) );
+	 vec_IDX(window,i) = exp(-0.5*SQR( (i-(n-1)/2.0)/(double)(sigma*(n-1)/2.0)) );
   }
 
   return window;
 }
 
-/** fill window with data for a Hamming window.
+/** \brief Hamming window.
+
 	 \f[
 	 w(n) = 0.53836 - 0.46164 \cos\left( \frac{2\pi n}{N-1}\right)
 	 \f]
-	 \param window NULL (own memory allocation) or own pointer 
-	 \param n - ODD number for window
+	 \param n - ODD number for window (else it is incremented by one)	
+	 \param noparam ignored (just for comparability to \ref WindowFunction)
+	 \return 1D DOUBLE array of size n
 */
-double* window_hamming( double *window, int n ){
+Array* window_hamming( int n, double noparam ){
   int i;
 
   if( !ISODD( n ) ){
 	 errprintf("window size must be ODD! Adding 1, n=%i!\n", n+1);
 	 n++;
   }
-  if( window==NULL ){
-	 window = (double*) malloc( n*sizeof(double) );
-  }
+
+  Array *window = array_new2( DOUBLE, 1, n );
   for( i=0; i<n; i++ ){
-	 window[i] =  0.53836 - 0.46164*cos( (2* PI *i)/(double)(n-1) );
+	 vec_IDX(window,i) =  0.53836 - 0.46164*cos( (2* PI *i)/(double)(n-1) );
   }
 
   return window;
 }
-/** fill window with data for a Hanning (Hann) window.
+/** \brief Hanning (Hann) window.
+
 	 \f[
 	 w(n) = 0.5\left(1- \cos\left( \frac{2\pi n}{N-1}\right)\right)
 	 \f]
-	 \param window NULL (own memory allocation) or own pointer 
-	 \param n - ODD number for window
+
+	 \param n - ODD number for window (else it is incremented by one)	
+	 \param noparam ignored (just for comparability to \ref WindowFunction)
+	 \return 1D DOUBLE array of size n
 */
-double* window_hanning( double *window, int n ){
+Array* window_hanning( int n, double noparam ){
   int i;
 
   if( !ISODD( n ) ){
 	 errprintf("window size must be ODD! Adding 1, n=%i!\n", n+1);
 	 n++;
   }
-  if( window==NULL ){
-	 window = (double*) malloc( n*sizeof(double) );
-  }
+  Array *window = array_new2( DOUBLE, 1, n );
   for( i=0; i<n; i++ ){
-	 window[i] =  0.5*(1 - cos( (2* PI *i)/(double)(n-1) ));
+	 vec_IDX( window,i) =  0.5*(1 - cos( (2* PI *i)/(double)(n-1) ));
   }
 
   return window;
 }
 
 
-/** fill window with data for a Kaiser Window
+/** \brief Kaiser Window.
+
 	 http://en.wikipedia.org/wiki/Kaiser_window
 
-	 \param window NULL (own memory allocation) or own pointer 
-	 \param n - ODD number for window
+	 \param n - ODD number for window (else it is incremented by one)	
 	 \param alpha - parameter for window's steepness
+	 \return 1D DOUBLE array of size n
 */
-double* window_kaiser( double *window, int n, double alpha ){
+Array* window_kaiser( int n, double alpha ){
   int i;
   double bessel_alpha;
 
-  if( window==NULL ){
-	 window = (double*) malloc( n*sizeof(double) );
-  }
+  Array *window = array_new2( DOUBLE, 1, n );
 
   bessel_alpha=gsl_sf_bessel_I0( alpha );
-  dprintf("alpha=%f, b_alpha=%f\n", alpha, bessel_alpha );
   for( i=0; i<n-1; i++ ){
-	 window[i] = gsl_sf_bessel_I0( alpha*sqrt(1 - SQR( (2*i)/(double)(n-1) - 1  ) ) ) / bessel_alpha;
-	 dprintf("w[%i]=%f\n", i, window[i]);
+	 vec_IDX(window,i) = gsl_sf_bessel_I0( alpha*sqrt(1 - SQR( (2*i)/(double)(n-1) - 1  ) ) ) / bessel_alpha;
   }
-  window[n-1]=0;
+  vec_IDX(window,n-1)=0;
 
   return window;
 }
 
-/** Fills field 'powerspect' from a Spectrogram struct with |x|^2 of 
-	 the complex numbers in spectrogram.
- */
-void         spectrogram_compute_powerspectrum( Spectrogram *s ){
-  int i,j;
-  for( i=0; i<s->N_time; i++ ){
-	 for( j=0; j<s->N_freq; j++ ){
-		s->powerspect[i][j] = SQR( complex_abs( s->sgram[i][j] ) );
-	 }
-  }
-  s->has_power_spectrum=1;
-}

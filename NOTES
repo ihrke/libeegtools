@@ -55,11 +55,16 @@ linalg
 recurrence_plot
 reader
 writer
-
+regularization
+time_frequency
+include the WAV-file reader/writer!
 
 - all EEG-functions missing!
 
 
 CONTINUE WITH:
 ----------------
-regularization.h/.c
+write a test for array_typecast!
+nonlinear !!
+
+

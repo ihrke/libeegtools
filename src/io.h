@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2008-2010 by Matthias Ihrke   *
- *   mihrke@uni-goettingen.de   *
+ *   Copyright (C) 2010 by Matthias Ihrke                                  *
+ *   ihrke@nld.ds.mpg.de
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -13,50 +13,61 @@
  *   GNU General Public License for more details.                          *
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
+ *   aint with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/**\file reader.h
- * \brief \ref status_stable Read (EEG)-data from files.
+/**\file io.h
+ \brief \ref status_inprogress io input-output for (EEG)-data.
+
+
+ These functions are for some generic data types.
+
+ For specialized IO-functions, see
+ 
+  - \ref io_matlab.h -- Input/Output for MATLAB (requires MatIO)
+  - \ref io_wav.h -- Input/Output for WAV-Audio Files
  */
-#ifndef READER_H
-# define READER_H
-#include "definitions.h"
-#include "mathadd.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <strings.h>
-#include "array.h"
+#ifndef IO_H
+#define IO_H
 
 #define MAX_LINE_LENGTH 500
+
+#include "definitions.h"
+#include "eeg.h"
+#include "optarg.h"
+
+/* include "special" IO-headers */
+#include "io_matlab.h"
+#include "io_wav.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-  /** \weakgroup reader
-		\{ */
-  /* -------------------------------------------------------------------- */
-  /* functions */
-  /* -------------------------------------------------------------------- */
-  EEG*     read_continuous_eeg_from_binfile(const char *file, int C, int n);
+
+  /* ------------- READER --------------------- */
   double** read_double_matrix_ascii(const char *fname, int xdim, int ydim, double **d);
-  EEG*     read_eeg_from_raw(const char *file);
   double*  read_dblp_ascii( const char *fname, int N, double *v );
 
-
-#ifdef MATIO
-  /* eeglab/matlab file reader functions if matio library is installed */
-  EEG* read_eeglab_file( const char *file );
-  Array* read_array_matlab( const char *file, const char *varname );
-#endif
+  EEG*     read_continuous_eeg_from_binfile(const char *file, int C, int n);
+  EEG*     read_eeg_from_raw(const char *file);
 
   ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans );
-  /** \} */
+
+  /* ------------- WRITER --------------------- */
+  void write_double_dblpp_ascii(FILE *out, const double **d, int xdim, int ydim, OptArgList *opts);
+  void write_double_dblpp_ascii_file(const char *fname, const double **d, int xdim, int ydim, OptArgList *opts);
+
+  void write_double_dblp_ascii(FILE *out, const double *v, int n);
+  void write_double_dblp_ascii_file(const char *fname, const double *v, int n);
+
+  void write_int_dblp_ascii(FILE *out, const int *v, int n);
+  void write_int_dblp_ascii_file(const char *fname, const int *v, int n);
+
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* IO_H */

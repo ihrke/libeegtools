@@ -21,7 +21,8 @@
 #include "mathadd.h"
 #include "nnsearch.h"
 #include "imageproc.h"
-#include "writer.h"
+#include "time_frequency.h"
+#include "io.h"
      
 START_TEST (test_strip_blank)
 {
@@ -215,13 +216,20 @@ START_TEST (test_bresenham_segments)
   Array *p=array_fromptr2( INT, 2, points, 2, 6 );
   Array *a=bresenham_linesegments( p );
 
-  array_print( p, -1, stderr );
-
   fail_unless( a->ndim==2 );
   fail_unless( a->size[0]==2 );
   fail_unless( a->dtype==INT );
-  
-  write_array_matlab( a, "bres", "bres.mat", FALSE ); 
+
+  int i; /* coninuity */
+  for( i=1; i<a->size[1]; i++ ){
+	 fail_if( array_INDEX2(a,int,0,i)-array_INDEX2(a,int,0,i-1)>1 ||
+				 array_INDEX2(a,int,0,i)-array_INDEX2(a,int,0,i-1)<0 );
+	 fail_if( array_INDEX2(a,int,1,i)-array_INDEX2(a,int,1,i-1)>1 ||
+				 array_INDEX2(a,int,1,i)-array_INDEX2(a,int,1,i-1)<0 );
+  }
+
+
+  /* write_array_matlab( a, "bres", "bres.mat", FALSE );  */
 
   array_free( a );
   array_free( p );
@@ -241,10 +249,10 @@ START_TEST (test_disttransform)
 	 colormap gray
   */
   int nx=100, ny=200;
-  Array *a=array_new2(UINT,2,nx,ny);
-  array_INDEX2(a,uint,nx/2,ny/2)=1;
-  array_INDEX2(a,uint,1,1)=1;
-  array_INDEX2(a,uint,1,ny-1)=1;
+  Array *a=array_new2(INT,2,nx,ny);
+  array_INDEX2(a,int,nx/2,ny/2)=1;
+  array_INDEX2(a,int,1,1)=1;
+  array_INDEX2(a,int,1,ny-1)=1;
 
   Array *b=disttransform_deadreckoning( a, NULL );
 
@@ -258,7 +266,7 @@ START_TEST (test_disttransform)
   int ae[2]={100,120};
   Array *l=bresenham_line( as, ae );
   for( i=0; i<l->size[1]; i++ ){
-	 array_INDEX2(a,uint, array_INDEX2(l,int,0,i),
+	 array_INDEX2(a,int, array_INDEX2(l,int,0,i),
 					  array_INDEX2(l,int,1,i) )=1;
   }
   Array *d=disttransform_deadreckoning( a, NULL );
@@ -273,6 +281,140 @@ START_TEST (test_disttransform)
   array_free( b );
   array_free( l );
   array_free( d );  
+}
+END_TEST
+
+START_TEST (test_regularization_line)
+{
+  /*
+	 load reg.mat
+	 imagesc(reg);
+	*/
+  int points[12]={ 0, 50, 60, 65, 150, 199, 
+						 0, 10, 20, 100, 110, 199 };
+  int dims[2]={200,200};
+  Array *p=array_fromptr2( INT, 2, points, 2, 6 );
+  Array *a=regularization_linear_points( p, dims, NULL );
+
+  bool ismat;
+  matrix_CHECK(ismat,a);
+  fail_unless( ismat );
+
+  /* write_array_matlab( a, "reg", "reg.mat", FALSE );   */
+
+  array_free( a );
+  array_free( p );
+}
+END_TEST
+START_TEST (test_regularization_gauss)
+{
+  /*
+	 load reg.mat
+	 imagesc(reg);
+	*/
+  int points[12]={ 0, 50, 60, 65, 150, 199, 
+						 0, 10, 20, 100, 110, 199 };
+  int dims[2]={200,200};
+  Array *p=array_fromptr2( INT, 2, points, 2, 6 );
+  Array *a=regularization_gaussian_corridor( p, dims, NULL, 0.4 );
+
+  bool ismat;
+  matrix_CHECK(ismat,a);
+  fail_unless( ismat );
+
+  /* write_array_matlab( a, "reg", "reg.mat", FALSE );   */
+
+  array_free( a );
+  array_free( p );
+}
+END_TEST
+
+START_TEST (test_spectrogram_init)
+{
+  int i,j;
+  Spectrogram *s=spectrogram_init( 100, 1000 );
+  fail_unless( s->N_freq==100 );
+  fail_unless( s->N_time==1000 );
+  for( i=0; i<1000; i++ ){
+	 for( j=0; j<100; j++ ){
+		s->sgram[i][j].re;
+		s->sgram[i][j].im;
+	 }
+  }
+  spectrogram_free( s );
+}
+END_TEST
+
+START_TEST (test_windows)
+{
+  int n=100;
+  bool isvec;
+
+  Array *w1=window_dirichlet( n, 0.0 );
+  vector_CHECK( isvec,w1);
+  fail_unless( isvec );
+  Array *w2=window_gaussian( n, 0.3 );
+  vector_CHECK( isvec,w2);
+  fail_unless( isvec );
+  Array *w3=window_hamming( n, 0.0 );
+  vector_CHECK( isvec,w3);
+  fail_unless( isvec );
+  Array *w4=window_hanning( n, 0.0 );
+  vector_CHECK( isvec,w4);
+  fail_unless( isvec );
+  Array *w5=window_kaiser( n, 1.0 );
+  vector_CHECK( isvec,w5);
+  fail_unless( isvec );
+
+  array_free( w1 );
+  array_free( w2 );
+  array_free( w3 );
+  array_free( w4 );
+  array_free( w5 );
+
+}
+END_TEST
+
+START_TEST (test_spectgram)
+{
+  /*
+	 load spec.mat
+	 [Nt,Nf]=size(powspec);
+	 fx=linspace(0,500,Nf);
+	 tx=linspace(0,1,Nt);
+	 imagesc(tx,fx,powspec);
+	 ylabel('Frequency (Hz)');
+	 xlabel('Time (arbitrary)');
+	*/
+#ifdef MATIO
+  Array *a=read_array_matlab( CHECKDATADIR"/chirp.mat", NULL );
+  array_dimred( a ); /* MATLAB writes as 1 x N */
+  /* array_print( a, -1, stderr );  */
+
+  bool isvec;
+  vector_CHECK(isvec,a);
+  fail_if( !isvec);
+  
+  Array *w=window_hamming( 129, 0.0 );
+  double srate=1000.0;
+  int Nf=128;
+  int Nt=a->size[0]/10;
+  double cf[2]={0.0, 500.0};
+  Spectrogram *s= spectrogram_stft(a, srate,w,Nf, Nt,cf, NULL, NULL );
+  Array *p=spectrogram_powerspectrum( s );
+
+  bool ismat;
+  matrix_CHECK(ismat,p);
+  fail_if( !ismat);
+  fail_if( p->size[0]!=s->N_time );
+  fail_if( p->size[1]!=s->N_freq );
+  /* write_array_matlab( p, "powspec", "spec.mat", FALSE );  */
+
+  spectrogram_free( s );
+  array_free( a );
+  array_free( p );
+  array_free( w );
+#endif
 }
 END_TEST
 
@@ -293,8 +435,11 @@ Suite * init_other_suite (void){
   tcase_add_test (tc_core, test_bresenham);
   tcase_add_test (tc_core, test_bresenham_segments);
   tcase_add_test (tc_core, test_disttransform);
-
-
+  tcase_add_test (tc_core, test_regularization_line);
+  tcase_add_test (tc_core, test_regularization_gauss);
+  tcase_add_test (tc_core, test_spectrogram_init);
+  tcase_add_test (tc_core, test_windows);
+  tcase_add_test (tc_core, test_spectgram);
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

@@ -18,6 +18,8 @@
 #include "nonlinear.h"
 #include "recurrence_plot.h"
 
+
+
    
 #define TESTN 100
 START_TEST (test_predict_simple)
@@ -28,11 +30,11 @@ START_TEST (test_predict_simple)
 	 x[i] = PI*i/(double)TESTN;
 	 y[i] = sin(x[i]);
   }
-  PhaseSpace *p = phspace_init( 3, 1, y, TESTN );
+  TimeDelayReconstruction *p = tdelay_init( 3, 1, y, TESTN );
   double sample[3]={ 0.5, 0.6, 0.7 };  
-  dprintf("predict=%f\n", phspace_predict_simple( p, sample, 2, 0.1 ) );
+  dprintf("predict=%f\n", tdelay_predict_simple( p, sample, 2, 0.1 ) );
 
-  phspace_free( p );
+  tdelay_free( p );
 }
 END_TEST
 
@@ -46,12 +48,12 @@ START_TEST (test_prediction_error_simple)
 	 z[i] = cos(x[i]);
   }
 
-  PhaseSpace *p = phspace_init( 3, 1, y, TESTN );
+  TimeDelayReconstruction *p = tdelay_init( 3, 1, y, TESTN );
   dprintf("crmse=%f\n", 
-			 phspace_simple_nonlinear_prediction_error( p, z, TESTN, 
+			 tdelay_simple_nonlinear_prediction_error( p, z, TESTN, 
 																	  1, 0.1 ) );
 
-  phspace_free( p );
+  tdelay_free( p );
 }
 END_TEST
 

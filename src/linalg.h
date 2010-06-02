@@ -46,13 +46,16 @@
 	 \param m (input) Array* to check
 */
 #define matrix_CHECK( flag, m )													\
-  if(!( (m)->ndim==2 && (m)->dtype==DOUBLE )){								\
+  if( (m)==NULL ){																	\
+	 errprintf("got NULL as matrix\n");											\
+	 flag=FALSE;																		\
+  } else if(!( (m)->ndim==2 && (m)->dtype==DOUBLE )){						\
 	 char *dts="";																		\
 	 array_DTYPESTRING( dts, m->dtype );										\
 	 errprintf("not a matrix, ndim=%i, dtype=%s\n", m->ndim, dts );	\
 	 flag=FALSE;																		\
   } else { flag=TRUE; }	
-															
+
 /** \brief is m a square matrix?
 
 	 Usage:
@@ -82,6 +85,13 @@
 #define mat_IDX( m, i, j )								\
   array_INDEX2( m, double, i, j )
 
+/** \brief index vector at i.
+	 \param v vector
+	 \param i index
+ */
+#define vec_IDX( v, i )									\
+  array_INDEX1( v, double, i )
+
 /** \brief is v a vector?
 
 	 Usage:
@@ -93,14 +103,17 @@
 	 \param flag (output) (bool) set by macro
 	 \param v (input) Array* to check
 */
-#define vector_CHECK( flag, v )													\
-  if(!( (v)->ndim==1 && (v)->dtype==DOUBLE ) ){								\
+#define vector_CHECK( flag, v )														\
+  if( (v)==NULL ){																		\
+	 errprintf("got NULL as vector\n");												\
+	 flag=FALSE;																			\
+  } else if(!( (v)->ndim==1 && (v)->dtype==DOUBLE ) ){						\
 	 char *dts="";																			\
-	 array_DTYPESTRING( dts, v->dtype );										\
-	 errprintf("not a vector, ndim=%i, dtype=%s\n", v->ndim, dts );	\
-	 flag=FALSE;																		\
+	 array_DTYPESTRING( dts, v->dtype );											\
+	 errprintf("not a vector, ndim=%i, dtype=%s\n", v->ndim, dts );		\
+	 flag=FALSE;																			\
   } else { flag=TRUE; }																
-	 
+
 
 #ifdef __cplusplus
 extern "C" {

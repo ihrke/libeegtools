@@ -143,38 +143,6 @@ extern "C" {
 	 int prev_progress;
   } ProgressBarStatus;
 
-  /*-----------------------------------------------------------
-	 - Time-Delay Embedding
-	 ---------------------------------------------------------*/
-
-  typedef struct {
-	 int m;     /**< embedding dimension */
-	 int tau;   /**< time-lag for embedding (>0, multiple of sampling_step) */
-	 double *x; /**< pointer to data */
-	 int xn;    /**< len(x) */
-  } PhaseSpace;
-
-  /*-----------------------------------------------------------
-	 - Recurrence Plots - 
-	 ---------------------------------------------------------*/
-
-  /** Struct for representing recurrence or cross-recurrence plots.
-		For recurrence plot, m=n.
-		
-		Depending on the settings of the struct, epsilon is fixed 
-		or \f$ \epsilon = \epsilon(i)\f$ is chosen for each point on the 
-		trajectory, such that there is a fixed amount of Neighbours. 
-	*/
-  typedef struct {
-	 double **R;      /**< recurrence plot */
-	 int m;           /**< first dim */
-	 int n;           /**< second dim */
-	 double fixed_epsilon;
-	 double *epsilon; /**< ball in which neighbours are looked for */
-	 int nepsilon;    /**< len(epsilon) */
-	 int fan;         /**< fixed-amount of neighbours */
-  } RecurrencePlot;
-
 
 
   /*-----------------------------------------------------------
@@ -218,7 +186,6 @@ extern "C" {
   typedef double  (*ThresholdFunction)            (double,double);
   typedef double* (*SignalExtensionFunction)      (double*,int,int);
 
-  typedef double* (*WindowFunction)               (double*,int);
 
   typedef void    (*ProgressBarFunction)          (int,int);
 

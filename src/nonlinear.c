@@ -21,7 +21,8 @@
 #include "nonlinear.h"
 
 /**\cond PRIVATE */
-double make_cond_entropy(long t, long *h1, long *h11, long **h2, long *array, int partitions, int length)
+double make_cond_entropy(long t, long *h1, long *h11, long **h2, long *array, 
+								 int partitions, int length)
 {
   long i,j,hi,hii,count=0;
   double hpi,hpj,pij,cond_ent=0.0,norm;
@@ -66,7 +67,9 @@ double make_cond_entropy(long t, long *h1, long *h11, long **h2, long *array, in
 }
 /** \endcond */
 
-/** Using the Simple-Prediction algorithm from 
+/** \brief simple nonlinear predicition.
+
+	 Using the Simple-Prediction algorithm from 
 
 	 Kantz & Schreiber 1997 Nonlinear Time-Series Analysis. Cambridge University Press
 
@@ -87,7 +90,7 @@ double make_cond_entropy(long t, long *h1, long *h11, long **h2, long *array, in
 	 \param epsilon epsilon-ball placed around all points in p to look for sample
 	 \return the predicted sample in the time-series
  */
-double      phspace_predict_simple( PhaseSpace *p, double *sample, int npredict, double epsilon ){
+double      tdelay_predict_simple( TimeDelayReconstruction *p, double *sample, int npredict, double epsilon ){
   double predict=0;
   int nfound;
   int i;
@@ -98,7 +101,7 @@ double      phspace_predict_simple( PhaseSpace *p, double *sample, int npredict,
   for( nfound=0; nfound==0; epsilon*=1.2 ){ /* increase epsilon if no matching point is found */
 	 dprintf("epsilon=%f\n", epsilon );
 	 for( i=0; i<p->xn-npredict; i++ ){
-		phspace_index_i( p, i, s );
+		tdelay_index_i( p, i, s );
 		dist = vectordist_euclidean( s, sample, p->m, NULL );
 		if( dist<epsilon ){
 		  nfound++;
@@ -123,7 +126,7 @@ double      phspace_predict_simple( PhaseSpace *p, double *sample, int npredict,
 	 \f$ 
     RMSE(r,d) = \sqrt{ \frac{1}{\#r}  \sum{ (r-d)^2)}} 
     \f$ 
-	 For prediction, the function uses phspace_predict_simple().
+	 For prediction, the function uses tdelay_predict_simple().
 
 	 \param reference is the reference signal used for prediction 
 	 \param y signal to predict for
@@ -132,31 +135,31 @@ double      phspace_predict_simple( PhaseSpace *p, double *sample, int npredict,
 	 \param epsilon defines the initial neighbourhood
 	 \return root mean square prediction error cumulated (see above)
  */
-double phspace_simple_nonlinear_prediction_error( PhaseSpace *reference, double *y, int yn, 
+double tdelay_simple_nonlinear_prediction_error( TimeDelayReconstruction *reference, double *y, int yn, 
 																  int npredict, double epsilon ){
   int i;
   double crmse=0.0;
-  PhaseSpace *Y;
+  TimeDelayReconstruction *Y;
   double *ysample;
   double pred; 
-  Y = phspace_init( reference->m, reference->tau, y, yn );
+  Y = tdelay_init( reference->m, reference->tau, y, yn );
   ysample = dblp_init( NULL, reference->m, 0.0 );
 
   for( i=0; i<yn-npredict; i++ ){
-	 phspace_index_i( Y, i, ysample );
-	 pred = phspace_predict_simple( reference, ysample, npredict, epsilon );
+	 tdelay_index_i( Y, i, ysample );
+	 pred = tdelay_predict_simple( reference, ysample, npredict, epsilon );
 	 crmse += rmse( &pred, &(y[i+npredict]), 1 );
   }
 
   free( ysample );
-  phspace_free( Y );
+  tdelay_free( Y );
   return crmse/(double)(yn-npredict);
 }
 
 /** Calculate a trial x trial matrix M_ij that contains the prediction error when predicting
 	 time-series points in trial j using trial i as the reference.
 
-	 The function uses phspace_simple_nonlinear_prediction_error() for prediction.
+	 The function uses tdelay_simple_nonlinear_prediction_error() for prediction.
 
 	 \param eeg
 	 \param embedding_dim embedding dimensionm for phase space reconstruction
@@ -199,8 +202,8 @@ double** eeg_nonlinear_prediction_error( const EEG *eeg, int embedding_dim, int 
   }
 
   /* calculation */
-  PhaseSpace *reference;
-  reference = phspace_init( embedding_dim, time_lag, NULL, eeg->n );  
+  TimeDelayReconstruction *reference;
+  reference = tdelay_init( embedding_dim, time_lag, NULL, eeg->n );  
 
   if( progress ){
 	 progress( PROGRESSBAR_INIT, eeg->ntrials );
@@ -210,7 +213,7 @@ double** eeg_nonlinear_prediction_error( const EEG *eeg, int embedding_dim, int 
 	 reference->x = eeg->data[channel][i];	
 	 if( progress ) progress( PROGRESSBAR_CONTINUE_LONG, i );
 	 for( j=0; j<eeg->ntrials; j++ ){ /* not symmetric */
-		output[i][j] = phspace_simple_nonlinear_prediction_error( reference, eeg->data[channel][j], eeg->n,
+		output[i][j] = tdelay_simple_nonlinear_prediction_error( reference, eeg->data[channel][j], eeg->n,
 																					 npredict, epsilon );
 		if( progress )	progress( PROGRESSBAR_CONTINUE_SHORT, j );
 	 }
@@ -238,7 +241,7 @@ double** eeg_nonlinear_prediction_error( const EEG *eeg, int embedding_dim, int 
 	 \param mutual if != NULL, the array is filled with the mutual information for each time-lag (corrlength-long)
 	 \return the minimum of mutual
 */
-int         phspace_estimate_timelag_mutual( PhaseSpace *p, long partitions, long corrlength, double *mutual ){
+int         tdelay_estimate_timelag_mutual( TimeDelayReconstruction *p, long partitions, long corrlength, double *mutual ){
   long *array,*h1,*h11,**h2;
   long tau,i,length;
   double *series,min,interval,shannon;
@@ -323,7 +326,7 @@ int         phspace_estimate_timelag_mutual( PhaseSpace *p, long partitions, lon
 /** estimate time-lag based on the first zero of the autorcorrelation function.
 	 
 */
-int         phspace_estimate_timelag_autocorr( PhaseSpace *p ){
+int         tdelay_estimate_timelag_autocorr( TimeDelayReconstruction *p ){
   int tau=-1;
   int i,j;
   double Rxx;
@@ -356,7 +359,7 @@ int         phspace_estimate_timelag_autocorr( PhaseSpace *p ){
 	 \todo implement this (it's easy!)
 	 \return 
  */
-int         phspace_estimate_dimension_fnn( PhaseSpace *p, double Rtol, double Atol, int num_dim  ){
+int         tdelay_estimate_dimension_fnn( TimeDelayReconstruction *p, double Rtol, double Atol, int num_dim  ){
   errprintf("Not implemented ?!?!?\n");
   return -1;
 }
@@ -378,7 +381,7 @@ int         phspace_estimate_dimension_fnn( PhaseSpace *p, double Rtol, double A
 	 then state i is
 
  */
-double  phspace_fnn_ratio( PhaseSpace *p, double Rtol, double Atol ){
+double  tdelay_fnn_ratio( TimeDelayReconstruction *p, double Rtol, double Atol ){
   int i, j;
   int i_nn=0;							  /* index nearest_neighbour */
   double d_nn;						  /* dist nn */
@@ -386,7 +389,7 @@ double  phspace_fnn_ratio( PhaseSpace *p, double Rtol, double Atol ){
   double ratio_fnn;
   double **d;
   double **X;
-  PhaseSpace pnext;
+  TimeDelayReconstruction pnext;
   double Ra;
   double crit1,crit2;
 
@@ -396,12 +399,12 @@ double  phspace_fnn_ratio( PhaseSpace *p, double Rtol, double Atol ){
 	 return -1;
   }
 
-  Ra = phspace_attractor_size( p );
+  Ra = tdelay_attractor_size( p );
   dprintf( "Ra=%f\n", Ra);
   /* create distance matrix between points in phase-space */
   X = dblpp_init( p->xn, p->m );
   for( i=0; i<p->xn; i++ ){
-	 phspace_index_i( p, i, X[i] );
+	 tdelay_index_i( p, i, X[i] );
   }
   d = vectordist_distmatrix( vectordist_euclidean, (const double**)X, p->xn, p->m, ALLOC_IN_FCT, NULL, NULL );
   dprintf( "dmin,dmax=%f,%f\n", 
@@ -429,7 +432,7 @@ double  phspace_fnn_ratio( PhaseSpace *p, double Rtol, double Atol ){
 	 dprintf( "d_nn = %f, i_nn = %i\n", d_nn, i_nn );
 	 
 	 /* crit (1) */
-	 crit1 = (ABS( phspace_index_ij(&pnext, i, p->m) - phspace_index_ij(&pnext, i_nn, p->m) )/d_nn);
+	 crit1 = (ABS( tdelay_index_ij(&pnext, i, p->m) - tdelay_index_ij(&pnext, i_nn, p->m) )/d_nn);
 	 dprintf( "crit1=%f, Rtol=%f\n", crit1, Rtol );
 	 if( crit1 > Rtol ){
 		dprintf(" Crit 1 for %i failed\n", i);
@@ -439,8 +442,8 @@ double  phspace_fnn_ratio( PhaseSpace *p, double Rtol, double Atol ){
 
 	 /* crit (2) */
 	 crit2 = sqrt( SQR( d_nn ) + 
-						SQR( phspace_index_ij(&pnext, i, p->m) - 
-							  phspace_index_ij(&pnext, i_nn, p->m) ) )/Ra;
+						SQR( tdelay_index_ij(&pnext, i, p->m) - 
+							  tdelay_index_ij(&pnext, i_nn, p->m) ) )/Ra;
 	 dprintf( "crit2=%f, Rtol=%f\n", crit2, Rtol );
 
 	 if( crit2 > Atol ){
@@ -467,7 +470,7 @@ double  phspace_fnn_ratio( PhaseSpace *p, double Rtol, double Atol ){
 	 \langle x\rangle_i = \frac{1}{N}\sum_{i=1}^{N} x_i
 	 \f]
  */
-double      phspace_attractor_size( PhaseSpace *p ){
+double      tdelay_attractor_size( TimeDelayReconstruction *p ){
   double R=0.0;
   double mean=0.0;
   int i;
@@ -492,7 +495,7 @@ double      phspace_attractor_size( PhaseSpace *p ){
 	 \param p is the phase-space rep. of the data
 	 \param i,j as in the formula above
  */
-double phspace_index_ij( PhaseSpace *p, int i, int j ){
+double tdelay_index_ij( TimeDelayReconstruction *p, int i, int j ){
   int    idx;
   
   if( i<0 || i>p->xn || j<0 || j>=p->m ){
@@ -515,7 +518,7 @@ double phspace_index_ij( PhaseSpace *p, int i, int j ){
 	 \param i as in the formula above
 	 \param x output (m long vector containing the final vector)
  */
-void phspace_index_i( PhaseSpace *p, int i, double *x){
+void tdelay_index_i( TimeDelayReconstruction *p, int i, double *x){
   int    idx, j;
 
   if( i<0 || i>p->xn ){
@@ -538,7 +541,7 @@ void phspace_index_i( PhaseSpace *p, int i, double *x){
 	 \param j as in the formula above
 	 \param x output (n long vector containing the final vector)
  */
-void phspace_index_j( PhaseSpace *p, int j, double *x){
+void tdelay_index_j( TimeDelayReconstruction *p, int j, double *x){
   int    idx, i;
 
   if( j<0 || j>=p->m ){
@@ -554,9 +557,9 @@ void phspace_index_j( PhaseSpace *p, int j, double *x){
   }
 }
 
-PhaseSpace* phspace_init( int m, int tau, double *x, int n ){
-  PhaseSpace *p;
-  p = (PhaseSpace*)malloc(sizeof(PhaseSpace));
+TimeDelayReconstruction* tdelay_init( int m, int tau, double *x, int n ){
+  TimeDelayReconstruction *p;
+  p = (TimeDelayReconstruction*)malloc(sizeof(TimeDelayReconstruction));
   p->m = m;
   p->tau = tau;
   p->x = x;
@@ -564,12 +567,12 @@ PhaseSpace* phspace_init( int m, int tau, double *x, int n ){
   return p;
 }
 
-void phspace_free( PhaseSpace *p ){
+void tdelay_free( TimeDelayReconstruction *p ){
   free(p);
 }
 
-void phspace_print( FILE *out, PhaseSpace *p){
-  fprintf( out, "PhaseSpace '%p':\n"
+void tdelay_print( FILE *out, TimeDelayReconstruction *p){
+  fprintf( out, "TimeDelayReconstruction '%p':\n"
 			  " m   = %i\n"
 			  " tau = %i\n"
 			  " x   = %p\n"

@@ -129,6 +129,6 @@ def buildMatrix( d1, d2 ):
 /* the modules */
 //%include eeg.i
 //%include denoising.i
-%include distances.i
+//%include distances.i
 
  //%include pythonfunctions.i

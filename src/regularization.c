@@ -20,80 +20,87 @@
 
 #include "regularization.h"
 #include "optarg.h"
+#include "linalg.h"
+#include "imageproc.h"
 
-/** \brief Calculate the regularization function that is the distance
+/** \brief Calculate a regularization function that is the distance
 	 transform of the piecwise linear interpolation between
 	 points.
 	 
 	 (approximated with bresenham-alg). This is a linear
 	 fall-off away from the line passing through all points.
+	 This function is used e.g. to construct a regularization matrix
+	 that punishes deviations from time-markers (stimulus onset,
+	 response onset etc).
+
+	 Example:
+	 \image html regularization_line.jpg
 
 	 \note if you don't pass any arguments, the regularization is done 
 	 along the main diagonal
 	 
 	 \param points defining the piecewise linear function through the regularization matrix;
-	        this is a 2 x M dimensional UINT-array, all points must be within the 
-			  dimensions; if NULL is passed, the function assumes (0,0),(dims) as
-			  points, i.e. the regularization is done along the main diagonal
+	        this is a 2 x M dimensional INT-array, all points must be within the 
+			  dimensions; if NULL is passed, the function assumes (0,0),(dims[0]-1,dims[1]-1) 
+			  as points, i.e. the regularization is done along the main diagonal
     \param dims the dimensions of the output matrix (rows x cols)
 	 \param m the output matrix or NULL -> allocate in function 
 	 \return the regularization matrix or NULL (error)
 */
 Array* regularization_linear_points( const Array *points, uint dims[2], Array *m ){
-#if 0
-  int i,j;
-  int maxmem, npoints;
-  double x;
-  int *points;
-  int **I;
-  int **markers;
-  int nmarkers;
-  void *ptr;
-
-	 
-  /* memory for distance transform */
-  I = (int**) malloc( n*sizeof( int* ) );
-  for( i=0; i<n; i++ ){
-	 I[i] = (int*) malloc( n*sizeof( int ) );
-	 memset( I[i], 0, n*sizeof( int ) );
+  if( points->dtype!=INT ){
+	 errprintf("Need INT-array for coordinates\n"); return NULL;
   }
-
-  /* compute memory needed for bresenham */
-  maxmem=0;
-  for( i=0; i<nmarkers-1; i++ ){
-	 npoints = bresenham_howmany_points( markers[0][i], markers[1][i], markers[0][i+1], markers[1][i+1] );
-	 dprintf("npoints=%i\n", npoints );
-	 maxmem  = MAX( npoints, maxmem );
+  if( points->ndim!=2 ){
+	 errprintf("Need 2D-array for coordinates\n"); return NULL;
   }
-  dprintf("2*(maxmem+1)=%i\n", 2*(maxmem+1));
-  points = (int*) malloc( (2*(maxmem+1))*sizeof(int) );
-  
-  /* compute bresenham for the line segments */
-  for( i=0; i<nmarkers-1; i++ ){
-	 npoints = bresenham_howmany_points( markers[0][i], markers[1][i], markers[0][i+1], markers[1][i+1] );
-	 dprintf("Line from (%i,%i)->(%i,%i) with %i points\n", 
-				markers[0][i], markers[1][i], markers[0][i+1], markers[1][i+1], npoints);
-	 points  = bresenham( markers[0][i], markers[1][i], markers[0][i+1], markers[1][i+1], points );
-	 for( j=0; j<2*npoints; j+=2 ){ /* draw the line */
-		I[points[j]][points[j+1]] = 1;
+  if( points->size[1]<2 ){
+	 errprintf("Need 2 coordinates per point\n"); return NULL;
+  }
+  if( m!=NULL ){
+	 bool ismatrix;
+	 matrix_CHECK( ismatrix, m );
+	 if( !ismatrix) return NULL;
+	 if( m->size[0]!=dims[0] || m->size[1]!=dims[1] ){
+		errprintf( "output matrix must be of same dimension as dims[2]\n");
+		return NULL;
 	 }
+  } else {
+	 m=array_new2(DOUBLE, 2, dims[0], dims[1] );
   }
-	 
-  /* distance transform of line-segments */
-  d = disttransform_deadreckoning( I, n, n, d );
 
-  /* free */
-  for( i=0; i<n; i++ ){
-	 free( I[i] );
+  /* bresenham bitmap-image */
+  Array *mask=array_new2( INT, 2, dims[0], dims[1] );
+  
+  /* get line segments */
+  Array *bres;
+  if( points==NULL ){
+	 Array *defpoints=array_new2( INT, 2, 2, 2 );
+	 array_INDEX2( points,int, 0, 0)=0;
+	 array_INDEX2( points,int, 1, 0)=0;
+	 array_INDEX2( points,int, 0, 1)=dims[0]-1;
+	 array_INDEX2( points,int, 1, 1)=dims[1]-1;
+	 bres=bresenham_linesegments( defpoints );
+	 array_free( defpoints );
+  } else {
+	 bres=bresenham_linesegments( points );
   }
-  free(I);
-  free( points );
 
-  return d;
-#endif
+  /* set to mask */
+  int i;
+  for( i=0; i<bres->size[1]; i++ ){
+	 array_INDEX2(mask,int, array_INDEX2(bres,int,0,i),
+					  array_INDEX2(bres,int,1,i))=1;
+  }
+  m=disttransform_deadreckoning( mask, m );
+
+  array_free( mask );
+  
+  return m;
 }
 
-/** Calculate regularization function
+/** \brief Calculate a ''gaussian corridor''.
+	 
 	 \f[
 	 G_f(x,y; \sigma) = \frac{1}{\sigma 2\pi} \exp{\left( -\frac{\min_{\xi}\sqrt{(\xi-x)^2+(y-f(\xi))^2}}{2\sigma^2} \right)}
 	 \f]
@@ -102,74 +109,64 @@ Array* regularization_linear_points( const Array *points, uint dims[2], Array *m
 
 	 \todo there are artifacts here, check for numerical errors
 
-	 \param n number of points in the returned matrix
-	 \param d matrix or NULL (alloc'd in function)
-	 \param optargs may contain:
-	 - <tt>markers=int**</tt> time-markers within the nsignal x nsignal matrix, default=<tt>( (0,n-1), (0,n-1) )</tt>
-	 - <tt>nmarkers=int</tt> number of time-marker pairs; REQUIRED if markers is set, default=\c 2
-	 - <tt>max_sigma=double</tt> std of a gaussian applied to the regularization matrix as returned from regularization_linear_points(); default=\c 0.2	 \return d or NULL (error)
- */
-double** regularization_gaussian_line( double **d, int n, OptArgList *optargs ){
-#if 0
+	 Example:
+	 \image html regularization_gauss.jpg
+
+	 \note if you don't pass any arguments, the regularization is done 
+	 along the main diagonal
+	 
+	 \param points defining the piecewise linear function through the regularization matrix;
+	        this is a 2 x M dimensional INT-array, all points must be within the 
+			  dimensions; if NULL is passed, the function assumes (0,0),(dims[0]-1,dims[1]-1) 
+			  as points, i.e. the regularization is done along the main diagonal
+    \param dims the dimensions of the output matrix (rows x cols)
+	 \param m the output matrix or NULL -> allocate in function 
+	 \param max_sigma the regularization parameter
+	 \return the regularization matrix or NULL (error)
+*/
+Array* regularization_gaussian_corridor( const Array *points, uint dims[2], Array *m, double max_sigma ){
+  if( points->dtype!=INT ){
+	 errprintf("Need INT-array for coordinates\n"); return NULL;
+  }
+  if( points->ndim!=2 ){
+	 errprintf("Need 2D-array for coordinates\n"); return NULL;
+  }
+  if( points->size[1]<2 ){
+	 errprintf("Need 2 coordinates per point\n"); return NULL;
+  }
+  if( m!=NULL ){
+	 bool ismatrix;
+	 matrix_CHECK( ismatrix, m );
+	 if( !ismatrix) return NULL;
+	 if( m->size[0]!=dims[0] || m->size[1]!=dims[1] ){
+		errprintf( "output matrix must be of same dimension as dims[2]\n");
+		return NULL;
+	 }
+  } else {
+	 m=array_new2(DOUBLE, 2, dims[0], dims[1] );
+  }
+  
+  /* get distance transform of the linear interpolation between markers */
+  m = regularization_linear_points( points, dims, m );
+
   int i,j,k;
- 
-  double max_sigma=0.0;
   double sigma;
   double maxdist, dist, closest_dist, normgauss;
   int flag;
   double pointdist=0.1;
-  int nmarkers;
-  int **markers;
-  double x;
-  void *ptr;
 
-  /* get distance transform of the linear interpolation between markers */
-  dprintf("Calling regularization_linear_points\n");
-  d = regularization_linear_points( d, n, optargs );
-  dprintf("...done\n");
-
-  /* defaults */
-  nmarkers = 2;
-  markers = NULL;
-
-  /* override */
-  if( optarglist_has_key( optargs, "nmarkers" ) ){
-	 x = optarglist_scalar_by_key( optargs, "nmarkers" );
-	 if( !isnan( x ) ) nmarkers=(int)x;
-  }
-  if( optarglist_has_key( optargs, "markers" ) ){
-	 ptr = optarglist_ptr_by_key( optargs, "markers" );
-	 if( ptr ) markers = (int**)ptr;
-  }
-  if( optarglist_has_key( optargs, "max_sigma" ) ){
-	 x = optarglist_scalar_by_key( optargs, "max_sigma" );
-	 if( !isnan( x ) ) max_sigma=x;
-  }
-
-  /* allocate own markers if not provided via optargs */
-  if( !markers ){
-	 dprintf("Got no markers, using (0,0),(%i,%i)\n", n-1, n-1 );
-	 nmarkers = 2;
-	 markers = (int**) malloc( 2*sizeof( int* ) );
-	 markers[0] = (int*) malloc( nmarkers*sizeof( int ) );
-	 markers[1] = (int*) malloc( nmarkers*sizeof( int ) );
-	 markers[0][0] = 0;
-	 markers[1][0] = 0;
-	 markers[0][1] = n-1;
-	 markers[1][1] = n-1;
-  }
-	 
   /* apply gaussian with varying sigma */
   flag = 0;
-  maxdist = sqrt(2.0)*(double)(n-1);
+  maxdist = sqrt(2.0)*(double)(dims[0]-1);
 
   dprintf("maxdist=%f, max_sigma=%f\n", maxdist, max_sigma);
-  for( i=0; i<n; i++ ){
-  	 for( j=0; j<n; j++ ){
+  for( i=0; i<dims[0]; i++ ){
+  	 for( j=0; j<dims[1]; j++ ){
 		closest_dist = DBL_MAX;
-  		for( k=0; k<nmarkers; k++ ){
-  		  dist = ( SQR( (double)(markers[0][k]-i) )+SQR( (double)(markers[1][k]-j) ) );
-  		  dist = sqrt( dist - SQR( d[i][j] ) );
+  		for( k=0; k<points->size[1]; k++ ){
+  		  dist = ( SQR( (double)(array_INDEX2(points,int,0,k)-i) )
+					  + SQR( (double)(array_INDEX2(points,int,1,k)-j) ) );
+  		  dist = sqrt( dist - SQR( mat_IDX(m,i,j) ) );
 		  dist /= maxdist;
 		  if(dist<closest_dist){
 			 closest_dist=dist;
@@ -187,16 +184,15 @@ double** regularization_gaussian_line( double **d, int n, OptArgList *optargs ){
 
 		normgauss = gaussian( 0.0, sigma, 0 );
 		if(normgauss > 10000000) {
-		  d[i][j]=1;
+		  mat_IDX(m,i,j)=1;
 		} else {
-		  d[i][j] = gaussian( d[i][j], sigma, 0 )/normgauss;
+		  mat_IDX(m,i,j)=gaussian( mat_IDX(m,i,j), sigma, 0 )/normgauss;
 		}
 		
   		flag = 0;
   	 }
   }
 
-  return d;
-#endif
+  return m;
 }
 

@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Matthias Ihrke   *
- *   mihrke@uni-goettingen.de   *
+ *   Copyright (C) 2010 by Matthias Ihrke                                  *
+ *   ihrke@nld.ds.mpg.de
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -13,57 +13,43 @@
  *   GNU General Public License for more details.                          *
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
+ *   aint with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/**\file writer.h
-	\brief \ref status_unstable Functions for writing to files.
- * \todo implement writer for EEGlab set-files
+/**\file io_matlab.h
+ \brief \ref status_inprogress io_matlab MATLAB-input-output for (EEG)-data.
+
+ eeglab/matlab file reader functions if matio library is installed 
+	
  */
-#ifndef WRITER_H
-# define WRITER_H
-#include "definitions.h"
-#include "helper.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include "array.h"
+#ifndef IO_MATLAB_H
+# define IO_MATLAB_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-/* -------------------------------------------------------------------- */
-/* functions */
-/* -------------------------------------------------------------------- */
-  /** \addtogroup writer
-		\{
-  */
-  void write_raw_header( FILE *f, int nbchan, int nbtrials, int nsamples, 
-								 int nmarkers );
 
-  void write_double_dblpp_ascii(FILE *out, const double **d, int xdim, int ydim, OptArgList *opts);
-  void write_double_dblpp_ascii_file(const char *fname, const double **d, int xdim, int ydim, OptArgList *opts);
+#include "array.h"
 
-  void write_double_dblp_ascii(FILE *out, const double *v, int n);
-  void write_double_dblp_ascii_file(const char *fname, const double *v, int n);
-
-  void write_int_dblp_ascii(FILE *out, const int *v, int n);
-  void write_int_dblp_ascii_file(const char *fname, const int *v, int n);
-  /** \} */
-
-
+  
 #ifdef MATIO
-  /* eeglab/matlab file writer functions if matio library is installed */
-  int write_eeglab_file( EEG* eeg, const char *file );
 
+  /* -------------- READER ---------------- */
+  EEG* read_eeglab_file( const char *file );
+  Array* read_array_matlab( const char *file, const char *varname ); 
+
+  /* -------------- WRITER ---------------- */
+  int write_eeglab_file( EEG* eeg, const char *file );
   int write_array_matlab( const Array *a, const char *varname, 
 								  const char *file, bool append );
 #endif
+
+
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* IO_MATLAB_H */

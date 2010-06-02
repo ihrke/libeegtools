@@ -106,9 +106,7 @@ extern "C" {
   double** signaldist_stft( double *s1, int n1, double *s2, int n2, 
 									 double **d, 
 									 OptArgList *optargs );
-  double** signaldist_recplot_los( double *s1, int n1, double *s2, int n2, 
-											  double **d, 
-											  OptArgList *optargs );
+
   /*\}*/
 
  

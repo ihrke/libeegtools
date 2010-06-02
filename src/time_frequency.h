@@ -18,63 +18,68 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 /**\file time_frequency.h
-	\brief \ref status_stable Time-Frequency represenation of time-series.
+	\brief \ref status_unstable Time-Frequency representation of time-series.
+
+	A time-frequency represenation (TFR) of a signal displays the 
+	varying frequency content of a signal over time.
+
+	\image html spectrogram.jpg
+
+	\todo add some docu here
+
+	\note the test-functions for this functionality are not excessive.
 */
 
 #ifndef TIME_FREQUENCY_H
 # define TIME_FREQUENCY_H
 
 #include "definitions.h"
-#include "mathadd.h"
+#include "complex.h"
+#include "array.h"
 #include "optarg.h"
 #include <math.h>
-/* #include <gsl/gsl_fft_complex.h> */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-  /** \addtogroup spectgram 
-		\{ */
-  typedef struct _Spectrogram  {
+  /** \brief A Window Function.
+		\param n is the number of points in the window
+		\param param is a parameter depending on the choice of the
+		         window (e.g. sigma for gaussian)
+	*/
+  typedef Array* (*WindowFunction)(int,double);
+
+  /** \brief Complex spectrogram (Time-Frequency-Representation) of a signal.
+	*/
+  typedef struct {
     int            N_freq;		 /**< number of freq bins in the TFR matrix */
     int            N_time;	/**< number of time_bins in the TFR matrix */
 	 double         samplingrate; /**< sampling rate with which the signal was sampled */
 	 double         low_corner_freq; /**< lower corner frequency */
 	 double         up_corner_freq;	/**< upper corner frequency */
-	 Complex        **sgram; /**< the spectrogram data */
-	 double        **powerspect;
-	 int           has_power_spectrum; /**< true if power spectrum is filled */
+	 Complex        **sgram; /**< the spectrogram data (N_time x N_freq) */
   } Spectrogram;
   
-  /** \addtogroup spectspect
-		\{ */
-  Spectrogram* spectrogram_stft(const double* s, int n, double sampling_rate,
-										  const double *Window, int Window_Length,
-										  int N_freq, int N_time, double corner_freqs[2],
+  Spectrogram* spectrogram_stft(const Array* sig, double sampling_rate,
+										  const Array *Window, int N_freq, int N_time, 
+										  double corner_freqs[2], 
 										  int *timepoints, Spectrogram *spectgram);
-
-  Spectrogram* spectrogram( const double *s, int n, Spectrogram *spectgram, 
+  Spectrogram* spectrogram( const Array *sig, Spectrogram *spectgram, 
 									 OptArgList *optargs );
-  /** \} */
+  Array* spectrogram_powerspectrum( const Spectrogram *spect );
 
-  /** \ingroup specthelp
-		\{ */
   Spectrogram* spectrogram_init( int N_freq, int N_time );
   void         spectrogram_free( Spectrogram *s );
-  void         spectrogram_compute_powerspectrum( Spectrogram *s );
-  /** \} */
 
-  /** \addtogroup windows
-	* \{ */
-  double* window_dirichlet( double *window, int n );
-  double* window_gaussian ( double *window, int n, double sigma );
-  double* window_hamming  ( double *window, int n );
-  double* window_hanning  ( double *window, int n );
-  double* window_kaiser   ( double *window, int n, double alpha );
-  /** \} */
 
-  /** \} */
+  /*------------------- window functions --------------- */
+  Array* window_dirichlet( int n, double noparam );
+  Array* window_gaussian ( int n, double sigma );
+  Array* window_hamming  ( int n, double noparam );
+  Array* window_hanning  ( int n, double noparam );
+  Array* window_kaiser   ( int n, double alpha );
+
 #ifdef __cplusplus
 }
 #endif

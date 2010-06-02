@@ -40,33 +40,24 @@
 extern "C" {
 #endif
 
-  /**\addtogroup recplots
-	*\{
-	*/ 
+  /*-----------------------------------------------------------
+	 - Recurrence Plots - 
+	 ---------------------------------------------------------*/
+
   Array* recplot( const Array *s1, const Array *s2, Array *out, double epsilon, 
 						OptArgList *optargs );
   double* recplot_calculate_epsilons( Array *s1, Array *s2, double *eps, int fan );
-  /**\addtogroup los
-	*\{
-	*/
-  WarpPath* recplot_los_marwan       ( const RecurrencePlot *R, int dx, int dy );
-  WarpPath* recplot_los_dtw          ( const RecurrencePlot *R );
-  WarpPath* recplot_los_dtw_markers  ( const RecurrencePlot *R, int **markers, int nmarkers );
-  WarpPath* recplot_los_disttransform( const RecurrencePlot *R );
-  WarpPath* recplot_los_dtw_noise    ( const RecurrencePlot *R );
-  /*\}*/
 
-  /*\}*/
+
+  /*** TODO: implement the LOS-strategies on Array's *****/
+  /**********************************************************************/
+  /**********************************************************************/
+  /* WarpPath* recplot_los_marwan       ( const RecurrencePlot *R, int dx, int dy ); */
+  /* WarpPath* recplot_los_dtw          ( const RecurrencePlot *R ); */
+  /* WarpPath* recplot_los_dtw_markers  ( const RecurrencePlot *R, int **markers, int nmarkers ); */
+  /* WarpPath* recplot_los_disttransform( const RecurrencePlot *R ); */
+  /* WarpPath* recplot_los_dtw_noise    ( const RecurrencePlot *R ); */
   
-  /**********************************************************************/
-  /**********************************************************************/
-
-  RecurrencePlot* recplot_init     ( int m, int n, double epsilon, int flags );
-  void            recplot_free     ( RecurrencePlot *R );
-  void            recplot_print    ( FILE *out, RecurrencePlot *R );
-
-  void            recplot_calculate( RecurrencePlot *R, 
-												 PhaseSpace *p1, PhaseSpace *p2 );
 #ifdef __cplusplus
 }
 #endif

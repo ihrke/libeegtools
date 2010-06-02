@@ -36,8 +36,7 @@ extern "C" {
 	*\{
 	*/
   Array* regularization_linear_points( const Array *points, uint dims[2], Array *m );
-  double** regularization_gaussian_line( double **d, int n, 
-													  OptArgList *optargs );
+  Array* regularization_gaussian_corridor( const Array *points, uint dims[2], Array *m, double max_sigma);
   /** \} */
 
 #ifdef __cplusplus

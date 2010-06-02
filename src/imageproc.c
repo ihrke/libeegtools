@@ -47,7 +47,7 @@
 	 }
 	 \endverbatim
 
-	 \param in UINT-array representing a binary image
+	 \param in INT-array representing a binary image
 	 \param dt DOUBLE-array of same dimensions as in, or NULL (alloc in function)
 	 \return ptr to the distance transform of in
  */
@@ -57,8 +57,8 @@ Array*  disttransform_deadreckoning( const Array *in, Array *dt ){
   double d1=1;
   double d2=sqrt(2);
  
-  if( in->dtype!=UINT || in->ndim!=2 ){
-	 errprintf("Need a 2-dim UINT array as input\n");
+  if( in->dtype!=INT || in->ndim!=2 ){
+	 errprintf("Need a 2-dim INT array as input\n");
 	 return NULL;
   }
   X = in->size[0];
@@ -79,10 +79,10 @@ Array*  disttransform_deadreckoning( const Array *in, Array *dt ){
 		mat_IDX(P1,x,y)=-1;
 		mat_IDX(P2,x,y)=-1;
 		if(x>0 && y>0 && y<Y-1 && x<X-1){
-		  if( array_INDEX2(in,uint,x-1,y)!=array_INDEX2(in,uint,x,y) || 
-				array_INDEX2(in,uint,x+1,y)!=array_INDEX2(in,uint,x,y) ||
-				array_INDEX2(in,uint,x,y-1)!=array_INDEX2(in,uint,x,y) || 
-				array_INDEX2(in,uint,x,y+1)!=array_INDEX2(in,uint,x,y) ){
+		  if( array_INDEX2(in,int,x-1,y)!=array_INDEX2(in,int,x,y) || 
+				array_INDEX2(in,int,x+1,y)!=array_INDEX2(in,int,x,y) ||
+				array_INDEX2(in,int,x,y-1)!=array_INDEX2(in,int,x,y) || 
+				array_INDEX2(in,int,x,y+1)!=array_INDEX2(in,int,x,y) ){
 			 mat_IDX(dt,x,y)=0;
 			 mat_IDX(P1,x,y)=x;
 			 mat_IDX(P2,x,y)=y;
@@ -171,7 +171,7 @@ Array*  disttransform_deadreckoning( const Array *in, Array *dt ){
   /* indicate in- and outside */
   for(y=Y-2; y>0; y--){
 	 for(x=X-2; x>0; x--){
-		if( array_INDEX2(in,uint,x,y)>0 ) {
+		if( array_INDEX2(in,int,x,y)>0 ) {
 		  mat_IDX(dt,x,y) = -1*mat_IDX(dt,x,y);
 		}
 	 }
@@ -187,6 +187,8 @@ Array*  disttransform_deadreckoning( const Array *in, Array *dt ){
 /** \brief Connected line-segments with bresenhams Line-drawing-algorithm.
 
 	 Calls bresenham_line() for each pair of points.
+
+	 Example:
 
 	 \image html bresenham_segments.jpg
 	 

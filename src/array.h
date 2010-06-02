@@ -55,7 +55,7 @@
  // work with el
  \endcode
 
- To \b write elements in the array of unknown dimension, you can use the macro 
+ To \b write elements in the array of unknown type, you can use the macro 
  array_MEMSET()
  \code
  // #define array_MEMSET( mem, dtype, val )
@@ -378,6 +378,8 @@ extern "C" {
 
   void   array_shuffle( Array *a, unsigned long seed );
 
+  void   array_typecast( Array *a, DType target_type );
+
   void*  array_index ( const Array *a, uint *idx );
   void*  array_index2( const Array *a, ... );
   Array* array_slice ( const Array *a, const char *slicedesc );
@@ -389,6 +391,9 @@ extern "C" {
   void   array_reverse( Array *a );
 
   int    array_dimred( Array *a );
+
+  void*  array_max( const Array *a );
+  void*  array_min( const Array *a );
 
 
   Array* array_convert_rowcolmajor( Array *a, bool alloc);

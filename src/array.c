@@ -25,6 +25,113 @@
 #include <gsl/gsl_rng.h>
 #include <time.h>
 
+/** \brief Get maximum element from array.
+	 
+	 You can easily find the index of this element by doing
+	 \code
+	 Array *a = get_array_from_somewhere();
+	 long idx = (array_max(a)-(a->data))/a->dtype_size;
+	 // if you need an index-tuple, you can do
+	 uint idxtuple[num_dimension];
+	 array_calc_rowindex( idx, a->size, a->ndim, idxtuple );
+	 \endcode
+
+	 \note this function is a bit slow, as it converts everything
+	      to double before comparing. If you need it fast, you
+			should consider writing a specialised function.
+
+	 \param a the array
+	 \return pointer to the maximum element
+ */
+void*  array_max( const Array *a ){
+  ulong i;
+  double maxel=DBL_MIN;
+  double tmp;
+  void *rmaxel, *mem;
+  for( i=0; i<array_NUMEL(a); i++ ){
+	 mem = array_INDEXMEM1(a,i);
+	 array_dtype_to_double( &tmp, mem, a->dtype );
+	 if( tmp>maxel ){
+		maxel=tmp;
+		rmaxel=mem;
+	 }
+  }
+  return rmaxel;
+}
+
+/** \brief Get minimum element from array.
+	 
+	 You can easily find the index of this element by doing
+	 \code
+	 Array *a = get_array_from_somewhere();
+	 long idx = (array_min(a)-(a->data))/a->dtype_size;
+	 // if you need an index-tuple, you can do
+	 uint idxtuple[num_dimension];
+	 array_calc_rowindex( idx, a->size, a->ndim, idxtuple );
+	 \endcode
+
+	 \note this function is a bit slow, as it converts everything
+	      to double before comparing. If you need it fast, you
+			should consider writing a specialised function.
+
+	 \param a the array
+	 \return pointer to the minimum element
+ */
+void*  array_min( const Array *a ){
+  ulong i;
+  double minel=DBL_MAX;
+  double tmp;
+  void *rminel, *mem;
+  for( i=0; i<array_NUMEL(a); i++ ){
+	 mem = array_INDEXMEM1(a,i);
+	 array_dtype_to_double( &tmp, mem, a->dtype );
+	 if( tmp<minel ){
+		minel=tmp;
+		rminel=mem;
+	 }
+  }
+  return rminel;
+}
+
+/** \brief Array-typecast.
+
+	 Typecast the whole array.
+
+	 Warning: 
+	 - in case that sizeof(target_type)<sizeof(current_type), you lose precision
+	 - in case that sizeof(target_type)!=sizeof(current_type), it is slow because
+	   the whole data is copied
+	 
+	 \param a the array
+	 \param target_type the target type
+ */
+void   array_typecast( Array *a, DType target_type ){
+  int srcsize,destsize;
+  array_SIZEOF_DTYPE( srcsize, a->dtype );
+  array_SIZEOF_DTYPE( destsize, target_type );
+  
+  if( srcsize==destsize ){
+	 a->dtype=target_type;
+	 return;
+  } 
+
+  /* cast everything to double and back */
+  void *newdata=malloc( destsize*array_NUMEL(a) );
+
+  ulong i;
+  double tmpel;
+  void *mem;
+  for( i=0; i<array_NUMEL(a); i++ ){
+	 mem=array_INDEXMEM1( a, i );
+	 array_dtype_to_double( &tmpel, mem, a->dtype );
+	 array_MEMSET( newdata+(i*destsize), target_type, tmpel );
+  }
+
+  free(a->data);
+  a->data=newdata;
+}
+
+
 /** \brief concatenate two arrays.
 
 	 The two arrays must have the same number of elements in all dimensions 

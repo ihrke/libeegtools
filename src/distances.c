@@ -342,6 +342,8 @@ double   dist_point_line(double *p, double *x, double *y){
 
 	 It is assumed that both pathes have the same starting and endpoint.
 
+	 \todo fix this! work with new warppath-arrays!
+
 	 Algorithm:
 	 \code
 	 1. compute distance transform for p1
@@ -349,6 +351,7 @@ double   dist_point_line(double *p, double *x, double *y){
 	 \endcode
  */
 double   pathdist_euclidean_dt(WarpPath *p1, WarpPath *p2){
+#ifdef LIBEEGTOOLS_FIXME
   int **I;
   int n,m,
 	 i,j;
@@ -399,6 +402,7 @@ double   pathdist_euclidean_dt(WarpPath *p1, WarpPath *p2){
   //dblpp_free( d, m );
 
   return dist;
+#endif
 }
 
 /**************************************************************
@@ -519,6 +523,7 @@ double** signaldist_euclidean_derivative( double *s1, int n1, double *s2, int n2
 	 \return d or NULL (error)
  */
 double** signaldist_stft( double *s1, int n1, double *s2, int n2, double **d, OptArgList *optargs ){
+#ifdef LIBEEGTOOLS_FIXME
   int i, j;
   Spectrogram *sp1, *sp2;
   double *window;
@@ -623,94 +628,9 @@ double** signaldist_stft( double *s1, int n1, double *s2, int n2, double **d, Op
   free( window );
   
   return d;
+#endif
 }
 
-/** builds the pointwise distance matrix based on the
-	 line-of-synchrony as found in cross-recurrence plots. For details,
-	 see 
-	 
-	 Matthias Ihrke, Hecke Schrobsdorff and J. Michael Herrmann:
-	 Recurrence-Based Synchronization of Single Trials for EEG-Data
-	 Analysis. Lecture Notes on Computer Science, Proceedings of IDEAL
-	 2009. 
-
-	 \param s1,n1,s2,n2 the two signals
-	 \param d memory or ALLOC_IN_FCT
-	 \param optargs may contain:
-	 - <tt>m=int</tt> the embedding dimension for the phase-space reconstruction of the signals, default=10
-	 - <tt>tau=int</tt> time-lag for phase-space rec., default=15
-	 - <tt>FAN=int</tt> fixed amount of neighbours for each point in the recplot, default=(int)0.05*n1
-	 - <tt>noiseamp=double</tt> factor to use for adding noise to the recplot, default=\c 0.01
- */
-double** signaldist_recplot_los( double *s1, int n1, double *s2, int n2, 
-											double **d, 
-											OptArgList *optargs ){
-  int i,j; 
-  double noise;
-  double noiseamp;
-  RecurrencePlot *R;
-  PhaseSpace *p1, *p2;
-  int m, tau, FAN;
-  double x;
-
-  /* defaults */
-  m = 10;
-  tau =15 ;
-  FAN = (int)0.05*n1;
-  noiseamp = 0.01;
-
-  /* override */
-  if( optarglist_has_key( optargs, "m" ) ){
-	 x = optarglist_scalar_by_key( optargs, "m" );
-	 if( !isnan( x ) ) m=(int)x;
-  }
-  if( optarglist_has_key( optargs, "tau" ) ){
-	 x = optarglist_scalar_by_key( optargs, "tau" );
-	 if( !isnan( x ) ) tau=(int)x;
-  }
-  if( optarglist_has_key( optargs, "FAN" ) ){
-	 x = optarglist_scalar_by_key( optargs, "FAN" );
-	 if( !isnan( x ) ) FAN=(int)x;
-  }
-  if( optarglist_has_key( optargs, "noiseamp" ) ){
-	 x = optarglist_scalar_by_key( optargs, "noiseamp" );
-	 if( !isnan( x ) ) noiseamp=x;
-  }
-
-  if( d==ALLOC_IN_FCT ){
-	 d=dblpp_init( n1, n2 );
-  }
-
-  dprintf("Using Parameters: m=%i, tau=%i, FAN=%i, noiseamp=%f\n",
-			 m, tau, FAN, noiseamp );
-
-  srand((long)time(NULL));
-  p1 = phspace_init( m, tau, s1, n1 );
-  p2 = phspace_init( m, tau, s2, n2 );
-
-  R = recplot_init( n1, n2, FAN, RPLOT_FAN );
-  recplot_calculate( R, p1, p2 );
-
-  dblpp_copy( (const double**)R->R, d, R->m, R->n ); 
-  
-  /* flip binary matrix */
-  scalar_minus_dblpp( 2.0, d, R->m, R->n );
-  
-  /* add small amount of noise */
-  for( i=0; i<R->m; i++ ){
-	 for( j=0; j<R->n; j++ ){
-		noise = noiseamp*(((double)rand()) / RAND_MAX);		
-		if( d[i][j]<2 )
-		  d[i][j] += noise;
-	 }
-  }
-
-  free( p1 );
-  free( p2 );
-  recplot_free( R );
-
-  return d;
-}
 /** build a distance matrix D from data X which consists of n observations with
 	 p features each. 
 	 Observations are compared using f.

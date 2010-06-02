@@ -14,6 +14,7 @@
 #include<math.h>
 #include "check_all.h"
 #include "array.h"
+#include "linalg.h"
 #include "helper.h"
 
 START_TEST (test_sizeof)
@@ -583,6 +584,45 @@ START_TEST (test_concatenate_cols_dbl)
 }
 END_TEST
 
+START_TEST (test_min)
+{
+  Array *a=array_new_dummy( DOUBLE, 2, 10, 3 );
+  double m=*(double*)array_min( a );
+  fail_unless( cmpdouble( m, 0, 4 )==0 );
+
+  Array *b=array_new_dummy( UINT, 2, 10, 3 );
+  uint m2=*(uint*)array_min( b );
+  fail_unless( m2==0 );
+
+  mat_IDX( a, 2, 4 )=-10.0;
+  m=*(double*)array_min( a );
+  fail_unless( cmpdouble( m, -10, 4)==0 );
+
+  array_free( a );
+  array_free( b );
+}
+END_TEST
+
+START_TEST (test_max)
+{
+  Array *a=array_new_dummy( DOUBLE, 2, 10, 3 );
+  double m=*(double*)array_max( a );
+  fail_unless( cmpdouble( m, (double)10*3-1, 4 )==0 );
+
+  Array *b=array_new_dummy( UINT, 2, 10, 3 );
+  uint m2=*(uint*)array_max( b );
+  fail_unless( m2==10*3-1 );
+
+  mat_IDX( a, 2, 4 )=100.0;
+  m=*(double*)array_max( a );
+  fail_unless( cmpdouble( m, 100, 4)==0 );
+
+  array_free( a );
+  array_free( b );
+}
+END_TEST
+
+
 /* template
 START_TEST (test_)
 {
@@ -617,6 +657,8 @@ Suite * init_array_suite (void){
   tcase_add_test (tc_core, test_concatenate_rows);
   tcase_add_test (tc_core, test_concatenate_cols);
   tcase_add_test (tc_core, test_concatenate_cols_dbl);
+  tcase_add_test (tc_core, test_min);
+  tcase_add_test (tc_core, test_max);
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

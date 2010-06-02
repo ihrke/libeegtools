@@ -15,8 +15,7 @@
 #include "check_all.h"
 #include "array.h"
 #include "distances.h"
-#include "writer.h"
-#include "reader.h"
+#include "io.h"
 
 START_TEST (test_arrtomatlab)
 {

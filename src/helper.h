@@ -175,7 +175,7 @@ extern "C" {
   /** \addtogroup progressbar 
 		\{  
   */
-  ProgressBarStatus progress_status;
+  extern ProgressBarStatus progress_status;
   void   progressbar_rotating( int flag, int num );
   /** \} */
 

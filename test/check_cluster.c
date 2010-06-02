@@ -17,7 +17,7 @@
 #include "distances.h"
 #include "helper.h"
 #include "clustering.h"
-#include "writer.h"
+#include "io.h"
 
 START_TEST (test_kmedoids)
 {

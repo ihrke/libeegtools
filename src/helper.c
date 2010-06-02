@@ -14,7 +14,7 @@
 #include <float.h>
 #include <stdint.h>
 #include <ctype.h>
-
+ProgressBarStatus progress_status;
 /* ---------------------------------------------------------------------------- 
    -- Helper functions                                                       -- 
    ---------------------------------------------------------------------------- */
@@ -87,18 +87,15 @@ int stream_count_char( FILE* f, char c ){
   return numchar;
 }
 
-
+/** \brief same as fread, just returning success or failure.
+ */
 size_t  ffread(void *ptr, size_t size, size_t nmemb, FILE *stream){
-  size_t bread;
-  /*  dprintf("size=%i, nmemb=%i\n", size, nmemb);*/
-  bread=fread(ptr, size, nmemb, stream);
-  /*  dprintf("feof=%i, ferror=%i\n", feof(stream), ferror(stream));
-		dprintf("bread=%i, exp=%i\n", bread, size*nmemb);*/
-  if(bread<nmemb){
-	 errormsg(ERR_IO, 1);
-  }
-  return bread;
+  if( fread(ptr, size, nmemb, stream) != nmemb )
+	 return 0;
+  else 
+	 return 1;
 }
+
 size_t ffwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream){
   size_t bwrite;
   /*  dprintf("size=%i, nmemb=%i\n", size, nmemb);*/
