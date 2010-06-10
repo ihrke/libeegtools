@@ -27,17 +27,18 @@
 
 double get_double_from_struct_field( matvar_t *eeg, const char *name, int struct_array_index );
 
-/** This reader uses MatIO to parse EEGlab files and construct
-	 a LibEEGTools EEG struct.
-	 It was developed with EEGlab version 6.01b.
+/** \brief read EEG struct from EEGlab (MATLAB) .set-file.
+
+	 This reader uses MatIO to parse EEGlab files and construct
+	 a LibEEGTools EEG struct. It was developed with EEGlab version 6.01b.
 	 
 	 Currently, the EEGlab set must be "epoched", that means that the data must be
 	 three-dimensional with channels x n x trials. Continuous data is not yet supported
 	 and the reader will fail.
-
+	 
 	 The reader currently works only if the storage is in single .set file (as opposed to a 
 	 pair of .set and .dat file).
-
+	 
 	 \param file eeglab .set file
 	 \return the EEG struct
 */
@@ -76,7 +77,6 @@ EEG* read_eeglab_file( const char *file ){
   n      = (int)get_double_from_struct_field( meeg, "pnts",0 );
   dprintf("dim=(%i,%i,%i)\n", nbchan,ntrials,n);
   eeg = eeg_init( nbchan, ntrials, n );
-  dprintf("eeg=%p\n", eeg);
 
   /* filename  */
   eeg->filename=(char*)malloc( (strlen(file)+2)*sizeof(char) );
@@ -107,8 +107,8 @@ EEG* read_eeglab_file( const char *file ){
 		eeg_free( eeg );
 		return NULL;	 
 	 }
-	 eeg->times = (double*) malloc( n*sizeof(double) );
-	 memcpy(eeg->times, tmp->data, n*sizeof(double) );
+	 eeg->times=array_new2( DOUBLE, 1, n );
+	 memcpy(eeg->times->data, tmp->data, n*sizeof(double) );
   }
 
   /* channel info */
@@ -125,7 +125,6 @@ EEG* read_eeglab_file( const char *file ){
 	 eeg->chaninfo[i].y = get_double_from_struct_field( tmp, "Y", i);
 	 eeg->chaninfo[i].z = get_double_from_struct_field( tmp, "Z", i);
   }
-  
   
   /* data */
   tmp = Mat_VarGetStructField( meeg, "data", BY_NAME, 0 );
@@ -153,39 +152,41 @@ EEG* read_eeglab_file( const char *file ){
 	 for( i=0; i<ntrials; i++ ){
 		for( j=0; j<n; j++ ){
 		  x=((float*)tmp->data)[ c + (j*nbchan) + (i*n*nbchan) ];
-		  eeg->data[c][i][j] = (double)x;
+		  array_INDEX3(eeg->data,double,c,i,j) = (double)x;
 		}
 	 }
   }
   
-  /* markers */
-  epoch = Mat_VarGetStructField( meeg, "epoch", BY_NAME, 0 );
-  if( epoch->dims[0] == 0 || epoch->dims[1] < ntrials ){
-	 warnprintf("no epoch field, or wrong dimensions (%i,%i), skipping...\n", 
-				  epoch->dims[0],epoch->dims[1]);
-  } else {
-	 eeg->nmarkers = (unsigned int*) malloc( ntrials*sizeof(unsigned int) );
-	 eeg->markers = (unsigned int**) malloc( ntrials*sizeof(unsigned int*) );
-	 eeg->marker_labels = (char***) malloc( ntrials*sizeof(char**) );
+  /* TODO CONTINUE HERE */
+
+  /* /\* markers *\/ */
+  /* epoch = Mat_VarGetStructField( meeg, "epoch", BY_NAME, 0 ); */
+  /* if( epoch->dims[0] == 0 || epoch->dims[1] < ntrials ){ */
+  /* 	 warnprintf("no epoch field, or wrong dimensions (%i,%i), skipping...\n",  */
+  /* 				  epoch->dims[0],epoch->dims[1]); */
+  /* } else { */
+  /* 	 eeg->nmarkers = (unsigned int*) malloc( ntrials*sizeof(unsigned int) ); */
+  /* 	 eeg->markers = (unsigned int**) malloc( ntrials*sizeof(unsigned int*) ); */
+  /* 	 eeg->marker_labels = (char***) malloc( ntrials*sizeof(char**) ); */
 	 
-	 for( i=0; i<ntrials; i++ ){
-		tmp  = Mat_VarGetStructField( epoch, "eventlatency", BY_NAME, i );
-		tmp2 = Mat_VarGetStructField( epoch, "eventtype", BY_NAME, i );
-		dprintf("%i, %i\n", i, tmp->dims[1]);
-		eeg->nmarkers[i] = tmp->dims[1];
-		eeg->markers[i] = (unsigned int*) malloc( eeg->nmarkers[i]*sizeof(unsigned int) );
-		eeg->marker_labels[i] = (char**) malloc( eeg->nmarkers[i]*sizeof(char*) );
-		for( j=0; j<eeg->nmarkers[i]; j++ ){
-		  /* label */
-		  event = Mat_VarGetCell( tmp2, j ); /* MATLAB index */
-		  eeg->marker_labels[i][j] = (char*)malloc( (strlen((char*)event->data)+1)*sizeof(char) );
-		  strcpy( eeg->marker_labels[i][j], (char*)event->data );
-		  /* latency */
-		  event = Mat_VarGetCell( tmp, j ); /* MATLAB index */
-		  eeg->markers[i][j] = closest_index( eeg->times, n, ((double*)event->data)[0] );
-		}
-	 }
-  }
+  /* 	 for( i=0; i<ntrials; i++ ){ */
+  /* 		tmp  = Mat_VarGetStructField( epoch, "eventlatency", BY_NAME, i ); */
+  /* 		tmp2 = Mat_VarGetStructField( epoch, "eventtype", BY_NAME, i ); */
+  /* 		dprintf("%i, %i\n", i, tmp->dims[1]); */
+  /* 		eeg->nmarkers[i] = tmp->dims[1]; */
+  /* 		eeg->markers[i] = (unsigned int*) malloc( eeg->nmarkers[i]*sizeof(unsigned int) ); */
+  /* 		eeg->marker_labels[i] = (char**) malloc( eeg->nmarkers[i]*sizeof(char*) ); */
+  /* 		for( j=0; j<eeg->nmarkers[i]; j++ ){ */
+  /* 		  /\* label *\/ */
+  /* 		  event = Mat_VarGetCell( tmp2, j ); /\* MATLAB index *\/ */
+  /* 		  eeg->marker_labels[i][j] = (char*)malloc( (strlen((char*)event->data)+1)*sizeof(char) ); */
+  /* 		  strcpy( eeg->marker_labels[i][j], (char*)event->data ); */
+  /* 		  /\* latency *\/ */
+  /* 		  event = Mat_VarGetCell( tmp, j ); /\* MATLAB index *\/ */
+  /* 		  eeg->markers[i][j] = closest_index( eeg->times, n, ((double*)event->data)[0] ); */
+  /* 		} */
+  /* 	 } */
+  /* } */
   dprintf("Finished reading '%s'\n", file );
 
   return eeg;

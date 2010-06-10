@@ -29,19 +29,22 @@
 #include "definitions.h"
 #include "recurrence_plot.h"
 #include "nonlinear.h"
+#include "warping.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+  typedef double**(*PointwiseDistanceFunction)    (double*,int,double*,int,double**,OptArgList*);
+  typedef double  (*VectorDistanceFunction)       (const double*,const double*,int,OptArgList*);
+ 
   Array* distmatrix_signaldist( VectorDistanceFunction f, const Array *s1,
 										  const Array *s2, Array *out, OptArgList *optargs );
   Array* matrix_distmatrix( VectorDistanceFunction f, 
 									 const Array *X, Array *D, 
 									 OptArgList *optargs );
 
-  /** \addtogroup vectordist 
-		These distances (functions starting with vectordist_*()) are between 
+  /* These distances (functions starting with vectordist_*()) are between 
 		two vectors of the same size, i.e. they calculate
 		\f[
 		||\vec{x}_i - \vec{x}_j||
@@ -52,7 +55,6 @@ extern "C" {
 		\f[
 		D_{ij} =	||\vec{x}_i - \vec{x}_j||
 		\f]
-		\{
   */  
   double** vectordist_distmatrix          ( VectorDistanceFunction f, const double **X, 
 														  int n, int p, double **D, 
@@ -65,23 +67,15 @@ extern "C" {
 
   double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, 
 									double **d, OptArgList *optargs );
-  /** \} */
-
-  /** \addtogroup warppathdist 
-		These distances (functions starting with pathdist_*()) are between 
+ 
+  /*	These distances (functions starting with pathdist_*()) are between 
 		two WarpPath structs.
-		\{
   */  
   double   pathdist_euclidean_dt(WarpPath *p1, WarpPath *p2); 
-  /** \} */
 
-
-  /** \addtogroup otherdist
-		Other distance functions.
-		\{
+  /* Other distance functions.
   */  
   double   dist_point_line(double *p, double *x, double *y); 
-  /** \} */
   
 
   /***********************************************************

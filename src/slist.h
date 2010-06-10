@@ -1,6 +1,6 @@
-/* **************************************************************************
- *   Copyright (C) 2009 by Matthias Ihrke   *
- *   mihrke@uni-goettingen.de   *
+/***************************************************************************
+ *   Copyright (C) 2008-2010 by Matthias Ihrke                                  *
+ *   mihrke@uni-goettingen.de                                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -18,50 +18,39 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/**\file filter.h
- * \brief \ref status_stable Contains functions used for frequency-domain signal filtering.
- *
+/**\file slist.h
+ \brief \ref status_stable Implementing a single-linked list.
+
  */
+#ifndef SLIST_H
+#define SLIST_H
 
-#ifndef FILTER_H
-# define FILTER_H
-
+#include <stdio.h>
 #include "definitions.h"
-#include "eeg.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-  /* ------------------------------ 
-	  -- Robust filtering methods  --
-	  ------------------------------ */
-  /** \ingroup robust_filtering\{	*/ 
-  double* running_median         ( double *d, int n, int win );
-  double* weighted_running_median( double *d, int n, int win );
+  struct slist {
+    void *content;    /**< the content of this list's entry */
+    struct list *next; /**< pointer to next list entry */
+  }; 
 
-  EEG*    eeg_filter_running_median( EEG *eeg, int win, bool alloc );
-  EEG*    eeg_filter_weighted_running_median( EEG *eeg, int win, bool alloc );
-  /** \} */
+  /** \brief a single-linked list.
+	*/
+  typedef struct slist SingleList;
 
-  /* ------------------------------ 
-	  -- Other filtering methods  --
-	  ------------------------------ */
+  SingleList* slist_init  ( void *content );
+  SingleList* slist_append( SingleList *l );
+  void        slist_print ( FILE *out, const SingleList *l, void(*print_content)(FILE*,void*) );
+  int         slist_length( const SingleList *l );
+  SingleList* slist_index ( const SingleList *l, int idx );
+  void        slist_free  ( SingleList *l );
 
-  /** \ingroup other_filtering\{	*/
-  double* moving_average(double *s, int n, int win);
-  /** \} */
-
- /* ------------------------------ 
-	  -- Bandpass filter  --
-	  ------------------------------ */ 
- /** \ingroup frequence_filter \{ */
-  EEG* eeg_filter_fidlib( EEG *eeg, const char *spec, bool alloc );
-  /** \} */
-  
 #ifdef __cplusplus
 }
 #endif
 
 
-#endif
+#endif /* SLIST_H */

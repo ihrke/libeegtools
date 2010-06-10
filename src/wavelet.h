@@ -27,10 +27,35 @@
 # define WAVELET_H
 
 #include "definitions.h"
+#include <gsl/gsl_wavelet.h>
+
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+
+#include "eeg.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+  /*-----------------------------------------------------------
+	 - Function Pointers
+	 ---------------------------------------------------------*/
+  typedef double  (*ThresholdSelectionFunction)   (const double*,int);
+  typedef double  (*ThresholdFunction)            (double,double);
+  typedef double* (*SignalExtensionFunction)      (double*,int,int);
+
+  /*-----------------------------------------------------------
+	 - Wavelet-Denoising
+	 ---------------------------------------------------------*/
+  typedef struct {
+	 int first_thresholding_level; /**< level to start thresholding on */
+	 gsl_wavelet_type *wavelet;         /**< GSL-specification of wavelet */
+	 int vanishing_moments;        /**< number of vanishing moments of the wavelet */
+	 ThresholdSelectionFunction threshselfct; /**< function to select the threshold */
+	 ThresholdFunction threshfct;             /**< hard/soft thresholding */
+	 SignalExtensionFunction sigextfct;       /**< how to extend the signal to 2^K */
+  } WaveletParameters;
+  
 
   /* ---------------------------------------------------------------------------- 
 	  -- Wavelet-based Denoising routines                                       -- 

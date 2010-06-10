@@ -1,36 +1,30 @@
+/***************************************************************************
+ *   Copyright (C) 2008-2010 by Matthias Ihrke   *
+ *   mihrke@uni-goettingen.de   *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
 #include "optarg.h"
 #include "helper.h"
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
 
-List* list_append( List *l ){
-  if( l==NULL ){
-	 l = (List*)malloc( sizeof(List) );
-	 return l;
-  } else {
-	 while( l->next!=NULL ) l=l->next;
-	 l->next = (List*)malloc(sizeof(List));
-	 return l->next;
-  }
-}
-
-void  list_print( List *l, void(*print_content)(void*) ){
-  if( l==NULL ){
-	 printf("*\n");
-	 return;
-  }
-  (*print_content)(l->content);
-  printf( "->" );
-  list_print( l->next, print_content );
-}
-
-int   list_length( List *l ){
-  if( l==NULL )
-	 return 0;
-  else
-	 return 1+list_length(l->next);
-}
-
+/** \brief print an optarglist.
+ */
 void optarglist_print( OptArgList *list, FILE *out ){
   int i;
   fprintf( out, "OptArgList '%p' with %i items:\n", list, list->nargs );
@@ -45,7 +39,7 @@ void optarglist_print( OptArgList *list, FILE *out ){
   }
 }
 
-/** Creates an OptArgList out of one or many arguments
+/** \brief Creates an OptArgList out of one or many arguments.
 
 	 The Format string has the following convention:
 	 <pre>
@@ -171,14 +165,18 @@ OptArgList* optarglist( char *format, ... ){
   return L;
 }
 
-/** does not free any data_ptr.
+/** \brief free an optarglist.
+
+	 does not free any data_ptr.
  */
 void        optarglist_free( OptArgList *list ){
   free( list );
 }
 
 
-/** Return the value of the scalar argument or NaN if not available.
+/** \brief Return the value of the scalar argument.
+
+	 or NaN if not available.
 	 Check returned value with isnan()!
  */
 double      optarglist_scalar_by_key( OptArgList *list, const char *key ){
@@ -196,7 +194,9 @@ double      optarglist_scalar_by_key( OptArgList *list, const char *key ){
   return arg->data_scalar;
 }
 
-/** Return a pointer to the data_ptr field of the OptArg struct with the key from the
+/** \brief Return a pointer to the data_ptr field of the OptArg struct.
+
+	 with the key from the
 	 list. NULL if no such key has been found.
  */
 void*       optarglist_ptr_by_key   ( OptArgList *list, const char *key ){
@@ -210,8 +210,10 @@ void*       optarglist_ptr_by_key   ( OptArgList *list, const char *key ){
   return arg->data_ptr;
 }
 
-/** Return a pointer to an OptArg struct with the key from the
-	 list. NULL if no such key has been found.
+/** \brief Return a pointer to an OptArg struct with the key from the
+	 list. 
+
+	 NULL if no such key has been found.
  */
 OptArg*     optarglist_optarg_by_key( OptArgList *list, const char *key ){
   int i;
@@ -223,7 +225,7 @@ OptArg*     optarglist_optarg_by_key( OptArgList *list, const char *key ){
   return NULL;
 }
 
-/** return TRUE if key is found in list, else FALSE
+/** \brief return TRUE if key is found in list, else FALSE.
  */
 bool     optarglist_has_key( OptArgList *list, const char *key ){
   int i;
@@ -235,7 +237,8 @@ bool     optarglist_has_key( OptArgList *list, const char *key ){
   return FALSE;
 }
 
-/** create a new optarglist that is the former optarglist with the new arg appended.
+/** \brief create a new optarglist that is the former optarglist with the new arg appended.
+	 
 	 \param list the pointer to the Optarglist* (use &optargs, where optargs is the pointer!)
 	 \return the new list (the caller is responsible for freeing the old one)
  */
@@ -250,7 +253,8 @@ OptArgList*     optarglist_append_arg   ( OptArgList *list, OptArg *arg ){
   return new;
 }
 
-/** create a new OptArg* containing a scalar value */
+/** \brief create a new OptArg* containing a scalar value.
+ */
 OptArg*     optarg_scalar( const char *key, double scalar ){
   OptArg *p = (OptArg*)malloc(sizeof(OptArg) );
   strncpy( p->key, key, MAX_LABEL_LENGTH );
@@ -261,7 +265,8 @@ OptArg*     optarg_scalar( const char *key, double scalar ){
   return p;
 }
 
-/** create a new OptArg* containing a pointer */
+/** \brief create a new OptArg* containing a pointer.
+ */
 OptArg*     optarg_ptr   ( const char *key, void *ptr ){
   OptArg *p = (OptArg*)malloc(sizeof(OptArg) );
   strncpy( p->key, key, MAX_LABEL_LENGTH );

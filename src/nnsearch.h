@@ -34,17 +34,44 @@ pp. 2089-97
 #include "mathadd.h"
 #include "distances.h"
 #include "definitions.h"
+#include "optarg.h"
+#include "distances.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+  /*-----------------------------------------------------------
+	 - Search Tree
+	 ---------------------------------------------------------*/
+
+  /**\cond PRIVATE */
+  struct btree{
+	 int c;     /* center */
+	 double R;  /* maximal distance from c to any point */
+	 double g;  /* min[ d(c,x)-d(sister,x) ] */
+	 int start; /* start of cluster in A */
+	 int end;   /* end of cluster in A */
+	 double *cdist; /* distances from center for terminal nodes */
+	 struct btree *left;
+	 struct btree *right;
+  };
+  typedef struct btree TreeNode;
+  /**\endcond */
+
+  typedef struct {
+	 int *A;       /**< index array */
+	 const double **d;    /**< data pointer */
+	 int m, N;      /**< dimensions of d */
+	 VectorDistanceFunction distfct; /**< distance function */
+	 TreeNode *root; /**< root node of the binary tree */
+	 OptArgList *optargs;
+  } SearchTree;
 
   /**\cond PRIVATE */
   TreeNode*   tnode_init();
   bool tnode_isleaf( TreeNode *C );
   void build_tree_recursive( TreeNode *C, double **D, int N, int *A, int maxel );
   SearchTree* searchtree_init( int n );
-
   /**\endcond */
 
 

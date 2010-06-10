@@ -19,20 +19,20 @@
  ***************************************************************************/
 
 #include "mpitools.h"
-#include "eeg.h"
 
-ulonglong_t sizeof_channelinfos( const ChannelInfo *chaninfo, int nbchan ){
+ulonglong sizeof_channelinfos( const ChannelInfo *chaninfo, int nbchan ){
   if( !chaninfo )
-	 return (ulonglong_t)0;
+	 return (ulonglong)0;
   else 
-	 return (ulonglong_t)nbchan*sizeof(ChannelInfo);
+	 return (ulonglong)nbchan*sizeof(ChannelInfo);
 }
 
 /** return the number of bytes of the bytestream created by
 	 calling eeg_to_stream.
  */
-ulonglong_t sizeof_eegstream( const EEG *eeg ){
-  ulonglong_t n, tmp;
+ulonglong sizeof_eegstream( const EEG *eeg ){
+#ifdef FIXEEG
+  ulonglong n, tmp;
   int i;
 
   n=0;
@@ -45,7 +45,7 @@ ulonglong_t sizeof_eegstream( const EEG *eeg ){
   if( eeg->times ){
 	 n += eeg->n*sizeof(double); /* times-array */
   }
-  n += sizeof(ulonglong_t); /* nchannelinfo */  
+  n += sizeof(ulonglong); /* nchannelinfo */  
   tmp = sizeof_channelinfos( eeg->chaninfo, eeg->nbchan );
   if( tmp>0 )
 	 n+=tmp;
@@ -64,6 +64,7 @@ ulonglong_t sizeof_eegstream( const EEG *eeg ){
   } 
 
   return n;
+#endif
 }
 
 /** convert an EEG-struct to a byte-stream. The stream can be used
@@ -82,11 +83,12 @@ ulonglong_t sizeof_eegstream( const EEG *eeg ){
 	 \param n is filled with the length of stream
 	 \return stream
  */
-char* eeg_to_stream( const EEG *eeg, char *stream, ulonglong_t *n ){
+char* eeg_to_stream( const EEG *eeg, char *stream, ulonglong *n ){
+#ifdef FIXEEG
   char *s, /* stream ptr */
 	 *t;    /* temporary ptr */
   unsigned int t_uint; 
-  ulonglong_t t_ulong;
+  ulonglong t_ulong;
   int c,trial,i;
 
   s = stream;
@@ -133,8 +135,8 @@ char* eeg_to_stream( const EEG *eeg, char *stream, ulonglong_t *n ){
   }
   /* nchannelinfo */
   t_ulong = sizeof_channelinfos( eeg->chaninfo, eeg->nbchan );
-  memcpy( t, &t_ulong, sizeof( ulonglong_t ) );
-  t += sizeof( ulonglong_t );
+  memcpy( t, &t_ulong, sizeof( ulonglong ) );
+  t += sizeof( ulonglong );
   /* channelinfos */
   if( t_ulong>0 ){
 	 for( i=0; i<eeg->nbchan; i++ ){
@@ -174,6 +176,7 @@ char* eeg_to_stream( const EEG *eeg, char *stream, ulonglong_t *n ){
   }
 
   return s;
+#endif
 }
 /** convert stream created by eeg_to_stream() back to 
 	 an EEG-struct.
@@ -187,10 +190,11 @@ char* eeg_to_stream( const EEG *eeg, char *stream, ulonglong_t *n ){
 	 \param eeg either an appropriate EEG-set, or NULL (allocated)
 	 \return eeg-set
  */
-EEG*  stream_to_eeg( const char *stream, ulonglong_t n, EEG *eeg ){
+EEG*  stream_to_eeg( const char *stream, ulonglong n, EEG *eeg ){
+#ifdef FIXEEG
   unsigned int nbchan, ntrials, nsamples;
   unsigned int t_uint;
-  ulonglong_t t_ulong;
+  ulonglong t_ulong;
   char *filename;
   char *comment;
   int c,i,j;
@@ -244,8 +248,8 @@ EEG*  stream_to_eeg( const char *stream, ulonglong_t n, EEG *eeg ){
 	 eeg->times = NULL;
   }
   /* chaninfo */
-  memcpy( &t_ulong, t, sizeof( ulonglong_t ) );
-  t += sizeof( ulonglong_t );
+  memcpy( &t_ulong, t, sizeof( ulonglong ) );
+  t += sizeof( ulonglong );
   if( t_ulong>0 ){
 	 eeg->chaninfo = (ChannelInfo*) malloc( eeg->nbchan*sizeof(ChannelInfo) );
 	 for( i=0; i<eeg->nbchan; i++ ){
@@ -288,4 +292,5 @@ EEG*  stream_to_eeg( const char *stream, ulonglong_t n, EEG *eeg ){
   }
 
   return eeg;
+#endif
 }

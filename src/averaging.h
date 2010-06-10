@@ -26,6 +26,9 @@
 #include "mathadd.h"
 #include "definitions.h"
 #include "array.h"
+#include "eeg.h"
+#include "optarg.h"
+#include "distances.h"
 
 #ifdef __cplusplus
 extern "C" {

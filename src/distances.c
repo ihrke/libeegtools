@@ -270,6 +270,7 @@ double   vectordist_dtw( const double *x1, const double *x2, int p,
 	 - <b> userdata is passed to the vectordist_*() function </b>
  */
 double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, double **d, OptArgList *optargs ){
+#ifdef FIXEEG
   int i,j;
   int c;
   void *tmp;
@@ -316,6 +317,7 @@ double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, double **d, OptArgL
 	 progress( PROGRESSBAR_FINISH, 0 );
   }
   return d;
+#endif
 }
 
 

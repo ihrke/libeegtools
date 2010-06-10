@@ -14,6 +14,6 @@ noinst_HEADERS = check_all.h
 checkall_SOURCES = checkfcts.c check_all.c check_checkfcts.c check_denoising.c \
 	 check_distances.c check_hmm.c check_list.c check_other.c check_nonlinear.c \
 	check_array.c check_linalg.c check_warping.c check_cluster.c check_average.c \
-	check_io.c
+	check_io.c check_optarg.c check_eeg.c
 checkall_LDADD = ../src/libeegtools.la
 endif

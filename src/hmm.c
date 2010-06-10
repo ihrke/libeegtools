@@ -138,6 +138,7 @@ void cphmm_init( CPHiddenMarkovModel *m, double **X ){
 
  */
 CPHiddenMarkovModel* eeg_cphmm_init( EEG *eeg, int channel, double **X ){
+#ifdef FIXEEG
   CPHiddenMarkovModel *m;
   int M;
   double epsilon = 0.2;
@@ -156,6 +157,7 @@ CPHiddenMarkovModel* eeg_cphmm_init( EEG *eeg, int channel, double **X ){
   cphmm_init( m, X );
 
   return m;
+#endif
 }
 
 /** deallocate the model's struct. RNG is dealloc'ed as well.

@@ -175,6 +175,7 @@ double tdelay_simple_nonlinear_prediction_error( TimeDelayReconstruction *refere
 double** eeg_nonlinear_prediction_error( const EEG *eeg, int embedding_dim, int time_lag,
 													  int npredict, double epsilon, 
 													  double** output, OptArgList *optargs ){
+#ifdef FIXEEG
   int channel=0;
   double x;
   int i, j;
@@ -221,6 +222,7 @@ double** eeg_nonlinear_prediction_error( const EEG *eeg, int embedding_dim, int 
 
   if( progress ) progress( PROGRESSBAR_FINISH, 0 );
   return output;
+#endif
 }
 
 

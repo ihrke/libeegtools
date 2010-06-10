@@ -34,6 +34,7 @@
  \return filtered EEG
  */
 EEG* eeg_filter_running_median(EEG *eeg, int win, bool alloc){
+#ifdef FIXEEG
   EEG *s;
   int c,i;
   if( alloc ){
@@ -47,6 +48,7 @@ EEG* eeg_filter_running_median(EEG *eeg, int win, bool alloc){
 	 }
   }
   return s;
+#endif
 }
 
 /** Simple Running Median filter.
@@ -117,6 +119,7 @@ double* moving_average(double *s, int n, int win){
  \return filtered EEG
  */
 EEG* eeg_filter_weighted_running_median( EEG *eeg, int win, bool alloc){
+#ifdef FIXEEG
   EEG *s;
   int c,i;
   if( alloc ){
@@ -130,6 +133,7 @@ EEG* eeg_filter_weighted_running_median( EEG *eeg, int win, bool alloc){
 	 }
   }
   return s;
+#endif
 }
 
 
@@ -306,6 +310,7 @@ double* weighted_running_median(double *d, int n, int win ){
 	 \endcode
 */
 EEG* eeg_filter_fidlib( EEG *eeg, const char *spec, bool alloc ){
+#ifdef FIXEEG
   int len;
   int c,i,j;
   FidFilter *filt;
@@ -353,4 +358,5 @@ EEG* eeg_filter_fidlib( EEG *eeg, const char *spec, bool alloc ){
   free( orgspec ) ;
 
   return eeg_out;
+#endif
 }

@@ -103,7 +103,7 @@ size_t ffwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream){
   /*  dprintf("feof=%i, ferror=%i\n", feof(stream), ferror(stream));
 		dprintf("bread=%i, exp=%i\n", bread, size*nmemb);*/
   if(bwrite<nmemb){
-	 errormsg(ERR_IO, 1);
+	 errprintf("Could not write to output file!\n");
   }
   return bwrite;
 }

@@ -47,7 +47,7 @@ void*  array_max( const Array *a ){
   ulong i;
   double maxel=DBL_MIN;
   double tmp;
-  void *rmaxel, *mem;
+  void *rmaxel=NULL, *mem=NULL;
   for( i=0; i<array_NUMEL(a); i++ ){
 	 mem = array_INDEXMEM1(a,i);
 	 array_dtype_to_double( &tmp, mem, a->dtype );
@@ -81,7 +81,7 @@ void*  array_min( const Array *a ){
   ulong i;
   double minel=DBL_MAX;
   double tmp;
-  void *rminel, *mem;
+  void *rminel=NULL, *mem=NULL;
   for( i=0; i<array_NUMEL(a); i++ ){
 	 mem = array_INDEXMEM1(a,i);
 	 array_dtype_to_double( &tmp, mem, a->dtype );
@@ -106,9 +106,15 @@ void*  array_min( const Array *a ){
 	 \param target_type the target type
  */
 void   array_typecast( Array *a, DType target_type ){
-  int srcsize,destsize;
+  int srcsize=0,destsize=0;
+  ulong nel;
+  ulong i;
   array_SIZEOF_DTYPE( srcsize, a->dtype );
   array_SIZEOF_DTYPE( destsize, target_type );
+  nel = array_NUMEL( a );
+  
+  double tmpel;
+  void *mem;
   
   if( srcsize==destsize ){
 	 a->dtype=target_type;
@@ -116,19 +122,20 @@ void   array_typecast( Array *a, DType target_type ){
   } 
 
   /* cast everything to double and back */
-  void *newdata=malloc( destsize*array_NUMEL(a) );
+  void *newdata=malloc( destsize*nel );
 
-  ulong i;
-  double tmpel;
-  void *mem;
-  for( i=0; i<array_NUMEL(a); i++ ){
-	 mem=array_INDEXMEM1( a, i );
+  for( i=0; i<nel; i++ ){
+	 mem=a->data+(i*srcsize);
 	 array_dtype_to_double( &tmpel, mem, a->dtype );
+	 dprintf("numel=%i, el=%f\n", nel, tmpel);
 	 array_MEMSET( newdata+(i*destsize), target_type, tmpel );
   }
 
   free(a->data);
   a->data=newdata;
+  a->dtype=target_type;
+  a->dtype_size=destsize;
+  a->nbytes=destsize*nel;
 }
 
 

@@ -622,6 +622,43 @@ START_TEST (test_max)
 }
 END_TEST
 
+START_TEST (test_typecast)
+{
+  Array *a=array_randunif( 0, 2, 3, 4 );
+  Array *b=array_copy( a, TRUE );
+  array_typecast( a, FLOAT );
+
+  /* array_print( a, -1, stderr ); */
+  /* array_print( b, -1, stderr ); */
+
+  int i;
+  for( i=0; i<array_NUMEL( a ); i++ ){
+	 fail_unless( cmpdouble( array_INDEX1(b,double,i),
+									 (double)array_INDEX1(a,float,i),3)==0 );
+  }
+  array_free( a );
+  array_free( b );
+}
+END_TEST
+
+START_TEST (test_typecast2)
+{
+  Array *a=array_randunif( 0, 2, 3, 4 );
+  array_scale( a, 100 );
+  Array *b=array_copy( a, TRUE );
+  array_typecast( a, INT );
+
+  /* array_print( a, -1, stderr ); */
+  /* array_print( b, -1, stderr ); */
+
+  int i;
+  for( i=0; i<array_NUMEL( a ); i++ ){
+	 fail_unless( (int)array_INDEX1(b,double,i)==array_INDEX1(a,int,i) );
+  }
+  array_free( a );
+  array_free( b );
+}
+END_TEST
 
 /* template
 START_TEST (test_)
@@ -659,6 +696,8 @@ Suite * init_array_suite (void){
   tcase_add_test (tc_core, test_concatenate_cols_dbl);
   tcase_add_test (tc_core, test_min);
   tcase_add_test (tc_core, test_max);
+  tcase_add_test (tc_core, test_typecast);
+  tcase_add_test (tc_core, test_typecast2);
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

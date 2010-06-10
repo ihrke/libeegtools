@@ -3,6 +3,116 @@
 #include "mathadd.h"
 
 
+/** \brief create an empty EEG-data struct.
+	 \param nbchan number of channels
+	 \param ntrials number of trials (1 for continuous data)
+	 \param nsamples number of samples for each trial
+	 \return EEG
+ */
+EEG* eeg_init            ( int nbchan, int ntrials, int nsamples ){
+  EEG *eeg;
+
+  dprintf("init\n");
+  MALLOC( eeg, 1, EEG );
+  eeg->nbchan = nbchan;
+  eeg->ntrials= ntrials;
+  eeg->n      = nsamples;
+  eeg->sampling_rate = -1;
+  
+  dprintf("alloc data\n");
+  eeg->times=NULL;
+  eeg->data = array_new2( DOUBLE, 3, nbchan, ntrials, nsamples );
+  eeg->filename=NULL;
+
+  eeg->comment=NULL;
+  eeg->chaninfo=NULL;
+
+  eeg->markers=NULL;
+  eeg->marker_type=NULL;
+  eeg->marker_types=NULL;
+
+  eeg->additional=NULL;
+  eeg->nbytes_additional=0;
+
+  return eeg;
+}
+/** \brief  free's all memory in EEG-struct.
+	 including the data
+	 \param eeg 
+ */
+void eeg_free( EEG *eeg ){
+  safer_free( eeg->filename );
+  safer_free( eeg->comment );
+  array_free( eeg->times);
+  array_free( eeg->data );
+  array_free( eeg->markers );
+  array_free( eeg->marker_type );
+  slist_free( eeg->marker_types );
+  if( eeg->additional )
+	 free( eeg->additional );
+  safer_free( eeg->chaninfo );
+  safer_free( eeg );
+}
+
+
+/** \brief append text to the comment-field in the EEG-struct.
+	 \param eeg the input struct
+	 \param comment the text to append
+ */
+void eeg_append_comment( EEG *eeg, const char *comment ){
+  if( !eeg->comment ){
+	 eeg->comment = (char*) malloc( (strlen(comment)+1)*sizeof(char) );
+	 strcpy( eeg->comment, comment );
+  } else {
+	 eeg->comment = (char*) realloc( eeg->comment, (strlen(eeg->comment)+strlen(comment)+2)*sizeof(char) );
+	 strcpy( eeg->comment+strlen(eeg->comment), comment );
+  }
+}
+
+/** \brief Pretty-print an EEG - struct.
+	 \param out the output stream
+	 \param eeg the struct
+	 \param preview number of items to preview in data
+*/
+void eeg_print( FILE *out, const EEG *eeg, int preview ){
+  int i;
+  fprintf(out, 
+			 "EEG:\n"
+			 " filename      = '%s'\n"
+			 " comment       = '%s'\n"
+			 " nbchan        = %i\n"
+			 " ntrials       = %i\n"
+			 " n             = %i\n"
+			 " sampling_rate = %f\n",
+			 (eeg->filename)?(eeg->filename):"<NULL>", 
+			 (eeg->comment)?(eeg->comment):"<NULL>",
+			 eeg->nbchan, eeg->ntrials,
+			 eeg->n, eeg->sampling_rate);  
+  if( eeg->times!=NULL ){
+	 fprintf(out, 
+				" times[0]      = %f\n", array_INDEX1( eeg->times,double,0));
+	 fprintf(out,
+				" times[n-1]    = %f\n", array_INDEX1( eeg->times,double,eeg->n-1));
+  } else {
+	 fprintf(out, 
+				" times[0]      = <NULL>\n");
+  }
+  fprintf(out,   
+			 " chaninfo      = \n");
+  if( eeg->chaninfo ){
+	 for( i=0; i<eeg->nbchan; i++ ){
+		fprintf( out, "   ");
+		print_channelinfo( out,  &(eeg->chaninfo[i]) );
+	 }
+  } else {
+	 fprintf( out, "   <NULL>\n");
+  }
+  fprintf( out, " data = \n" );
+  array_print( eeg->data, preview, out );
+
+}
+
+#ifdef FIXEEG
 /** in-depth comparison of two eeg-structs;
 	 \todo finish!
  */
@@ -35,42 +145,6 @@ bool eeg_cmp_depth( const EEG *eeg1, const EEG *eeg2 ){
   return TRUE;
 }
 
-EEG* eeg_init            ( int nbchan, int ntrials, int nsamples ){
-  EEG *eeg;
-  int c,i,j;
-
-  dprintf("init\n");
-  eeg = (EEG*)malloc( sizeof( EEG ) );
-  eeg->nbchan = nbchan;
-  eeg->ntrials= ntrials;
-  eeg->n      = nsamples;
-  eeg->sampling_rate = -1;
-  
-  dprintf("alloc data\n");
-  eeg->data   = (double***) malloc( nbchan*sizeof( double** ));
-  dprintf("done\n");
-  for( c=0; c<nbchan; c++ ){
-	 eeg->data[c] = (double**) malloc( ntrials*sizeof(double*) );
-	 for( i=0; i<ntrials; i++ ){
-		eeg->data[c][i] = (double*) malloc( nsamples*sizeof(double) );
-		for( j=0; j<nsamples; j++ ){
-		  eeg->data[c][i][j] = 0.0;
-		}
-	 }
-  }
-
-  eeg->filename=NULL;
-
-  eeg->comment=NULL;
-  eeg->chaninfo=NULL;
-  eeg->times=NULL;
-
-  eeg->markers=NULL;
-  eeg->nmarkers=NULL;
-  eeg->marker_labels=NULL;
-
-  return eeg;
-}
 /** allocate memory for markers.
 	 \param nmarkers_per_trial
 	 \param eeg
@@ -90,20 +164,6 @@ EEG* eeg_init_markers    ( int nmarkers_per_trial, EEG *eeg ){
 	 }
   }
   return eeg;
-}
-
-/** append text to the comment-field in the EEG-struct.
-	 \param eeg the input struct
-	 \param comment the text to append
- */
-void eeg_append_comment( EEG *eeg, const char *comment ){
-  if( !eeg->comment ){
-	 eeg->comment = (char*) malloc( (strlen(comment)+1)*sizeof(char) );
-	 strcpy( eeg->comment, comment );
-  } else {
-	 eeg->comment = (char*) realloc( eeg->comment, (strlen(eeg->comment)+strlen(comment)+2)*sizeof(char) );
-	 strcpy( eeg->comment+strlen(eeg->comment), comment );
-  }
 }
 
 /** extract a list of channels from the EEG-struct eeg (data and channelinfo).
@@ -289,41 +349,7 @@ EEG* eeg_extract_trials  ( EEG* eeg, const int *trials,   int ntrials,   bool al
   return outeeg;
 }
 
-/** This function free's all memory in EEG-struct that it knows about,
-	 including the eeg pointer itself.
- */
-void eeg_free( EEG *eeg ){
-  int c,i,j;
-  safer_free( eeg->filename );
-  safer_free( eeg->comment );
-  safer_free( eeg->times );
-  if( eeg->data ){
-	 for( c=0; c<eeg->nbchan; c++ ){
-		for( i=0; i<eeg->ntrials; i++ ){
-		  safer_free( eeg->data[c][i] );
-		}
-		safer_free( eeg->data[c] );
-	 }
-	 safer_free( eeg->data );
-  }
 
-  if( eeg->markers ){
-	 for( i=0; i<eeg->ntrials; i++ ){
-		safer_free( eeg->markers[i] );
-		if( eeg->marker_labels ){
-		  for( j=0; j<eeg->nmarkers[i]; j++ ){
-			 safer_free( eeg->marker_labels[i][j] );
-		  }
-		  safer_free( eeg->marker_labels[i] );
-		}
-	 }
-	 safer_free( eeg->marker_labels );
-	 safer_free( eeg->markers );
-  }
-  safer_free( eeg->nmarkers );
-  safer_free( eeg->chaninfo );
-  safer_free( eeg );
-}
 
 /** Pretty-print an EEG - struct to a string.
 	 \todo implement this!
@@ -418,93 +444,6 @@ char* eeg_sprint( char *out, const EEG *eeg, int preview ){
   return out;
 }
 
-/** Pretty-print an EEG - struct.
-	 \param out the output stream
-	 \param eeg the struct
-	 \param preview number of items to preview in data
-*/
-void eeg_print( FILE *out, const EEG *eeg, int preview ){
-  int c,i,j;
-  fprintf(out, 
-			 "EEG:\n"
-			 " filename      = '%s'\n"
-			 " comment       = '%s'\n"
-			 " nbchan        = %i\n"
-			 " ntrials       = %i\n"
-			 " n             = %i\n"
-			 " sampling_rate = %f\n",
-			 (eeg->filename)?(eeg->filename):"<NULL>", 
-			 (eeg->comment)?(eeg->comment):"<NULL>",
-			 eeg->nbchan, eeg->ntrials,
-			 eeg->n, eeg->sampling_rate);  
-  if( eeg->times!=NULL ){
-	 fprintf(out, 
-			 " times[0]      = %f\n", eeg->times[0]);
-	 fprintf(out,
-			 " times[n-1]    = %f\n", eeg->times[eeg->n-1]);
-  } else {
-	 fprintf(out, 
-			 " times[0]      = <NULL>\n");
-  }
-  fprintf(out,   
-			 " chaninfo      = \n");
-  if( eeg->chaninfo ){
-	 for( i=0; i<eeg->nbchan; i++ ){
-		fprintf( out, "   ");
-		print_channelinfo( out,  &(eeg->chaninfo[i]) );
-	 }
-  } else {
-	 fprintf( out, "   <NULL>\n");
-  }
-  fprintf( out, " data = \n" );
-  if( eeg->data!=NULL ){
-	 for( c=0; c<MIN(eeg->nbchan,preview); c++ ){
-		for( i=0; i<MIN(eeg->ntrials, preview); i++ ){
-		  for( j=0; j<MIN(eeg->n, preview); j++ ){
-			 fprintf(out, 
-						"  [%i][%i][%i] = %f\n", c,i,j,eeg->data[c][i][j] );
-		  }
-		}
-	 }
-  } else {
-	 fprintf(out, 
-			 " data          = <NULL>\n");
-  }  
-
-  fprintf(out, " nmarkers      = \n");  
-  if( eeg->nmarkers ){
-	 for( i=0; i<MIN(eeg->ntrials, preview); i++ ){
-		fprintf(out, 
-				  "  [%i]  = %i\n", i, eeg->nmarkers[i] );
-	 }
-  } else {
-	 fprintf(out, "  <NULL>\n");
-  }
-  fprintf(out, " markers       = \n");
-  if( eeg->markers ){
-	 for( i=0; i<MIN( eeg->ntrials, preview ); i++ ){
-		for( j=0; j<MIN( eeg->nmarkers[i], preview ); j++ ){
-		  fprintf(out, "  [%i][%i] = %i\n", i,j, eeg->markers[i][j] );
-		}
-	 }
-  } else {
-	 fprintf(out, "  <NULL>\n");
-  }
-
-  fprintf(out, " marker_labels = \n");
-  if( eeg->marker_labels ){
-	 for( i=0; i<MIN(eeg->ntrials, preview ); i++ ){
-		for( j=0; j<MIN(eeg->nmarkers[i], preview ); j++ ){
-		  fprintf(out, "  [%i][%i] = %s\n", i,j, eeg->marker_labels[i][j] );
-		}
-	 }
-  } else {
-	 fprintf(out,
-			 "  <NULL>\n");
-  }
-
-}
-
 /** deep-copy the complete EEG-struct and return
 	 a freshly allocated one.
 	 \param eeg to clone
@@ -579,9 +518,10 @@ EEG* eeg_clone( const EEG *eeg, int flags ){
 }
 
 
+#endif
+
 
 void print_channelinfo( FILE* out, const ChannelInfo *c ){
   fprintf( out, "Channel No. %i/%i - '%s' at (%.2f, %.2f, %.2f)\n", 
 			  c->num, c->num_chans, c->label, c->x, c->y, c->z );
 }
-

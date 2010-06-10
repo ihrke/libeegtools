@@ -58,13 +58,31 @@ writer
 regularization
 time_frequency
 include the WAV-file reader/writer!
-
-- all EEG-functions missing!
+write a test for array_typecast!
 
 
 CONTINUE WITH:
 ----------------
-write a test for array_typecast!
+finish the eeglab reader (and the test!)
 nonlinear !!
 
+=======
+- all EEG-functions missing!
+=======
+src/averaging.c:192:#ifdef FIXEEG
+src/averaging.c:221:#ifdef FIXEEG
+src/distances.c:273:#ifdef FIXEEG
+src/eeg.c:6:#ifdef FIXEEG
+src/filter.c:37:#ifdef FIXEEG
+src/filter.c:122:#ifdef FIXEEG
+src/filter.c:313:#ifdef FIXEEG
+src/hmm.c:141:#ifdef FIXEEG
+src/io_matlab.c:45:#ifdef FIXEEG
+src/mpitools.c:35:#ifdef FIXEEG
+src/mpitools.c:88:#ifdef FIXEEG
+src/mpitools.c:195:#ifdef FIXEEG
+src/nonlinear.c:178:#ifdef FIXEEG
+src/tools.c:34:#ifdef FIXEEG
+src/warping.c:617:#ifdef FIXEEG
+src/wavelet.c:231:#ifdef FIXEEG
 

@@ -2,6 +2,8 @@
 
 There are a couple of Matlab-scripts for convenience. Scripts not listed here are for testing only.
 
+\warning as of version 0.6 the raw-file format is not available anymore.
+
 Here is a list:
 
  - \subpage artificial_data

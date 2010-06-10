@@ -23,8 +23,6 @@
 
 /* ------------- READER --------------------- */
 
-
-
 /** reads from FILE* until '\n' and puts it into line.
 	 '\0' is added to line.
 	 \param f
@@ -145,7 +143,7 @@ ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans ){
 /** read xdim x ydim matrix from ascii file with delimiter 'delim';
 	 if NULL is passed as d, the functin allocates memory.
  */
-double** read_double_dblpp_ascii(const char *fname, int xdim, int ydim, double **d){
+double** read_dblpp_ascii(const char *fname, int xdim, int ydim, double **d){
   FILE *f;
   int x,y;
   int flag;
@@ -189,143 +187,23 @@ double* read_dblp_ascii( const char *fname, int N, double *v ){
   return v;
 }
 
-/** Reads EEG-data from binary file. Format is Cxn doubles.
- * \param C - number of channels
- * \param n - number of samples per channel
- */
-EEG* read_continuous_eeg_from_binfile(const char *file, int C, int n){
-  int c;
-  EEG *eeg;
-  FILE *f;
-  
-  if((f = fopen(file, "rb"))==NULL) return NULL;
-
-  eeg = eeg_init( C, 1, n );
-  for(c=0; c<C; c++){
-	 if(fread(eeg->data[c][0], sizeof(double), n, f)<n){
-		dprintf("ERROR: read less bytes than requested\n");
-	 }
-  }
-  return eeg;
-}
-
-
-/**  Reads EEG-data from binary file. See also \ref rawfileformat
-	  The format is as follows (each segment
-	  in the table is a 64 bits double):
-	  \code
-	  1) number of channels
-	  2) number of trials
-	  3) number of samples per trial segment
-	  4) number of markers per trial
-	  5) n-doubles giving the times-array (for each sample from 1...n this array
-	     gives the corresponding time in ms)
- 	  6) num_markers*num_trials-doubles giving markers in samples [1,...,n]
-	  7) raw EEG-data in the format of:
-	      - channels x trial x samples
-			- i.e. first all trials of the first channel one after the other, than
-			  the 2nd and so on
-	  \endcode
-\param file - name of file
-*/
-EEG* read_eeg_from_raw(const char *file){
-  EEG* eeg;
-  FILE *f;
-  int i, j, c;
-  double nbchan_d, ntrials_d, nsamples_d, nmarkers_d;
-  unsigned int nbchan, ntrials, nsamples, nmarkers;
-
-  if((f = fopen(file, "rb"))==NULL) errormsg(ERR_IO, 1);
-  ffread( &nbchan_d,   sizeof(double), 1, f );
-  ffread( &ntrials_d,  sizeof(double), 1, f );
-  ffread( &nsamples_d, sizeof(double), 1, f );
-  ffread( &nmarkers_d, sizeof(double), 1, f );
-
-  nbchan   = (unsigned int) nbchan_d;
-  ntrials  = (unsigned int) ntrials_d;
-  nsamples = (unsigned int) nsamples_d;
-  nmarkers = (unsigned int) nmarkers_d;
-
-  dprintf("(nbchan, ntrials, nsamples, nmarkers) = (%i,%i,%i,%i)\n", nbchan, ntrials, nsamples, nmarkers);
-
-  /* allocating all memory */
-  eeg = eeg_init( nbchan, ntrials, nsamples );
-  eeg->times = (double*) malloc( nsamples*sizeof(double) );
-  eeg->filename = (char*) malloc( (strlen( file )+1)*sizeof(char) );
-  strcpy( eeg->filename, file );
-
-  /* read times-array */
-  ffread(eeg->times, sizeof(double), nsamples, f);
-  eeg->sampling_rate=1000.0/(eeg->times[1]-eeg->times[0]);
-
-  /* read markers */
-  double *tmp;
-  tmp = (double*) malloc( nmarkers * sizeof(double) );
-  eeg->nmarkers = (unsigned int*) malloc( eeg->ntrials*sizeof(unsigned int) );
-  eeg->markers  = (unsigned int**)malloc( eeg->ntrials*sizeof(unsigned int*) );
-
-  for( i=0; i<ntrials; i++ ){
-	 eeg->nmarkers[i] = nmarkers;
-	 eeg->markers[i] = (unsigned int*) malloc( nmarkers*sizeof(unsigned int) );
-	 ffread(tmp, sizeof(double), nmarkers, f);
-	 /* dprintf("tmp[0]=%f, tmp[1]=%f\n", tmp[0], tmp[1]); */
-	 for( j=0; j<nmarkers; j++){
-		eeg->markers[i][j] = (unsigned int)tmp[j];
-	 }
-  }
-  free(tmp);
-
-  /* read data */
-  for( c=0; c<nbchan; c++ ){
-	 for( i=0; i<ntrials; i++ ){
-		/*		dprintf("eeg->data[%i]->n = %i\n", i, eeg->data[i]->n);*/
-		ffread( eeg->data[c][i], sizeof( double ), nsamples, f );
-	 }
-  }
-
-  return eeg;
-}
-
-
 
 
 /* ------------- WRITER --------------------- */
-
-/** writes header of raw-file.
-	 \param f file pointer
-	 \param nbchan number of channels
-	 \param nbtrials number of trials
-	 \param nsamples number of samples
-	 \param nmarkers number of markers per trial
- */
-void write_raw_header( FILE *f, int nbchan, int nbtrials, int nsamples, 
-							  int nmarkers ){
-  double nbchan_d, ntrials_d, nsamples_d, nmarkers_d;
-  
-  nbchan_d   = (double)nbchan;
-  ntrials_d  = (double)nbtrials;
-  nsamples_d = (double)nsamples;
-  nmarkers_d = (double)nmarkers;
-
-  ffwrite( &nbchan_d,   sizeof(double), 1, f );  
-  ffwrite( &ntrials_d,  sizeof(double), 1, f );
-  ffwrite( &nsamples_d, sizeof(double), 1, f );
-  ffwrite( &nmarkers_d, sizeof(double), 1, f );
-}
 
 /**
  write double matrix to file in ASCII format.
 	 \param opts may contain
 	 - "precision=int" number of significant digits (after comma); default=6;
 */
-void write_double_dblpp_ascii_file(const char *fname, const double **d, int xdim, int ydim, OptArgList *opts){
+void write_dblpp_ascii_file(const char *fname, const double **d, int xdim, int ydim, OptArgList *opts){
   FILE *f;
 
   dprintf("opening '%s'\n", fname );
   if((f=fopen(fname, "w"))==NULL)
 	 errormsg(ERR_IO, 1);
   
-  write_double_dblpp_ascii(f, d, xdim, ydim, opts);
+  write_dblpp_ascii(f, d, xdim, ydim, opts);
 
   fclose(f);
 }
@@ -334,7 +212,7 @@ void write_double_dblpp_ascii_file(const char *fname, const double **d, int xdim
 	 \param opts may contain
 	 - "precision=int" number of significant digits (after comma); default=6;
  */
-void write_double_dblpp_ascii(FILE *out, const double **d, int xdim, int ydim, OptArgList *opts){
+void write_dblpp_ascii(FILE *out, const double **d, int xdim, int ydim, OptArgList *opts){
   int x, y;
   int precision;
   char tformat[20];
@@ -358,7 +236,7 @@ void write_double_dblpp_ascii(FILE *out, const double **d, int xdim, int ydim, O
 }
 
 		  
-void write_double_dblp_ascii(FILE *out, const double *v, int n){
+void write_dblp_ascii(FILE *out, const double *v, int n){
   int x;
   for( x=0; x<n; x++ ){
 	 fprintf(out, "%f ", v[x]);
@@ -368,19 +246,19 @@ void write_double_dblp_ascii(FILE *out, const double *v, int n){
 
 
 		  
-void write_double_dblp_ascii_file(const char *fname, const double *v, int n){
+void write_dblp_ascii_file(const char *fname, const double *v, int n){
   FILE *f;
 
   if((f=fopen(fname, "w"))==NULL)
 	 errormsg(ERR_IO, 1);
 
-  write_double_dblp_ascii(f, v, n);
+  write_dblp_ascii(f, v, n);
   fclose(f);
 }
 
 
 		  
-void write_int_dblp_ascii(FILE *out, const int *v, int n){
+void write_intp_ascii(FILE *out, const int *v, int n){
   int x;
   for( x=0; x<n; x++ ){
 	 fprintf(out, "%i ", v[x]);
@@ -390,12 +268,12 @@ void write_int_dblp_ascii(FILE *out, const int *v, int n){
 
 
 		  
-void write_int_dblp_ascii_file(const char *fname, const int *v, int n){
+void write_intp_ascii_file(const char *fname, const int *v, int n){
   FILE *f;
 
   if((f=fopen(fname, "w"))==NULL)
 	 errormsg(ERR_IO, 1);
 
-  write_int_dblp_ascii(f, v, n);
+  write_intp_ascii(f, v, n);
   fclose(f);
 }

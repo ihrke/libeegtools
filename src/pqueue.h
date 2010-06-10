@@ -47,14 +47,33 @@ Usage is as follows:
 #ifndef PQUEUE_H
 # define PQUEUE_H
 #include "definitions.h"
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-  /* -------------- FUNCTIONS ---------------- */
-  
+  /*-----------------------------------------------------------
+	 - Priority Queue
+	 ---------------------------------------------------------*/
 
+  /** \brief a node in the PQueue.
+	*/
+  struct pqueue {
+	 double priority;
+	 void *content;
+	 struct pqueue *next;
+  };
+  typedef struct pqueue PQnode;
+
+  /** \brief the head of the PQueue.
+	*/
+  typedef struct {
+	 PQnode *root;
+  } PriorityQueue;
+
+
+  /* -------------- FUNCTIONS ---------------- */
   PriorityQueue* pq_init();
   void    pq_insert( PriorityQueue *pq, void *c, double prior );
   void*   pq_pop( PriorityQueue *pq );

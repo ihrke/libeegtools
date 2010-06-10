@@ -54,6 +54,7 @@
 # define OPTARG_H
 
 #include "definitions.h"
+#include "slist.h"
 #include <stdarg.h>
 
 #define NO_OPTARGS NULL
@@ -61,9 +62,22 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  /**\ingroup list
-	*\{
-	*/ 
+
+  /*-----------------------------------------------------------
+	 - Optional Arguments
+	 ---------------------------------------------------------*/
+  typedef struct {
+	 char    key[MAX_LABEL_LENGTH];
+	 bool    scalar;
+	 char    type[MAX_LABEL_LENGTH];
+	 void    *data_ptr;
+	 double  data_scalar;
+  } OptArg;
+
+  typedef struct {
+	 int nargs;
+	 OptArg *args;
+  } OptArgList;
 
 
   /** \brief Check and assign a scalar from OptArgList.
@@ -96,20 +110,6 @@ extern "C" {
 	 if( (tmp) ) (var)=(type)(tmp);									\
   }
 
-  /* ------------ List -------------- */
-  struct list {
-    void *content;
-    struct list *next;
-  };
-  typedef struct list List;
-
-  List* list_append( List *l );
-  void  list_print( List *l, void(*print_content)(void*) );
-  int   list_length( List *l );
-
-  /**\ingroup optarg
-	*\{
-	*/ 
   OptArgList* optarglist( char *format, ... );
 
   bool        optarglist_has_key( OptArgList *list, const char *key );
@@ -127,7 +127,6 @@ extern "C" {
   OptArg*     optarg_ptr   ( const char *key, void *ptr );
 
 
-  /*\}*/
 
 #ifdef __cplusplus
 }

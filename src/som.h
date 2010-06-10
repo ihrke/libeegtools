@@ -89,37 +89,81 @@ S = som_init( 2, 1000, 1e6, ONED_LINEAR );
 # define SOM_H
 
 #include "definitions.h"
+#include "helper.h"
+#include "distances.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-  
-  /**\ingroup som_help 
-	\{ */
+    /*-----------------------------------------------------------
+	 - Self-Organizing Maps (SOM)
+	 ---------------------------------------------------------*/
+
+  /** \brief distance = f( location of node i, location of node j, the model, current time );
+	*/
+  struct som_struct;
+  typedef double(*NeighbourhoodFunction)(int,int,struct som_struct*, int t);
+
+  /** \brief alpha = f( t, nruns, nruns in initial_phase )
+	*/
+  typedef double(*TimeDecayFunction)(int,int,int);
+
+  /** \brief defines the dimension/structure of the SOM.
+
+   - 1D_LINEAR - 1-dimensional line, like 1<->2<->3<->...<->n
+   - 2D_GRID - grid-like structure such that each node has 8 neighbours
+   - 2D_HEXAGONAL
+   - CUSTOM - you can define a custom connectivit matrix, where each entry [i,j]
+              gives the distance between node i and j
+  */
+  typedef enum {
+    ONED_LINEAR,
+    TWOD_GRID,
+    TWOD_HEXAGONAL,
+    CUSTOM
+  } SOMConnectivityType;
+
+  /** \brief 1-dimensional SOM with trivial topology (neighbouring nodes).
+	*/
+  typedef struct som_struct {
+	 double  **m; /**< code-book vectors */
+	 int     dimension; /**< dimension of code-book vector (corresponds to data-dimensionality) */
+	 int     n; /**< how many code-book vectors? */
+	 VectorDistanceFunction distancefct; /**< distance measure between data and codebook-vectors */
+	 void    *distancefct_parameters; /**< optional; pointer to parameters for some 
+													 of the VectorDistanceFunction s */
+	 
+	 int     nruns; /**< number of runs to convergence */
+	 int     initial_runs; /**< number of runs with large flexibility (ordering phase) after
+									  which it is more restricted; e.g. 0.1*nruns */
+
+	 NeighbourhoodFunction neighbourhoodfct; /**< neighbourhood function  */
+	 TimeDecayFunction     time_decay; /**< function giving the decay of the 
+													  learning rate */
+	 SOMConnectivityType connectivity_type; /**< giving the dimension/structure of the SOM */
+	 double **connectivity; /**< custom connectivity matrix that can implement
+										an arbitrary topology for the SOM-network */
+
+	 gsl_rng_type *random_number_type; /**< GSL-random number generator type */
+	 gsl_rng *rng; /**< the GSL random number generator */
+
+	 ProgressBarFunction progress; 
+  } Som;
+
   Som* som_init( int dimension, int n, int nruns, SOMConnectivityType connectivity );
   void som_free( Som *s );
   void som_print( FILE *f, Som *s );
-  /** \} */
 
-  /**\ingroup som_initialize
-	\{ */ 
   void som_initialize_random( Som *s, double min, double max );
   void som_initialize_random_samples( Som *s, double **X, int dim, int nsamples );
   double** som_generate_connectivity_matrix( SOMConnectivityType type, double **m, int n );
-  /** \} */
 
-  /**\ingroup som_neighbourhood
-	\{ */
   double som_neighbourhood_gaussian( int x, int bmu, struct som_struct *s, int t);
-  /** \} */
 
   double som_time_decay_linear( int t, int nruns, int initial_runs );
 
-  /**\ingroup som_train
-	\{ */
   void som_train_from_data( Som *s, double **X, int dim, int nsamples );
-  /** \} */
-  
+
 #ifdef __cplusplus
 }
 #endif

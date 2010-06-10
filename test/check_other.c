@@ -41,28 +41,7 @@ END_TEST
 
 START_TEST (test_eeg_to_stream)
 {
-  dprintf("opening '%s'\n", CHECKDATADIR"/eeg061206_4_resampled500hz_filtered_DT.set");
-  EEG *eeg = read_eeglab_file( CHECKDATADIR"/eeg061206_4_resampled500hz_filtered_DT.set" );
-  eeg_print( stdout, eeg, 2 );
 
-  ulonglong_t n;
-  char *stream;
-  stream = eeg_to_stream( eeg, NULL, &n );
-  EEG *eeg2 = stream_to_eeg( stream, n, NULL );
-  dprintf("short dataset: n=%llu\n", n );
-
-  fail_unless( eeg_cmp_depth( eeg, eeg2 ) );
-
-  eeg_print( stdout, eeg2, 2 );
-
-  eeg_free( eeg );
-  eeg_free( eeg2 );
-
-  /* larger dataset */
-  eeg = read_eeglab_file( CHECKDATADIR"/vp19_tt.set" );
-  n = sizeof_eegstream( eeg );
-  dprintf("long dataset: n=%llu\n", n );
-  eeg_free( eeg );
 }
 END_TEST
 

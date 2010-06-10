@@ -19,23 +19,24 @@
  ***************************************************************************/
 
 /**\file mpitools.h
- \brief \ref status_stable Tools for using LibEEGTools with MPI.
+ \brief \ref status_unstable Tools for using LibEEGTools with MPI.
 	
  */
 #ifndef MPITOOLS_H
 # define MPITOOLS_H
 #include "mathadd.h"
 #include "definitions.h"
+#include "eeg.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-  ulonglong_t sizeof_eegstream( const EEG *eeg );
-  ulonglong_t sizeof_channelinfos( const ChannelInfo *chaninfo, int nbchan );
+  ulonglong sizeof_eegstream( const EEG *eeg );
+  ulonglong sizeof_channelinfos( const ChannelInfo *chaninfo, int nbchan );
 
-  char* eeg_to_stream( const EEG *eeg, char *stream, ulonglong_t *n );
-  EEG*  stream_to_eeg( const char *stream, ulonglong_t n, EEG *eeg );
+  char* eeg_to_stream( const EEG *eeg, char *stream, ulonglong *n );
+  EEG*  stream_to_eeg( const char *stream, ulonglong n, EEG *eeg );
 
 #ifdef __cplusplus
 }

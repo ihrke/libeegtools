@@ -32,7 +32,7 @@ extern "C" {
 #endif
 
 #include "array.h"
-
+#include "eeg.h"
   
 #ifdef MATIO
 

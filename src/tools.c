@@ -31,6 +31,7 @@
 	 
 */
 EEG* eeg_remove_baseline( EEG *eeg, double win_from, double win_to, bool alloc ){
+#ifdef FIXEEG
   int lim[2], c, i;
   double mean;
   EEG *eeg_out;
@@ -61,4 +62,5 @@ EEG* eeg_remove_baseline( EEG *eeg, double win_from, double win_to, bool alloc )
   }
 
   return eeg_out;
+#endif
 }

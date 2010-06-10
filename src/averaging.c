@@ -91,7 +91,6 @@ Array* average_warpmarkers( const Array *data, uint idx[2], double weights[2], O
  */
 Array* hierarchical_average( const Array *data, const Array *distmat, 
 									  SignalAverageFunction avgfct, OptArgList *optargs ){
-#if 1
   Dendrogram *T, *Tsub; 
   ProgressBarFunction progress=NULL;  
   LinkageFunction linkage=dgram_dist_completelinkage;
@@ -176,7 +175,6 @@ Array* hierarchical_average( const Array *data, const Array *distmat,
 
   array_dimred( avg );
   return avg;
-#endif
 }
 
 
@@ -189,6 +187,7 @@ Array* hierarchical_average( const Array *data, const Array *distmat,
 	 \return freshly allocate EEG-struct
  */
 EEG*     eeg_simple_average( const EEG *eeg ){
+#ifdef FIXEEG
   EEG *out;
   int c;
 
@@ -207,6 +206,7 @@ EEG*     eeg_simple_average( const EEG *eeg ){
 	 /* TODO */
   }
   return out;
+#endif
 }
 /** Calculate a pointwise average across channels
 	 \f[
@@ -216,6 +216,8 @@ EEG*     eeg_simple_average( const EEG *eeg ){
 	 \return freshly allocate EEG-struct
  */
 EEG*     eeg_average_channels( const EEG *eeg ){
+#ifdef FIXEEG
+
   EEG *out;
   int c, i, j;
 
@@ -237,4 +239,5 @@ EEG*     eeg_average_channels( const EEG *eeg ){
 	 }
   }
   return out;
+#endif
 }

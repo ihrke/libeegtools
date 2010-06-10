@@ -31,13 +31,9 @@
 extern "C" {
 #endif
 
-
-  /** \addtogroup regularization
-	*\{
-	*/
   Array* regularization_linear_points( const Array *points, uint dims[2], Array *m );
-  Array* regularization_gaussian_corridor( const Array *points, uint dims[2], Array *m, double max_sigma);
-  /** \} */
+  Array* regularization_gaussian_corridor( const Array *points, uint dims[2], 
+														 Array *m, double max_sigma);
 
 #ifdef __cplusplus
 }

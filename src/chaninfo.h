@@ -11,6 +11,19 @@
 extern "C" {
 #endif
   
+  /*-----------------------------------------------------------
+	 - EEG-CHANNELS -
+	 ---------------------------------------------------------*/
+
+  typedef struct{
+	 int    num;
+	 int    num_chans;
+	 char   label[MAX_LABEL_LENGTH];
+	 double x;
+	 double y;
+	 double z;
+  } ChannelInfo;
+
   static ChannelInfo channelcoords_64[] = {
 	 {1, 64, "Fp1",80.8,26.1,-4},
 	 {2, 64, "Fp2",80.8,-26.1,-4},

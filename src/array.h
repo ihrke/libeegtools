@@ -344,7 +344,7 @@ extern "C" {
 
   /** \brief Data-types for Array struct. */
   typedef enum {
-	 CHAR,
+	 CHAR=0,
 	 UINT,
 	 INT,
 	 LONG,

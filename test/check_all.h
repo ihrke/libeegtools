@@ -29,5 +29,7 @@ Suite * init_warping_suite    (void);
 Suite * init_cluster_suite    (void);
 Suite * init_average_suite    (void);
 Suite * init_io_suite         (void);
+Suite * init_optarg_suite    (void);
+Suite * init_eeg_suite       (void);
 
 #endif 	    /* !CHECK_ALL_H_ */

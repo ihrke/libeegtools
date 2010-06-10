@@ -26,7 +26,7 @@
 
 #include "definitions.h"
 #include "escape_codes.h"
-
+#include <stdio.h>
 
 
 #ifdef HAVE_MATLAB
@@ -53,6 +53,37 @@
 #define ERR_NOFATAL 0
 
 #define NOSTRING " \b" 
+
+#define PROGRESSBAR_NUMCOLS        80 /**< number of columns for progress bar */
+#define PROGRESSBAR_INIT           0  /**< initialize flag for progress bar   */
+#define PROGRESSBAR_CONTINUE_SHORT 1  /**< continue flag for progress bar, minor step */
+#define PROGRESSBAR_CONTINUE_LONG  2  /**< continue flag for progress bar, major step */
+#define PROGRESSBAR_FINISH         3  /**< cleanup */
+
+/** \brief swap two variables.
+ */
+#define SWAPT( Type, a, b ) { Type tmp; tmp=(a); (a)=(b); (b)=(tmp); }
+
+
+/*-----------------------------------------------------------
+  - Progress Bar
+  ---------------------------------------------------------*/
+
+/** \brief status of progress bar.
+	 This struct is used as an external variable to
+	 keep track of the progress bar. You only need
+	 to be concerned about this, if you want to 
+	 write your own progressbar-function.
+ */
+typedef struct{
+  int max_progress;
+  int cur_progress;
+  int prev_progress;
+} ProgressBarStatus;
+
+/** \brief A progressbar-function.
+ */ 
+typedef void    (*ProgressBarFunction)          (int,int);
 
   /** \brief convenience memory alloc macro. 
 

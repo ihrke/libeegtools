@@ -26,14 +26,38 @@
 #define WARPING_H
 #include "mathadd.h"
 #include "definitions.h"
-#include "clustering.h"
 #include "time_frequency.h"
 #include "regularization.h"
-#include "distances.h"
- 
+#include "eeg.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+  /*-----------------------------------------------------------
+	 -  slope constraint for DTW
+	 ---------------------------------------------------------*/
+  /**\brief Severity of the slope constraint in the Dynamic Time-Warping Alg.
+	*/
+  typedef enum {
+	 SLOPE_CONSTRAINT_NONE=0,
+	 SLOPE_CONSTRAINT_LAX,
+	 SLOPE_CONSTRAINT_MEDIUM,
+	 SLOPE_CONSTRAINT_SEVERE
+  } SlopeConstraint;
+
+  /*-----------------------------------------------------------
+	 - WARPING -
+	 ---------------------------------------------------------*/
+
+  typedef struct{
+	 int *t1; /**< time-scale of first signal */
+	 int *t2; /**< time-scale of second signal */
+	 int n1; /**< length of signal 1 */
+	 int n2; /**< length of signal 2 */
+	 int n; /**< length(t1)==length(t2) */
+  } WarpPath;
+	
 
   /** \brief is w a warppath?
 		

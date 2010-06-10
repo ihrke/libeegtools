@@ -18,52 +18,70 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/**\file io.h
- \brief \ref status_inprogress io input-output for (EEG)-data.
+/**\file io_eegtools.h
+ \brief \ref status_inprogress io_eegtools Custom file-format for input-output of (EEG)-data.
 
-
- These functions are for some generic data types.
-
- For specialized IO-functions, see
  
-  - \ref io_matlab.h -- Input/Output for MATLAB (requires MatIO)
-  - \ref io_wav.h -- Input/Output for WAV-Audio Files
+ These IO functions can be used for loslessly saving Array-structs and EEG-structs
+ to a file. 
+
+ It is easy to write multiple arrays to the same file:
+ \code
+ FILE *out;
+ out=fopen( NAMEOFFILE, "wb" );
+ array_to_file( out, a );
+ array_to_file( out, b );
+ array_to_file( out, c );
+ fclose( f );
+ \endcode
+
+ and equally easy to read multiple arrays:
+ \code 
+ FILE *in;
+ in=fopen( NAMEOFFILE, "rb" );
+ Array *a=array_from_file( in );
+ Array *b=array_from_file( in );
+ Array *c=array_from_file( in );
+ fclose( f );
+ \endcode
+
+ \section arrfileformat File Format for Arrays
+
+ When writing an Array-struct to a file, the following convention is 
+ followed:
+	 - 2 bytes data-type
+	 - 2 bytes sizeof(dtype)
+	 - 2 bytes number of dimensions
+	 - ndim x 2 bytes size-array (number of elements per dimension)
+	 - 4 bytes number of bytes in data-field (remaining)
+	 - nbytes data-field
+
+ \section eegtoolsfileformat File Format for Arrays
+
+ When writing an EEG-struct to a file, the following convention is 
+ followed:
+
  */
-#ifndef IO_H
-#define IO_H
+#ifndef IO_EEGTOOLS_H
+# define IO_EEGTOOLS_H
 
-#define MAX_LINE_LENGTH 500
-
-#include "definitions.h"
-#include "eeg.h"
-#include "optarg.h"
-
-/* include "special" IO-headers */
-#include "io_matlab.h"
-#include "io_wav.h"
+#include <stdio.h>
+#include "array.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-  /* ------------- READER --------------------- */
-  double** read_double_matrix_ascii(const char *fname, int xdim, int ydim, double **d);
-  double*  read_dblp_ascii( const char *fname, int N, double *v );
-
-  ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans );
-
-  /* ------------- WRITER --------------------- */
-  void write_dblpp_ascii(FILE *out, const double **d, int xdim, int ydim, OptArgList *opts);
-  void write_dblpp_ascii_file(const char *fname, const double **d, int xdim, int ydim, OptArgList *opts);
-  void write_dblp_ascii(FILE *out, const double *v, int n);
-  void write_dblp_ascii_file(const char *fname, const double *v, int n);
-
-  void write_intp_ascii(FILE *out, const int *v, int n);
-  void write_intp_ascii_file(const char *fname, const int *v, int n);
-
+  
+  
+  /* -------------- READER ---------------- */
+  Array* array_from_file( FILE *in );
+  
+  /* -------------- WRITER ---------------- */
+  void array_to_file( FILE *out, const Array *a );
+  
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* IO_H */
+#endif /* IO_EEGTOOLS_H */

@@ -35,6 +35,7 @@
 
 #include "mathadd.h"
 #include "definitions.h"
+#include "eeg.h"
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 

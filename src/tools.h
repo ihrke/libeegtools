@@ -26,6 +26,7 @@
 #define TOOLS_H
 
 #include "definitions.h"
+#include "eeg.h"
 
 #ifdef __cplusplus
 extern "C" {

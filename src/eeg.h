@@ -28,11 +28,61 @@
 #include "definitions.h"
 #include <string.h>
 #include <stdlib.h>
+#include "chaninfo.h"
+#include "array.h"
+#include "slist.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+  /** \brief describe a type of time-marker.
+	*/
+  typedef struct{
+	 uint class; /**< used to group different types of markers (e.g. different stimuli) */
+	 char label[MAX_LABEL_LENGTH]; /**< a label for the marker */
+  } MarkerType;
+
+  /** \brief a complete EEG-data set with meta-inforation.
+	*/
+  typedef struct{
+	 char         *filename;
+	 char         *comment;
+	 uint         nbchan;  /**< number of channels */
+	 uint         ntrials; /**< number of trials = dim(eeg) */ 
+	 uint         n;       /**< number of samples */
+    double       sampling_rate; /**< in Hz */
+
+	 Array       *times;  /**< times vector (1D DOUBLE Array); n-long */
+	 ChannelInfo  *chaninfo; /**< location and other information
+										 about the channels */
+
+	 Array         *data;   /**< 3D DOUBLE Array: channels x trials x samples */
+
+	 Array         *markers; /**< 2D UINT Array: trials x max_num_markers; 
+									      this field gives the offset in sampling points
+									      of each time-marker (e.g. stimulus onset,...).
+									 */
+	 Array         *marker_type; /**< 2D UINT Array: trials x max_num_markers;
+											  this field describes the type of the marker, by
+										     indexing into the EEG->marker_types field that
+										     contains the complete description of the 
+										     available markers
+										  */
+	 SingleList    *marker_types; /**< contains the complete description of the 
+												available markers; the list->content field 
+											   is a \ref MarkerType struct */
+	 void *additional;            /**< arbitrary, additional information for the
+												data set. This can be anything e.g. ICA-components,
+												distance matrix or even both. The additional data
+												is automatically saved/retrieved from files (if 
+												supported by the format). To use it in your program
+												you wil of course need to know what it is.
+											*/
+	 ulong nbytes_additional;     /**< number of bytes in EEG->additional */
+  } EEG;
+
+  
 #define EEG_CLONE_ALL        0     /**< clone everything */
 #define EEG_CLONE_NODATA     2<<1  /**< clone everything except 
 												  the eeg->data field */

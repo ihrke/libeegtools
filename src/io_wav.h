@@ -63,11 +63,11 @@ extern "C" {
   
   /* -------------- FUNCTIONS ---------------- */
   
-  extern   WavFile* wavfile_read ( FILE *f );
-  extern   int      wavfile_write( WavFile *w, const char *fname );
-
-  extern   void     wavfile_print( FILE *out, WavFile *w );
-  extern   void     wavfile_free ( WavFile *w );
+  WavFile* wavfile_read ( FILE *f );
+  int      wavfile_write( WavFile *w, const char *fname );
+  
+  void     wavfile_print( FILE *out, WavFile *w );
+  void     wavfile_free ( WavFile *w );
   
 #ifdef __cplusplus
 }
