@@ -56,7 +56,7 @@
 	 - 4 bytes number of bytes in data-field (remaining)
 	 - nbytes data-field
 
- \section eegtoolsfileformat File Format for Arrays
+ \section eegtoolsfileformat File Format for EEG-data
 
  When writing an EEG-struct to a file, the following convention is 
  followed:

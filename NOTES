@@ -63,6 +63,7 @@ write a test for array_typecast!
 
 CONTINUE WITH:
 ----------------
+optargs.h
 finish the eeglab reader (and the test!)
 nonlinear !!
 

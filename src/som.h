@@ -38,7 +38,7 @@ Using input data \f$ \vec{x}_1,\ldots, \vec{x}_n\f$, of dimension m,
 we find the best-matching unit (BMU) 
 \f[
 w_{\mbox{bmu}} = \mbox{argmin}_{w\in W} || x - w ||^2.
-\]
+\f]
 (we can use any other metric as well - many metrices are implemented
 in LibEEGTools).
 

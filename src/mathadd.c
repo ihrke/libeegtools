@@ -788,7 +788,6 @@ double* resample_gsl( const double *s, int n, int newn, double *news, const gsl_
 	 news = (double*) malloc( newn*sizeof( double ) );
   }
 
-
   step = (double)n/(double)newn;
   for( i=0; i<newn; i++ ){
 	 news[i] = gsl_spline_eval( spline, i*step, acc );
@@ -801,6 +800,7 @@ double* resample_gsl( const double *s, int n, int newn, double *news, const gsl_
 
   return news;
 }
+
 double* flip_array( double *v, int n ){
   int i;
   double tmp;

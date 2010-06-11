@@ -253,6 +253,29 @@ OptArgList*     optarglist_append_arg   ( OptArgList *list, OptArg *arg ){
   return new;
 }
 
+/**\brief delete an argument from the argument list.
+
+	The list is modified in place. The argument is free'd.
+
+	\param list the list
+	\param arg the argument to delete
+ */
+void optarglist_delete_arg   ( OptArgList *list, OptArg *arg ){
+  int idx=-1;
+  int i;
+  for( i=0; i<list->nargs; i++ ){
+	 /* if( list->args[i]==arg ){ */
+	 /* 	idx=i; */
+	 /* } */
+  }
+  if( idx<0 ){
+	 warnprintf("list did not contain the optional argument\n");
+	 return;
+  }
+  /** CONTINUE HERE ***********/
+}
+
+
 /** \brief create a new OptArg* containing a scalar value.
  */
 OptArg*     optarg_scalar( const char *key, double scalar ){

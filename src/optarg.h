@@ -35,8 +35,8 @@
  \endcode
 
  */
-/*
 
+/*
  Every function that receives an optarglist is required to check for the 
  existence of "optarglist_free" within the parameterlist. If this parameter
  exists, the function is required to free the memory pointed to the
@@ -62,10 +62,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
   /*-----------------------------------------------------------
 	 - Optional Arguments
 	 ---------------------------------------------------------*/
+  /**\brief An optional Argument. */
   typedef struct {
 	 char    key[MAX_LABEL_LENGTH];
 	 bool    scalar;
@@ -74,11 +74,11 @@ extern "C" {
 	 double  data_scalar;
   } OptArg;
 
+  /**\brief A list of optional Arguments. */
   typedef struct {
 	 int nargs;
 	 OptArg *args;
   } OptArgList;
-
 
   /** \brief Check and assign a scalar from OptArgList.
 		Suppose you got optargs in a function and want to 
@@ -119,14 +119,13 @@ extern "C" {
   OptArg*     optarglist_optarg_by_key( OptArgList *list, const char *key );
 
   OptArgList* optarglist_append_arg   ( OptArgList *list, OptArg *arg );
+  void        optarglist_delete_arg   ( OptArgList *list, OptArg *arg );
 
   void        optarglist_print( OptArgList *list, FILE *out );
   void        optarglist_free( OptArgList *list );
 
   OptArg*     optarg_scalar( const char *key, double scalar );
   OptArg*     optarg_ptr   ( const char *key, void *ptr );
-
-
 
 #ifdef __cplusplus
 }

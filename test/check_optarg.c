@@ -132,6 +132,20 @@ START_TEST (test_parse_ptr)
 }
 END_TEST
 
+START_TEST (test_delete_arg)
+{
+  int test[10];
+  double *test2=(double*)malloc( 10*sizeof(double));
+  OptArgList *opts=optarglist( "test=void*,"
+										 "test2=void*,"
+										 "dritter=int", (void*)test,
+										 (void*) test2, 3);
+  OptArg *tmp=optarglist_optarg_by_key( opts, "dritter" );
+  optarglist_delete_arg( opts, tmp );
+  optarglist_print(opts, stderr );
+}
+END_TEST
+
 /* template
 START_TEST (test_)
 {
@@ -148,6 +162,7 @@ Suite * init_optarg_suite (void){
   tcase_add_test (tc_core, test_optarg_append );
   tcase_add_test (tc_core, test_parse_scalar);
   tcase_add_test (tc_core, test_parse_ptr);
+  tcase_add_test (tc_core, test_delete_arg);
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

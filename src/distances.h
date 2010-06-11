@@ -20,9 +20,24 @@
 
 /**\file distances.h
  * \brief \ref status_unstable Distances between: points, signals, trials.
- */
+ 
+ \section vectdist Vector Distance Functions
+ The distances (functions starting with vectordist_*()) are between 
+ two vectors of the same size, i.e. they calculate
+ \f[
+ ||\vec{x}_i - \vec{x}_j||
+ \f]
+ for two vectors and some metric. vectordist_distmatrix() applies one of 
+ these functions to all pairs of columns in the matrix \f$\mathbf{X}\f$, 
+ yielding a distance matrix
+ \f[
+ D_{ij} =	||\vec{x}_i - \vec{x}_j||
+ \f]
+*/
+
 #ifndef DISTANCES_H
-# define DISTANCES_H
+#define DISTANCES_H
+
 #include "array.h"
 #include "linalg.h"
 #include "clustering.h"
@@ -30,11 +45,12 @@
 #include "recurrence_plot.h"
 #include "nonlinear.h"
 #include "warping.h"
+#include "optarg.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+  
   typedef double**(*PointwiseDistanceFunction)    (double*,int,double*,int,double**,OptArgList*);
   typedef double  (*VectorDistanceFunction)       (const double*,const double*,int,OptArgList*);
  
@@ -44,26 +60,19 @@ extern "C" {
 									 const Array *X, Array *D, 
 									 OptArgList *optargs );
 
-  /* These distances (functions starting with vectordist_*()) are between 
-		two vectors of the same size, i.e. they calculate
-		\f[
-		||\vec{x}_i - \vec{x}_j||
-		\f]
-		for two vectors and some metric. vectordist_distmatrix() applies one of 
-		these functions to all pairs of columns in the matrix \f$\mathbf{X}\f$, 
-		yielding a distance matrix
-		\f[
-		D_{ij} =	||\vec{x}_i - \vec{x}_j||
-		\f]
-  */  
   double** vectordist_distmatrix          ( VectorDistanceFunction f, const double **X, 
 														  int n, int p, double **D, 
 														  ProgressBarFunction progress, 
 														  OptArgList* optargs );
-  double   vectordist_euclidean           ( const double *x1, const double *x2, int p, OptArgList *optargs );
-  double   vectordist_euclidean_normalized( const double *x1, const double *x2, int p, OptArgList *optargs );
-  double   vectordist_dtw                 ( const double *x1, const double *x2, int p, OptArgList *optargs );
-  double   vectordist_regularized_dtw     ( const double *x1, const double *x2, int p, OptArgList *optargs );
+
+  double   vectordist_euclidean           ( const double *x1, const double *x2, 
+														  int p, OptArgList *optargs );
+  double   vectordist_euclidean_normalized( const double *x1, const double *x2, 
+														  int p, OptArgList *optargs );
+  double   vectordist_dtw                 ( const double *x1, const double *x2, 
+														  int p, OptArgList *optargs );
+  double   vectordist_regularized_dtw     ( const double *x1, const double *x2, 
+														  int p, OptArgList *optargs );
 
   double** eeg_distmatrix( EEG *eeg, VectorDistanceFunction f, 
 									double **d, OptArgList *optargs );
@@ -81,16 +90,7 @@ extern "C" {
   /***********************************************************
     GOING TO BE OBSOLETE 
   ***********************************************************/
-  
-  /**\addtogroup signaldist GOING TO BE OBSOLETE
-	  These functions (signaldist_*()) calculate pointwise differences
-	  between individual points in the signals, returning the matrix
-	  \f[
-	  d(t_1, t_2) = ||s_1(t_1) - s_2(t2)||
-	  \f]
-	  for two signals \f$ s_1(t), s_2(t)\f$ and some metric \f$||\cdot ||\f$.
-	*\{
-	*/  
+ 
   double** signaldist_euclidean( double *s1, int n1, double *s2, int n2, 
 											double **d, 
 											OptArgList *optargs );
@@ -100,8 +100,6 @@ extern "C" {
   double** signaldist_stft( double *s1, int n1, double *s2, int n2, 
 									 double **d, 
 									 OptArgList *optargs );
-
-  /*\}*/
 
  
 #ifdef __cplusplus

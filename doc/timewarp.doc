@@ -35,11 +35,11 @@ corner that minimizes the sum of the \f$d_{jk}\f$.
 This path can be found by a dynamic programming strategy, computing
 the cumulated cost matrix
 \f[
-\D_{jk} = \mathbf{d}_{jk}+\min{\{\D_{j,k-1}, \D_{j-1,k}, \D_{j-1, k-1}\}}
+D_{jk} = \mathbf{d}_{jk}+\min{\{D_{j,k-1}, D_{j-1,k}, D_{j-1, k-1}\}}
 \f]
 and backtracking via the minimum of the three neighboring entries (down,
-down-right, right) from \f$\D_{J,K}\f$ to \f$\D_{1,1}\f$.
-The final element \f$\D_{J,K}\f$ constitutes  a measure for the (dis-)similarity of
+down-right, right) from \f$D_{J,K}\f$ to \f$D_{1,1}\f$.
+The final element \f$D_{J,K}\f$ constitutes  a measure for the (dis-)similarity of
 the two curves based on their overall shape. Once this path is
 available, it is easy to average the curves (called \emph{averaging
   dynamic time-warping}, ADTW) to reduce both temporal

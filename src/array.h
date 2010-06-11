@@ -355,7 +355,7 @@ extern "C" {
 
   /** \brief Numerical Array struct. */
   typedef struct {
-	 void *data;       /**< data in C-storage format */
+	 void *data;       /**< \brief data in C-storage format. */
 	 DType dtype;      /**< datatype of data */
 	 uint  dtype_size; /**< sizeof(dtype) in bytes */
 	 uint  ndim;       /**< number of dimensions */

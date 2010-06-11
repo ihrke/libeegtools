@@ -146,12 +146,6 @@ void   som_free( Som *s ){
 
 
 /** Linear time-decay function between 0 and 1.
-	 \f[
-	 f(t/\mbox{nruns}) = \begin{cases}
-	 x & \mbox{if}\\
-	 y & \mbox{otherwise}
-	 \end{cases}
-	 \f]
 
  */
 double som_time_decay_linear( int t, int nruns, int initial_runs ){

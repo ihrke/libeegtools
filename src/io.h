@@ -52,6 +52,8 @@ extern "C" {
 
   ChannelInfo* read_chaninfo_ced( const char *fname, ChannelInfo *chans );
 
+  Array* read_matrix_from_text( const char *fname );
+
   /* ------------- WRITER --------------------- */
   void write_dblpp_ascii(FILE *out, const double **d, int xdim, int ydim, OptArgList *opts);
   void write_dblpp_ascii_file(const char *fname, const double **d, int xdim, int ydim, OptArgList *opts);

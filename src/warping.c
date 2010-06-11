@@ -85,7 +85,7 @@ double _slope_constraint( SlopeConstraint constraint, Array *d, Array *D, int i,
 /** \brief cumulate a distance matrix d for Dynamic Time-Warping.
 
 	 \f[
-	 D_{jk} = \mathbf{d}_{jk}+\min{\{D_{j,k-1}, D_{j-1,k}, D_{j-1, k-1}\}}
+	 D_{jk} = d_{jk}+\min{\{D_{j,k-1}, D_{j-1,k}, D_{j-1, k-1}\}}
 	 \f]
 	 The formula is modified, depending on the slope constraint.
 
@@ -221,85 +221,68 @@ Array* matrix_dtw_backtrack ( const Array *d ){
   return path;
 }
 
-/** Adjust time-markers according to
-	 \f[
-	 \hat{\tau} = \left(\frac{\tau_1}{\omega_1} + \frac{\tau_2}{\omega_2}\right)
-	 \f]
-	 where \f$ \omega_1,\omega_2\f$ are the weights.
-	 \param m1,m2,nmarkers are the markers to be adjusted
-	 \param outmarkers is memory or NULL to store the new adjusted markers,
-	 \param weights are the weights according to the above equation
-	 \return outmarkers
+/** \brief Add signals according to a warppath.
+
+	 If called from hierarchical averaging routines, you might
+	 want to pass a "weights" field in the optional arguments.
+
+	 \param s1 N1 x p (DOUBLE) array; first signal
+	 \param s2 N2 x p (DOUBLE) array; second signal
+	 \param path - contains warppath (2xN INT);
+	 \param opts may contain:
+	 - "weights=double*" - weights in average, for using it with hierarchical averaging;
+	                  should be 2 double values with w[0]+w[1]=1.0
+	 \return the warped average of the signals; N1+N2 samples
  */
-unsigned int* warp_adjust_time_markers(const unsigned int *m1, const unsigned int *m2, 
-											  int nmarkers, unsigned int *outmarkers,
-											  const double weights[2] ){
-  int i;
-  if(!outmarkers){
-	 outmarkers = (unsigned int*)malloc(nmarkers*sizeof(unsigned int) );
-  }
-  for( i=0; i<nmarkers; i++ ){
-	 outmarkers[i] = m1[i]*weights[0] + m2[i]*weights[1];
-  }
+Array*  dtw_add_signals( const Array *s1, const Array *s2, const Array *path, OptArgList *opts ){
+  int ispath;
+  warppath_CHECK( ispath, path );
+  if( !ispath ) return NULL;
   
-  return outmarkers;
-}
+  if( s1->dtype!=DOUBLE || s2->dtype!=DOUBLE ){
+	 errprintf("Input signals must be double-arrays\n");
+	 return NULL;
+  } 
+  if( s1->ndim>2 || s2->ndim>2 || s1->ndim != s2->ndim ){
+	 warnprintf("Input signals should be 1D or 2D... continue at your own risk (%i,%i)\n",
+					s1->ndim, s2->ndim );
+  }
+  /* thin matrix-wrapper (in case of 1D data */
+  Array *s1m, *s2m;
+  s1m = array_fromptr2( DOUBLE, 2, s1->data, s1->size[0], (s1->ndim>1)?(s1->size[1]):1 );
+  s2m = array_fromptr2( DOUBLE, 2, s2->data, s2->size[0], (s2->ndim>1)?(s2->size[1]):1 );
 
-/** Add magnitude of signals according to warppath P.
-	 Data is resampled to have length (J+K)/2+1 using cspline interpolation.
- * \param path - contains warppath
- * \param weights - weights in average, for using it with hierarchical averaging
- * \param avg - pointer to caller-allocated memory (length (K+J)/2+1); 
- *              if NULL is given, memory is allocated by the function.
- */
-double* warp_add_signals_by_path(const double *s1, int n1, 
-											const double *s2, int n2, 
-											const WarpPath *P, double *avg, 
-											const double weights[2]){
-  double *x, *y, *xp;
-  int newn, i;
+  if( s1m->size[1] != s2m->size[1] ){
+	 errprintf("Signals must have the same dimension 2\n");
+	 array_free( s1m );
+	 array_free( s2m );
+	 return NULL; 
+  }
+  int N1 = s1m->size[0];
+  int N2 = s2m->size[0];
+  int Nn = path->size[1];
+  int p = s1m->size[1];
+
+  double defaultw[2]={0.5,0.5};
+  void *tmp;
+  double *w=defaultw;
+  optarg_PARSE_PTR( opts, "weights", w, double*, tmp );
   
-  newn = (n1+n2)/2;			  /* length of average signal */
-  x = (double*)malloc( (n1+n2)*sizeof(double) );
-  y = (double*)malloc( (n1+n2)*sizeof(double) );
-  xp= (double*)malloc( newn*sizeof(double) );
-  if(avg==NULL){
-	 dprintf("Allocating own memory\n");
-	 avg = (double*)calloc(newn, sizeof(double));
-  }
 
-  for( i=0; i<newn; i++ ){
-	 xp[i] = (double)i;
-  }
-
-
-  for(i=0; i<P->n; i++){
-	 x[i] = (double)((P->t1[i])*weights[0]+(P->t2[i])*weights[1]); /* average latencies */
-	 y[i] = weights[0]*(s1[P->t1[i]]) + weights[1]*(s2[P->t2[i]]); /* average magnitude */
-	 //	 dprintf( "x[%i]=(%f,%f), (%i, %i)\n", i, x[i], y[i], (P->t1[i]), (P->t2[i]) );
-	 if( i>0 && x[i]<=x[i-1] ){
-		warnprintf("x not monotonic at P=%p x[%i]=(%f,%f), (%i, %i)\n", P, i, x[i], y[i], (P->t1[i]), (P->t2[i]) );
+  /* --------------------- computation ------------------------*/
+  Array *wa = array_new2( DOUBLE, 2, Nn, p );
+  int i,j;
+  for( i=0; i<Nn; i++ ){
+	 for( j=0; j<p; j++ ){
+		mat_IDX( wa, i, j )=w[0]*mat_IDX( s1m, array_INDEX2(path,int,0,i),j )
+		  + w[1]*mat_IDX( s2m, array_INDEX2(path,int,1,i),j );
 	 }
   }
+  /* --------------------- /computation ------------------------*/
 
-  gsl_interp_accel *acc = gsl_interp_accel_alloc ();
-  gsl_spline *spline = gsl_spline_alloc (gsl_interp_linear, P->n);
-  gsl_spline_init (spline, x, y, P->n);
-
-  for( i=0; i<newn; i++ ){
-	 //	 dprintf("xp[%i]=%f\n", i, xp[i] ); 
-	 avg[i] = gsl_spline_eval( spline, xp[i], acc );
-	 //	 dprintf(" avg[%i] = (%f, %f)\n", i,xp[i], avg[i] );
-  }
-
-  /* free */
-  gsl_spline_free (spline);
-  gsl_interp_accel_free (acc);
-  free( x );
-  free( y );
-  free( xp );
-
-  return avg;
+  array_free( s1m );
+  array_free( s2m );
+  return wa;
 }
 
 
@@ -490,7 +473,7 @@ void print_warppath( FILE *out, WarpPath *P ){
 
 /** cumulate a distance matrix d to give
 	 \f[
-	 D_{jk} = \mathbf{d}_{jk}+\min{\{D_{j,k-1}, D_{j-1,k}, D_{j-1, k-1}\}}
+	 D_{jk} = d_{jk}+\min{\{D_{j,k-1}, D_{j-1,k}, D_{j-1, k-1}\}}
 	 \f]
 	 \param d input/output matrix
 	 \param M,N dimensions of d

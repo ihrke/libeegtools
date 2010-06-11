@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /**\file io_wav.h
- \brief \ref status_inprogress io_wav WAV file input-output for (EEG)-data.
+ \brief \ref status_inprogress WAV file input-output for (EEG)-data.
 
  The WAV-file format allows multi-channel output.
  Writing the EEG-data to WAV is a convenient way for visualizing
@@ -42,7 +42,6 @@
 extern "C" {
 #endif
   
- 
   
   typedef struct wavfile_t {
 	 uint16_t numchannels; /**< Mono = 1, Stereo = 2, etc. */

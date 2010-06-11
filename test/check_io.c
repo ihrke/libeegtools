@@ -117,6 +117,13 @@ START_TEST (test_eeg_eeglab)
 }
 END_TEST
 
+START_TEST (test_matrix_test)
+{
+  Array *a=read_matrix_from_text( "/home/katja/public/ForAvg/Exp1Run1Trial100.log");
+  array_print( a, -1, stderr );
+}
+END_TEST
+
 /* template
 START_TEST (test_)
 {
@@ -131,6 +138,7 @@ Suite * init_io_suite (void){
   tcase_add_test (tc_core, test_arrtomatlab);
   tcase_add_test (tc_core, test_array_eegtools);
   tcase_add_test (tc_core, test_eeg_eeglab );
+  tcase_add_test (tc_core, test_matrix_test);
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

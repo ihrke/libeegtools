@@ -20,6 +20,16 @@
 
 /**\file averaging.h
  * \brief \ref status_stable Averaging functions.
+
+ \section hierarchavg Hierarchical Averaging
+ Generally, to warp signals with a hierarchical method, you need:
+ -# distance matrix Delta between trials (use vectordist_distmatrix())
+ -# a pointwise distance matrix d between 2 trials (use distmatrix_signaldist())
+ -# an averaging scheme to put together s1 and s2 using P.
+		
+ The distance matrix for between-trials must be provided separately.
+
+
  */
 #ifndef AVERAGING_H
 #define AVERAGING_H
@@ -34,10 +44,6 @@
 extern "C" {
 #endif
 
-/** \weakgroup otheravg
- *\{
- */
-
 /** \brief Function for averaging two trials from data.
 	 \param input data (N x C x n)
 	 \param index average data[idx[0]] and data[idx[1]]
@@ -46,8 +52,16 @@ extern "C" {
 	 \return the average
  */
   typedef Array*(*SignalAverageFunction)( const Array *,uint[2],double[2],OptArgList*);
+
   Array* average_example( const Array *data, uint idx[2], double weights[2], 
 								  OptArgList *optargs );
+
+  typedef Array*(*SignalAverageFunctionUnequalLength)( Array **,uint[2],double[2],OptArgList*);
+  Array* average_unequal_warp( Array **data, uint idx[2], double weights[2], 
+										 OptArgList *optargs );
+  Array* hierarchical_average_unequal_length( Array **data, const Array *distmat, 
+															 SignalAverageFunctionUnequalLength avgfct, 
+															 OptArgList *optargs );
 
   Array* hierarchical_average( const Array *data, const Array *distmat, 
 										 SignalAverageFunction avgfct, OptArgList *optargs );
@@ -55,7 +69,6 @@ extern "C" {
   EEG*     eeg_simple_average   ( const EEG *eeg );
   EEG*     eeg_average_channels ( const EEG *eeg );
 
-/** \} */
 #ifdef __cplusplus
 }
 #endif

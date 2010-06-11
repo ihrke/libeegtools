@@ -88,24 +88,19 @@ Array* matrix_distmatrix( VectorDistanceFunction f,
 /** \brief Pointwise distance matrix: \f$ d_{ij} = d( s1_i, s2_j ) \f$
 
 	 \param f the distance function between individual points in signals s1,s2
-	 \param s1 a 2D (Nxp) array holding the (multivariate) time-series 1
-	 \param s1 a 2D (Nxp) array holding the (multivariate) time-series 2
+	 \param s1 a 2D (N1xp) array holding the (multivariate) time-series 1
+	 \param s1 a 2D (N2xp) array holding the (multivariate) time-series 2
 	 \param out either an NxN matrix, or NULL (allocated in function)
 	 \param optargs may contain many different arguments which are passed 
 	        to the VectorDistanceFunction (see details there):
-		 - "symmetric=int", if 1, only N(N-1) computations are computed 
-		    (the upper diagonal of the matrix), else d_ij and d_ji are computed
-			 separately (default)
     \return a NxN matrix containing the distances (allocated in function, or out)
  */
 Array* distmatrix_signaldist( VectorDistanceFunction f, const Array *s1, 
 										const Array *s2, Array *out,	OptArgList *optargs ){
   bool ismatrix;
   int i,j;
-  if( !array_comparable( s1, s2 ) ){
-	 return NULL;
-  }
-  if( s1->dtype!=DOUBLE ){
+
+  if( s1->dtype!=DOUBLE || s2->dtype!=DOUBLE ){
 	 errprintf("Input signals must be double-arrays\n");
 	 return NULL;
   }
@@ -119,37 +114,39 @@ Array* distmatrix_signaldist( VectorDistanceFunction f, const Array *s1,
   s1m = array_fromptr2( DOUBLE, 2, s1->data, s1->size[0], (s1->ndim>1)?(s1->size[1]):1 );
   s2m = array_fromptr2( DOUBLE, 2, s2->data, s2->size[0], (s2->ndim>1)?(s2->size[1]):1 );
 
-  int N = s1m->size[0];
+  if( s1m->size[1] != s2m->size[1] ){
+	 errprintf("Signals must have the same dimension 2\n");
+	 array_free( s1m );
+	 array_free( s2m );
+	 return NULL; 
+  }
+
+  int N1 = s1m->size[0];
+  int N2 = s2m->size[0];
   int p = s1m->size[1];
   if( out ){
 	 matrix_CHECK( ismatrix, out );
 	 if( !ismatrix ) return NULL;
-	 if( out->size[0] < N || out->size[1] < N ){
+	 if( out->size[0] < N1 || out->size[1] < N2 ){
 		errprintf("output matrix is not %ix%i: %i,%i\n",
-					 N,N,out->size[0],out->size[1]);
+					 N1,N2,out->size[0],out->size[1]);
+		array_free( s1m );
+		array_free( s2m );
 		return NULL;
 	 }
   } else {
-	 out = array_new2( DOUBLE, 2, N, N );
+	 out = array_new2( DOUBLE, 2, N1, N2 );
   }
 
-  int symmetric=0;
-  double x;
-  if( optarglist_has_key( optargs, "symmetric" ) ){
-	 x = optarglist_scalar_by_key( optargs, "symmetric" );
-	 if( !isnan( x ) )
-		symmetric=(int)x;
-  }
-
-  for( i=0; i<N; i++ ){
-	 for( j=((symmetric)?(i):0); j<N; j++ ){
+  /* --------------------- computation ------------------------*/
+  for( i=0; i<N1; i++ ){
+	 for( j=0; j<N2; j++ ){
 		mat_IDX( out, i, j ) = f( (double*)array_INDEXMEM2( s1m, i, 0 ),
 										  (double*)array_INDEXMEM2( s2m, j, 0 ), p, optargs );
-		if( symmetric ){
-		  mat_IDX( out, j, i ) = mat_IDX( out, i, j );
-		}
 	 }
   }
+  /* --------------------- /computation ------------------------*/
+
   array_free( s1m );
   array_free( s2m );
   return out; 
@@ -334,7 +331,6 @@ double   dist_point_line(double *p, double *x, double *y){
   double det=0.0;
   double d=0.0;
   det = ((y[0]-x[0])*(p[1]-x[1])) - ((y[1]-x[1])*(p[0]-x[0]));
-  //dprintf("det=%f\n", det);
   d = (double)ABS( det ) / (double)sqrt( SQR(y[0]-x[0]) + SQR(y[1]-x[1]) );
 
   return d;
@@ -507,7 +503,7 @@ double** signaldist_euclidean_derivative( double *s1, int n1, double *s2, int n2
 	 calculate
 	 \f[  
 	 d_{{STFT}}(s_1(t_1), s_2(t_2)) := || STFT\{s_1(t_1)\} -
-	 \STFT\{s_2(t_2)\}||_{\circ}.
+	 STFT\{s_2(t_2)\}||_{\circ}.
 	 \f]
 	 where 
 	 \f[

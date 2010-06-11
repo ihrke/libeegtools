@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 #include "io.h"
-
+#include "linalg.h"
 
 /* ------------- READER --------------------- */
 
@@ -49,6 +49,65 @@ char* read_line( FILE *f, char *line ){
   }
   line[i] = '\0';
   return line;
+}
+
+/**\brief Read a matrix from blank-separated file.
+	
+	The format is something like this:
+	\verbatim
+-0.005344   0.696318   0.005792   589.041211   
+-0.005348   0.691603   0.007035   589.074254   
+-0.005352   0.686796   0.008324   589.096248   
+-0.005516   0.680181   0.010164   589.118214   
+...
+	\endverbatim
+	
+	\param fname the name of the file
+	\return the matrix
+ */
+Array* read_matrix_from_text( const char *fname ){ 
+  char buf[MAX_LINE_LENGTH];
+  int nrows=0;
+  int ncols=0;
+  FILE *f;
+
+  if( (f=fopen( fname, "r" ))==NULL ){
+	 errprintf("couldn't open file '%s'\n", fname );
+	 return NULL;
+  }
+  
+  nrows=stream_count_char( f, '\n' );
+  rewind( f );
+  read_line( f, buf );
+  char c,prev='1';
+  while( (c=fgetc(f))!='\n' ){
+	 if( isblank(c) && !isblank(prev) ){
+		ncols++;
+	 }
+	 prev=c; 
+  }
+  rewind( f );
+  dprintf( "matrix is (%i,%i)\n", nrows, ncols );
+
+  Array *a=array_new2( DOUBLE, 2, nrows, ncols );
+  int i,j,k;
+  for( i=0; i<nrows; i++ ){
+	 for( k=0; k<ncols; k++ ){
+		j=0;
+		while( !isblank((c=fgetc(f))) ){
+		  buf[j++]=c;
+		} 
+		buf[j]='\0';
+		dprintf("%s\n", buf );
+		mat_IDX( a, i, k )=atof( buf );
+		while( isblank((c=fgetc(f))) ) ;
+		fseek( f, -1, SEEK_CUR);
+	 }
+  }
+  dprintf("Done\n");
+
+  fclose( f );
+  return a;
 }
 
 /** reads ChannelInfo struct from .ced file (EEGlab).

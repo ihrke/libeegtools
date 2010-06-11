@@ -178,6 +178,125 @@ Array* hierarchical_average( const Array *data, const Array *distmat,
 }
 
 
+/** \brief example function to pass as SignalAverageFunctionUnequalLength doing a pointwise average.
+
+	 \param input data (N x C x n)
+	 \param index average data[idx[0]] and data[idx[1]]
+	 \param weights number of trials "behind" each average
+	 \param optional arguments
+	 \return the average
+*/
+Array* average_unequal_warp( Array **data, uint idx[2], double weights[2], OptArgList *optargs ){
+  int i,j;
+
+  int N,C,n;
+  C = data[idx[0]]->size[1];
+  Array *a=data[idx[0]];
+  Array *b=data[idx[1]];
+
+  Array *d = distmatrix_signaldist( vectordist_euclidean, 
+												a, b, NULL, NULL );
+
+  OptArgList *opts=optarglist( "slope_constraint=int", SLOPE_CONSTRAINT_NONE );
+  Array *m1 = matrix_dtw_cumulate( d, TRUE, opts );
+  optarglist_free( opts );
+
+  Array *p = matrix_dtw_backtrack( m1 );
+  
+  opts =  optarglist( "weights=double*", weights);
+  Array *avg = dtw_add_signals( a, b, C, opts);
+  optarglist_free( opts );
+
+  array_free( d );
+  array_free( m1 );
+  array_free( p );
+
+  return avg;
+}
+/** \brief highly experimental
+ */
+Array* hierarchical_average_unequal_length( Array **data, const Array *distmat, 
+														  SignalAverageFunctionUnequalLength avgfct, 
+														  OptArgList *optargs ){
+  Dendrogram *T, *Tsub; 
+  ProgressBarFunction progress=NULL;  
+  LinkageFunction linkage=dgram_dist_completelinkage;
+  void *ptr;
+
+  bool ismatrix;
+  matrix_CHECKSQR( ismatrix, distmat );
+  if( !ismatrix ) return NULL;
+
+
+  optarg_PARSE_PTR( optargs, "linkage", linkage, LinkageFunction, ptr );
+  optarg_PARSE_PTR( optargs, "progress", progress, ProgressBarFunction, ptr );
+
+  int N,C;
+  N = distmat->size[0];
+  C = data[0]->size[1];
+
+  /** check data-pointers */
+
+  dprintf("Data is (%i x %i)\n", N, C );
+
+  /*------------------- computation --------------------------*/
+  /* build hierarchical dendrogram */
+  T = agglomerative_clustering( distmat, linkage );
+
+  int i;
+  double weights[2];
+  int *indices = (int*)malloc( N*sizeof(int) );
+  for( i=0; i<N; i++ ){
+	 indices[i] = 1;
+  }  
+
+  /* now walk the tree to find pairs of trials to match */
+  Array *new, *avg;
+  int trials_left = N;
+  uint idx[2]={0,0};
+  if( progress ) progress( PROGRESSBAR_INIT, N );
+
+
+  Array **d = (Array*)malloc( N*sizeof(Array*) );
+  for( i=0; i<N; i++ ){
+	 d[i] = data[i];
+  }
+
+  while( trials_left >= 2 ){
+	 if( progress ) progress( PROGRESSBAR_CONTINUE_LONG, N-trials_left );
+	 
+	 Tsub = dgram_get_deepest( T );
+	 idx[0] = Tsub->left->val;
+	 idx[1] = Tsub->right->val;
+	 
+	 weights[0] = indices[idx[0]]/(double)(indices[idx[0]]+indices[idx[1]]);
+	 weights[1] = indices[idx[1]]/(double)(indices[idx[0]]+indices[idx[1]]);
+
+	 new=avgfct( d, idx, weights, optargs );
+	 
+	 d[idx[0]]=new;
+	 d[idx[1]]=NULL;
+
+	 indices[idx[0]] += indices[idx[1]];
+	 indices[idx[1]]=-1; 			  /* never to be used again */
+	 
+	 /* replace node by leaf representing average(idx1, idx2) */
+	 Tsub->val = idx[0];
+	 Tsub->left = NULL;
+	 Tsub->right = NULL;	
+	 trials_left--;
+  }
+  /* idx[0] is the final average */
+  avg = d[idx[0]];
+  /*------------------- /computation --------------------------*/
+
+  free( d );
+  free( indices );
+
+  return avg;
+}
+
+
 
 /** Calculate a simple, pointwise average across trials
 	 \f[
