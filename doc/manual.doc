@@ -9,6 +9,7 @@
 	 - \subpage man_helloworld
 	 - \subpage man_corefunctionality
 	 - \subpage man_io
+	 - \subpage man_organization
 	 - \subpage man_matlab
 	 - \subpage man_python
 	 - \subpage man_appendix
@@ -16,6 +17,9 @@
 
 
 /**\page man_installation Installation/Compilation
+
+\prevnext{manual,man_helloworld}
+
 	<h1>Installation/Compilation</h1>
 
 	There are very few hard dependencies, currently:
@@ -69,11 +73,8 @@ autoreconf --force --install	\endverbatim
 make
 make install 	\endverbatim
 
-<p><br><br><hr>
-  - Previous Page: \ref manual
-  - Next Page: \ref man_helloworld
 
-<hr>
+\prevnext{manual,man_helloworld}
 */
 
 /**
@@ -117,6 +118,8 @@ If you installed the library to $PREFIX, you can compile and link the sample pro
 /**
 	\page man_io Input/Output
 	<h1>Input/Output</h1>
+	\subpage importexport
+	\subpage chaninfo
 	
 	- \ref importexport
 	- \ref chaninfo
@@ -231,6 +234,9 @@ Coming Soon!
 
 \verbatim
 * $Log$
+* Revision 1.2  2010/06/25 12:08:19  mihrke
+* worked onthe MATLAB interface
+*
 * Revision 1.1  2009/11/27 19:35:00  mihrke
 * * some memory bugs
 * * documentation restructured

@@ -26,6 +26,7 @@
 
 /** \brief convert 2D- Array struct to gsl_matrix.
 
+	 \ingroup grplinalg
 	 This function works also for non-double Array's,
 	 but the input array MUST be of DType DOUBLE if alloc
 	 is FALSE. If alloc is TRUE, the type is casted
@@ -88,6 +89,9 @@ gsl_matrix* matrix_to_gsl( Array *in, bool alloc ){
 }
 
 /** \brief calculate the mean of matrix a along dimension dim.
+
+	 \ingroup grplinalg
+
 	 \param a the matrix
 	 \param dim along which dimension?
 	 \return vector of size a->size[1-dim]
@@ -117,6 +121,8 @@ Array* matrix_mean( Array *a, int dim ){
 }
 
 /** \brief get a row of a matrix as vector.
+
+	 \ingroup grplinalg
 
 	 \note if alloc is TRUE, the returned vector is 
 	 independant. If alloc is FALSE, the memory 
@@ -152,6 +158,8 @@ Array* matrix_get_row( Array *m, int row, bool alloc ){
 
 /** \brief get a column of a matrix as vector.
 
+	 \ingroup grplinalg
+
 	 \note memory copy is necessary, because the 
 	       memory of a column is not aligned.
 			 It is therefore slower than calling
@@ -182,6 +190,8 @@ Array* matrix_get_col( Array *m, int col ){
 }
 
 /** \brief Matrix Multiplication.
+
+	 \ingroup grplinalg
 
 	 m1 and m2 must be matrices such that m1->size[1]==m2->size[0].
 	 \param m1,m2 the matrices
@@ -217,6 +227,8 @@ Array* matrix_mult( const Array *m1, const Array *m2 ){
 }
 /** \brief Matrix transpose.
 	 
+	 \ingroup grplinalg
+
 	 \todo implement a faster way
 
 	 \param m matrix
@@ -249,6 +261,8 @@ Array* matrix_transpose( Array *m, bool alloc ){
 }
 
 /** \brief Principal Components analysis.
+
+	 \ingroup grplinalg
 
 	 This implementation uses SVD to calculate the PCA.
 	 Example:

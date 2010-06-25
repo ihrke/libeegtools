@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------
 ### preludes
 # ----------------------------------------------------------------------
-AC_INIT([libeegtools], [0.6.2], [ihrke@nld.ds.mpg.de])
+AC_INIT([libeegtools], [0.6.3], [ihrke@nld.ds.mpg.de])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 #AC_DISABLE_SHARED
 
@@ -86,6 +86,21 @@ fi
 AC_SUBST(DEF_DEBUG)
 AC_SUBST(DEBUG_FLAGS)
 
+##------ Experimental SUPPORT -----#
+AC_ARG_ENABLE(experimental,
+  [  --enable-experimental   enable experimental code (default "no")],
+  [with_experimental=$enableval],
+  [with_experimental=no]
+)
+
+DEF_EXPERIMENTAL="NOEXPERIMENTAL"
+
+if test "x${with_experimental}" = xyes; then
+        DEF_EXPERIMENTAL="EXPERIMENTAL"       
+fi
+
+AC_SUBST(DEF_EXPERIMENTAL)
+
 ##------ COLOURED PRINTING SUPPORT -----#
 AC_ARG_ENABLE(color,
   [  --enable-color          enable colored printing (default "yes")],
@@ -107,18 +122,50 @@ AC_ARG_ENABLE(matlab,
   [with_matlab=no]
 )
 
+MEX=mex
+MEXEXT_PROG=mexext
+AC_ARG_WITH(mex,
+        [  --with-mex              MATLAB compiler command],
+        MEX=$withval)
+
+if test "${prefix}" = "NONE"; then  
+   MATLAB_DIR=`eval echo "/usr/local/share/${PACKAGE}/matlab"`
+else
+   MATLAB_DIR=`eval echo "${datadir}/${PACKAGE}/matlab"`
+fi
+AC_DEFINE_UNQUOTED( [PCG_DATADIR], "$PCG_DATADIR", [Directory where data files are located.])
+
+AC_ARG_WITH(matlab-dir,
+        [  --with-matlab-dir       path for MATLAB files],
+        MATLAB_DIR=$withval)
+
 DEF_MATLAB="NOMATLAB"
 MATLAB_INCLUDES=""
 MATLAB_PATH=""
 if test "x${with_matlab}" = xyes; then
-        DEF_MATLAB="MATLAB"       
-		  MATLAB_PATH=`matlab -e|grep MATLAB=|sed s/MATLAB=//`
-		  MATLAB_INCLUDES="-I $MATLAB_PATH/extern/include"
+		  AC_PATH_PROG(MEX, $MEX)  
+		  if ! test -n "$MEX" && ! $MEX -v 2>/dev/null | grep MATLAB >/dev/null; then
+		     if test -n "$MEX"; then
+        	  AC_MSG_WARN([mex script does not seem to come from matlab (could be Octave mex script). Pass the path to matlab mex using --with-mex option.]) 
+			  else						 
+        	     AC_MSG_WARN([no matlab mex found in the path])
+       	  fi
+  	  		  with_matlab=no;	  
+		  else 
+			  MEXEXT=`$MEXEXT_PROG`;
+           DEF_MATLAB="MATLAB"       
+  		     MATLAB_PATH=`matlab -e|grep MATLAB=|sed s/MATLAB=//`
+		     MATLAB_INCLUDES="-I $MATLAB_PATH/extern/include"
+        fi 
 fi
 
 AC_SUBST(DEF_MATLAB)
 AC_SUBST(MATLAB_INCLUDES)
 AC_SUBST(MATLAB_PATH)
+AC_SUBST(MATLAB_DIR)
+AC_SUBST(MEX)
+AC_SUBST(MEXEXT)
+AM_CONDITIONAL(MATLAB_SUPPORT, test "x${with_matlab}" = xyes )
 
 ##------ PLOTTER SUPPORT -----#
 AC_ARG_ENABLE(plotter,
@@ -159,7 +206,7 @@ AC_SUBST(DEF_PLOTTER)
 ### check for SWIG
 # ----------------------------------------------------------------------
 AC_ARG_ENABLE(python,
-  [  --enable-python        enable python-bindings (default "yes")],
+  [  --enable-python         enable python-bindings (default "yes")],
   [with_python=$enableval],
   [with_python=yes]
 )
@@ -234,7 +281,7 @@ AC_SUBST(SRCDIR)
 # ----------------------------------------------------------------------
 AM_CONFIG_HEADER([config.h])
 AC_OUTPUT(Makefile src/Makefile misc/Makefile programs/Makefile examples/Makefile)
-AC_OUTPUT(src/definitions.h matlab/Makefile)
+AC_OUTPUT(src/definitions.h matlab/Makefile matlab/mex/Makefile)
 AC_OUTPUT(test/Makefile eeglab_plugin/Makefile scipy/Makefile)
 AC_OUTPUT(pythonapi/setup.py)
 AC_OUTPUT(pythonapi/Makefile)
@@ -264,9 +311,12 @@ echo ""
 echo "MATLAB enabled"
 echo " MATLAB_PATH     ='${MATLAB_PATH}'"
 echo " MATLAB_INCLUDES ='${MATLAB_INCLUDES}'"
+echo " MEX = '${MEX}'"
+echo " MEXEXT = '${MEXEXT}'"
+echo " MATLAB_DIR = '${MATLAB_DIR}'"
 fi
 
-if test "z${enable_python}" != z; then
+if test "z${enable_python}" != zno; then
 if test "z${SWIG}" != z; then
 echo ""
 echo "Building Python bindings using"
@@ -298,6 +348,13 @@ if test "x${with_unittest}" = xyes; then
 echo ""
 echo "Unit-Testing is enabled"
 echo "  using libcheck"
+fi	
+
+if test "x${with_experimental}" = xyes; then
+echo ""
+echo "WARNING: Experimental code is enabled"
+echo "  If the library does not compile, try reconfiguring with"
+echo "  --disable-experimental"
 fi	
 
 echo ""

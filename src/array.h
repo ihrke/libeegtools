@@ -159,6 +159,9 @@ extern "C" {
 
 #define DIM_ROWS 0
 #define DIM_COLS 1
+  /**\ingroup grparray
+	  \{
+  */
 
   /** \def array_SIZEOF_DTYPE( size, dtype )
 		\brief get size of datatype.
@@ -356,12 +359,12 @@ extern "C" {
   /** \brief Numerical Array struct. */
   typedef struct {
 	 void *data;       /**< \brief data in C-storage format. */
-	 DType dtype;      /**< datatype of data */
-	 uint  dtype_size; /**< sizeof(dtype) in bytes */
-	 uint  ndim;       /**< number of dimensions */
-	 ulong nbytes;     /**< number of bytes in array in total */
-	 uint  *size;      /**< number of elements per dimension */
-	 bool  free_data;  /**< should data be free'd ? */
+	 DType dtype;      /**< \brief datatype of data */
+	 uint  dtype_size; /**< \brief sizeof(dtype) in bytes */
+	 uint  ndim;       /**< \brief number of dimensions */
+	 ulong nbytes;     /**< \brief number of bytes in array in total */
+	 uint  *size;      /**< \brief number of elements per dimension */
+	 bool  free_data;  /**< \brief should data be free'd ? */
   } Array;
 
   /* -------------- FUNCTIONS ---------------- */
@@ -403,6 +406,7 @@ extern "C" {
   void   array_print ( Array *a, uint nel_per_dim, FILE *out );
   void   array_dtype_to_double( double *out, void *mem, DType dt );
 
+  /**\}*/
 #ifdef __cplusplus
 }
 #endif

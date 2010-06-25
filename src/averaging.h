@@ -56,18 +56,21 @@ extern "C" {
   Array* average_example( const Array *data, uint idx[2], double weights[2], 
 								  OptArgList *optargs );
 
+  Array* hierarchical_average( const Array *data, const Array *distmat, 
+										 SignalAverageFunction avgfct, OptArgList *optargs );
+
+  EEG*     eeg_simple_average   ( const EEG *eeg );
+  EEG*     eeg_average_channels ( const EEG *eeg );
+
+#ifdef EXPERIMENTAL
+
   typedef Array*(*SignalAverageFunctionUnequalLength)( Array **,uint[2],double[2],OptArgList*);
   Array* average_unequal_warp( Array **data, uint idx[2], double weights[2], 
 										 OptArgList *optargs );
   Array* hierarchical_average_unequal_length( Array **data, const Array *distmat, 
 															 SignalAverageFunctionUnequalLength avgfct, 
 															 OptArgList *optargs );
-
-  Array* hierarchical_average( const Array *data, const Array *distmat, 
-										 SignalAverageFunction avgfct, OptArgList *optargs );
-
-  EEG*     eeg_simple_average   ( const EEG *eeg );
-  EEG*     eeg_average_channels ( const EEG *eeg );
+#endif
 
 #ifdef __cplusplus
 }

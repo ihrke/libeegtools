@@ -1,0 +1,20 @@
+/** \page status Information about Status-Tags
+
+	 \section status_stable STATUS: stable	
+	 Functions declared as stable are unlikely to change in the near future
+	 and are comparatively well tested. Sometimes even unit-tests are available.
+
+	 \section status_unstable  STATUS: unstable
+	 Functions declared as unstable are not well tested but are more or less finished
+	 such that the implementation may change but not the API.
+
+	 \section status_experimental  STATUS: experimental
+	 Functions declared as experimental are highly likely to change. You should take
+	 extreme care when using such functions (and submit a patch).
+
+	 \section status_inprogress  STATUS: work in progress
+	 Funcions declared as work in progress are not finished and should not be used.
+
+	 \section obsolete STATUS: obsolete
+	 Obsolete functions should not be used, since they are going to disappear soon.
+*/

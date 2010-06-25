@@ -43,9 +43,6 @@
 extern "C" {
 #endif
 
-  /**\ingroup cphmm
-	*\{
-	*/ 
 
   /** Continuous Profile Model struct. See Listgarten et al. 2005.
 	*/
@@ -81,8 +78,6 @@ extern "C" {
   CPHiddenMarkovModel* eeg_cphmm_init( EEG *eeg, int channel, double **X );
   void cphmm_init( CPHiddenMarkovModel *m, double **X );
   void cphmm_free( CPHiddenMarkovModel *m );
-
-  /*\}*/
 
 #ifdef __cplusplus
 }

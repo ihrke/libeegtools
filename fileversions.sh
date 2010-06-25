@@ -3,6 +3,7 @@
 # this script returns the correct revision for each file
 # it is called by doxygen to put the tag into the documentation
 
+
 EXTENSIONS="h c doc"
 
 CURDIR=`pwd`

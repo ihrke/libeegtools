@@ -233,8 +233,8 @@ int strcount( const char *s, char c ){
 	             PROGRESSBAR_CONTINUE_SHORT
 	 \param num meaning depends on flag
  */
-void progressbar_rotating( int flag, int num ){
-  int c, i;
+void progressbar_rotating( int flag, ulonglong num ){
+  ulonglong c,i;
   FILE *out;
 
   out = stderr; 
@@ -253,9 +253,8 @@ void progressbar_rotating( int flag, int num ){
 	 }
 	 break;
   case PROGRESSBAR_CONTINUE_LONG:
-	 c = (num*PROGRESSBAR_NUMCOLS/progress_status.max_progress);
-	 //printf("c=%i, cur_progress=%i, num=%i, p=%i\n", c, cur_progress, num, max_progress);
-	 if( num>progress_status.cur_progress ){
+	 c=PROGRESSBAR_NUMCOLS*((double)num/(double)progress_status.max_progress);
+	 while( c>progress_status.cur_progress ){
 		fprintf( out, "#" );
 		progress_status.cur_progress++;
 	 }

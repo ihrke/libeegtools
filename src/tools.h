@@ -32,11 +32,7 @@
 extern "C" {
 #endif
 
-/** \addtogroup tools
- *\{
- */
   EEG* eeg_remove_baseline      ( EEG *eeg, double win_from, double win_to, bool alloc );
-/** \} */
 
 #ifdef __cplusplus
 }

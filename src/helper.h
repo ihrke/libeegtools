@@ -76,14 +76,14 @@
 	 write your own progressbar-function.
  */
 typedef struct{
-  int max_progress;
-  int cur_progress;
-  int prev_progress;
+  ulonglong max_progress;
+  ulonglong cur_progress;
+  ulonglong prev_progress;
 } ProgressBarStatus;
 
 /** \brief A progressbar-function.
  */ 
-typedef void    (*ProgressBarFunction)          (int,int);
+typedef void    (*ProgressBarFunction)          (int,ulonglong);
 
   /** \brief convenience memory alloc macro. 
 
@@ -159,8 +159,6 @@ extern "C" {
   /* ---------------------------------------------------------------------------- 
 	  -- Helper functions (org)                                                       -- 
 	  ---------------------------------------------------------------------------- */
-  /**\addtogroup helperorg
-	*\{*/
   void     errormsg(int err_no, int fatal);
 
   void     swap_bytes(void *ptr, int nmemb);
@@ -182,10 +180,7 @@ extern "C" {
 
   double** copy_double_ptrptr(const double **s, int N, int n);
   void     string_strip_blanks( char *s );
-  /**\}*/
 
-  /**\addtogroup helperio
-	*\{*/
   /* ---------------------------------------------------------------------------- 
 	  -- Helper functions (IO)                                                  -- 
 	  ---------------------------------------------------------------------------- */
@@ -196,20 +191,15 @@ extern "C" {
 
   int     stream_count_char( FILE* f, char c );
 
-  /**\}*/
+
 
 
   /* ---------------------------------------------------------------------------- 
 	  -- Gobals                                                                 -- 
 	  ---------------------------------------------------------------------------- */
 
-  /** \addtogroup progressbar 
-		\{  
-  */
   extern ProgressBarStatus progress_status;
-  void   progressbar_rotating( int flag, int num );
-  /** \} */
-
+  void   progressbar_rotating( int flag, ulonglong num );
 
 #ifdef __cplusplus
 }

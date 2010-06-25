@@ -18,6 +18,7 @@ The code I reused from other sources is documented in the source-files at the ap
 - I included the complete Fidlib-library (and wrote wrappers for the EEG-data) from Jim Peters (http://uazu.net/fidlib/)
    - \ref filter.h
 - I acknowledge the great MATIO (https://sourceforge.net/projects/matio/) library that I use to import Matlab files
+- I used some functions from mex_utils.h/.cpp from the PFSTools project at http://pfstools.sourceforge.net/
 - and of course the GNU Scientific Library at http://www.gnu.org/software/gsl/
 
 Thanks Guys!

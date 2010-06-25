@@ -141,8 +141,60 @@ START_TEST (test_delete_arg)
 										 "dritter=int", (void*)test,
 										 (void*) test2, 3);
   OptArg *tmp=optarglist_optarg_by_key( opts, "dritter" );
-  optarglist_delete_arg( opts, tmp );
-  optarglist_print(opts, stderr );
+  OptArgList *o=optarglist_delete_arg( opts, tmp );
+  
+  fail_unless( o->nargs == opts->nargs-1 );
+  fail_if(  optarglist_has_key( o, tmp->key ) );
+
+  optarglist_free( opts );
+  optarglist_free( o );
+}
+END_TEST
+
+START_TEST (test_inittmp)
+{  
+  double *test=(double*)malloc(10*sizeof(double));
+  OptArgList *opts = optarglisttmp( " hi =double , test = double *, du=int ", 0.5, test, 10);
+
+  fail_if( strcmp( opts->args[0].key, "hi" ) );
+  fail_if( strcmp( opts->args[0].type, "double" ), "'%s' not '%s'", opts->args[0].type, "double");
+  fail_if( cmpdouble( opts->args[0].data_scalar, 0.5, 2 ) );
+  fail_if( strcmp( opts->args[2].key, "du" ) );
+  fail_if( strcmp( opts->args[2].type, "int" ) );
+  fail_if( ((int) opts->args[2].data_scalar )!=10 );
+  fail_if( strcmp( opts->args[1].key, "test" ) );
+  fail_if( strcmp( opts->args[1].type, "double*" ) );
+  fail_if( opts->args[1].data_ptr != test );
+
+  optarglist_free( opts );
+
+  opts = optarglisttmp( "hi=int", 5 );
+  fail_if( strcmp( opts->args[0].key, "hi" ) );
+  optarglist_free( opts );
+
+  free(test);
+}
+END_TEST
+
+START_TEST (test_removeflag)
+{
+  double *test=(double*)malloc(10*sizeof(double));
+  OptArgList *opts = optarglisttmp( " hi =double , test = double *, du=int ", 0.5, test, 10);
+
+  //  optarglist_print( opts, stderr );  
+  bool flag;
+  OptArgList *opts2=optarglist_remove_freeflag( opts, &flag );
+  fail_unless( flag );
+  fail_unless( opts2!=opts );
+  optarglist_free( opts2 );
+
+  opts = optarglist( " hi =double , test = double *, du=int ", 0.5, test, 10);
+  opts2=optarglist_remove_freeflag( opts, &flag );
+  fail_if( flag );
+  fail_if( opts2!=opts );
+  optarglist_free( opts2 );
+
+  free( test );
 }
 END_TEST
 
@@ -163,6 +215,8 @@ Suite * init_optarg_suite (void){
   tcase_add_test (tc_core, test_parse_scalar);
   tcase_add_test (tc_core, test_parse_ptr);
   tcase_add_test (tc_core, test_delete_arg);
+  tcase_add_test (tc_core, test_inittmp);
+  tcase_add_test (tc_core, test_removeflag);
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

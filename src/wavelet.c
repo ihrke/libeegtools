@@ -32,10 +32,10 @@
 #include "eeg.h"
 
 
-/** Wavelet estimation of single trial ERP's using Wang et al.'s
- * (2007) technique. 
- *
- * Formula \f[ \lambda = \sigma \sqrt{2\log_e{n\log_2{n}}} \f].
+/** \brief Wavelet estimation of single trial ERP's using Wang et al.'s (2007) technique. 
+	 
+	 \ingroup grpwavelet
+	 Formula \f[ \lambda = \sigma \sqrt{2\log_e{n\log_2{n}}} \f].
 */
 double translation_invariant_thresholding(const double *data, int n){
   dprintf("Db: translation_invariant_thresholding\n");
@@ -46,9 +46,9 @@ double translation_invariant_thresholding(const double *data, int n){
   return lambda;
 }
 
-/** Wavelet estimation of single trial ERP's using the technique
- * labelled "conventional" in Wang et al. (2007).
+/**\brief  Wavelet estimation of single trial ERP's using a conventional estimate.
  *
+	 \ingroup grpwavelet
  * Formula \f[ \lambda = \sigma \sqrt{2\log_e{n}} \f].
  */
 double conventional_thresholding(const double *data, int n){
@@ -59,7 +59,10 @@ double conventional_thresholding(const double *data, int n){
   lambda = sigma * sqrt(2*log(n));
   return lambda;
 }
-/** thresholding as proposed in the Matlab Wavelet-Toolbox.
+
+/** \brief thresholding as proposed in the Matlab Wavelet-Toolbox.
+
+	 \ingroup grpwavelet
     \code
        case 'heursure' 
          hthr = sqrt(2*log(n)); 
@@ -84,9 +87,10 @@ double heuristic_sure(const double *data, int n){
     return fmin(sureshrink(data, n), hthr);
 }
 
-/** Wavelet estimation of single trial ERP's using the procedure described
- * in Donoho et al., 1995. The implementation described in the outline
- * is used; */
+/**\brief procedure described in Donoho et al., 1995. 
+
+ \ingroup grpwavelet
+*/
 double sureshrink(const double *data, int n){
   int i,k;
   double lambda, sigma, sure, suremin;
@@ -120,8 +124,12 @@ double sureshrink(const double *data, int n){
   return lambda;
 }
 
-/** Generic Denoising: compute DWT of signal, call the thresholding
-   function 'threshfct' for each resolution level and IDWT the signal */
+/** \brief Generic Wavelet-Denoising.
+																	
+	 \ingroup grpwavelet
+	 compute DWT of signal, call the thresholding
+	 function 'threshfct' for each resolution level and IDWT the signal 
+*/
 int wavelet_denoise   ( double *data, int n, WaveletParameters P ){
   gsl_wavelet *w;
   gsl_wavelet_workspace *work;
@@ -153,7 +161,9 @@ int wavelet_denoise   ( double *data, int n, WaveletParameters P ){
   return 0;
 }
 
-/** set default parameters for a waveletParameters struct
+/** \brief set default parameters for a waveletParameters struct.
+
+	 \ingroup grpwavelet
  */
 WaveletParameters wavelet_init(){
   WaveletParameters P;
@@ -166,7 +176,9 @@ WaveletParameters wavelet_init(){
   return P;
 }
 
-/** Extend data to length 2^j using sigextfct and denoise it.
+/**\brief Extend data to length 2^j using sigextfct and denoise it.
+
+	\ingroup grpwavelet
  * \see generic_denoising()
  */
 int wavelet_extend_and_denoise  ( double *data, int n, WaveletParameters P ){
@@ -189,9 +201,10 @@ int wavelet_extend_and_denoise  ( double *data, int n, WaveletParameters P ){
   return 0;
 }
 
-/** Implements soft-thresholding.
+/** \brief soft-thresholding.
+
+	 \ingroup grpwavelet
  * Formula: \f$ \eta_s(\lambda, w)=\f$
- * \ingroup thresholding
  */
 double soft_thresholding(double d, double lambda){
   /* soft thresholding, formula (6) */
@@ -205,9 +218,10 @@ double soft_thresholding(double d, double lambda){
   }
   return d;
 }
-/** Implements hard-thresholding.
+/** \brief hard-thresholding.
+
+	 \ingroup grpwavelet
  * Formula: \f$ \eta_h(\lambda, w)=\f$
- * \ingroup thresholding
  */
 double hard_thresholding(double d, double lambda){
   /* hard thresholding */
@@ -218,10 +232,14 @@ double hard_thresholding(double d, double lambda){
 }
 
 
-/** Extend data to length 2^j using sigextfct and denoise it.
+/**\brief Extend data to length 2^j using sigextfct and denoise it.
+
+	\see grpwavelet
  * \see generic_denoising()
  * \see extend_and_denoise()
  * data is directly written into the eegdata-struct or copied;
+
+ \ingroup grpeegproc
 
  \param eeg input
  \param P parameters

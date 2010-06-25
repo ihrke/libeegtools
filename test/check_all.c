@@ -30,20 +30,20 @@ int main (void){
 
 
   SRunner *sr = srunner_create (cfct);
-  srunner_add_suite( sr, den  );
-  srunner_add_suite( sr, dist );
-  srunner_add_suite( sr, hmm  );
-  srunner_add_suite( sr, nlin );
-  srunner_add_suite( sr, lalg  );
-  srunner_add_suite( sr, warp  );
-  srunner_add_suite( sr, clust  );
-  srunner_add_suite( sr, avg  );
-  srunner_add_suite( sr, other);
-  srunner_add_suite( sr, list );
-  srunner_add_suite( sr, eeg  );
-  srunner_add_suite( sr, arr  );
+  /* srunner_add_suite( sr, den  ); */
+  /* srunner_add_suite( sr, dist ); */
+  /* srunner_add_suite( sr, hmm  ); */
+  /* srunner_add_suite( sr, nlin ); */
+  /* srunner_add_suite( sr, lalg  ); */
+  /* srunner_add_suite( sr, warp  ); */
+  /* srunner_add_suite( sr, clust  ); */
+  /* srunner_add_suite( sr, avg  ); */
+  /* srunner_add_suite( sr, list ); */
+  /* srunner_add_suite( sr, eeg  ); */
+  /* srunner_add_suite( sr, arr  ); */
+  /* srunner_add_suite( sr, optarg ); */
+  /* srunner_add_suite( sr, other); */
   srunner_add_suite( sr, io  ); 
-  srunner_add_suite( sr, optarg );
 
   srunner_set_log(sr, "test.log");
   srunner_run_all (sr, CK_VERBOSE);

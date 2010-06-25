@@ -140,6 +140,7 @@ START_TEST (test_numleaves)
 }
 END_TEST
 
+#ifdef MATIO
 START_TEST (test_dgram_to_matlab)
 {
   /* Test in MATLAB as follows:
@@ -179,6 +180,8 @@ START_TEST (test_dgram_to_matlab)
   array_free( dmat );
 }
 END_TEST
+#endif
+
 /* template
 START_TEST (test_)
 {
@@ -195,7 +198,10 @@ Suite * init_cluster_suite (void){
   tcase_add_test (tc_core, test_scatter);
   tcase_add_test (tc_core, test_agglomerative);
   tcase_add_test (tc_core, test_numleaves);
+
+#ifdef MATIO
   tcase_add_test (tc_core, test_dgram_to_matlab);
+#endif
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

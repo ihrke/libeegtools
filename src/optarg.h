@@ -34,13 +34,15 @@
  free_optarglist( args ) // does not free any mydata 
  \endcode
 
- */
+ \section tempoptargs Temporary Optional Argument lists
 
-/*
  Every function that receives an optarglist is required to check for the 
  existence of "optarglist_free" within the parameterlist. If this parameter
  exists, the function is required to free the memory pointed to the
- argument. This enables the use of optarglists like this:
+ argument. Also, the parameter is removed from the list and possibly 
+ passed to other functions.
+
+ This enables the use of optarglists like this:
  \code
  function_taking_optargs( optarglist( "bottom_frequency=double,
                                        num_trials=int,
@@ -48,8 +50,42 @@
 													optarglist_free=int",
 													0.5, 10, mydata, 1) );
  \endcode
+ or even shorter like
+ \code
+ function_taking_optargs( optarglisttmp( "bottom_frequency=double,
+                                        num_trials=int,
+													 data=double*",												
+												 	0.5, 10, mydata) );
+ \endcode
  where the memory deallocation is handled by the called function.
- */
+
+ \par For writing a function that takes an OptArgList* as an argument.
+
+	 The function optarlist_remove_freeflag() 
+	 removes the optarglist_free-flag from the list
+	 and returns a new list without the flag. The old list is free'd 
+	 in case that the optarglist_free argument is found. 
+
+	 The removedflag-flag is set to FALSE if it is the same list,
+	 to TRUE if it is a new (truncated) list.
+
+	 Usage is as follows:
+	 \code
+	 void testfct( OptArgList *opts ){	 
+	    // overwrite the pointer
+		 bool freeflag_removed=FALSE;
+	    opts=optarglist_remove_freeflag( opts, &freeflag_removed );
+
+		 // do some stuff including passing the argument to some other function
+		 call_other_function( opts );
+		 
+		 // clean up in case the flag was indeed removed
+		 if( freeflag_removed )
+		    optarglist_free( opts );
+	 }
+	 \endcode
+
+*/
 #ifndef OPTARG_H
 # define OPTARG_H
 
@@ -67,17 +103,17 @@ extern "C" {
 	 ---------------------------------------------------------*/
   /**\brief An optional Argument. */
   typedef struct {
-	 char    key[MAX_LABEL_LENGTH];
-	 bool    scalar;
-	 char    type[MAX_LABEL_LENGTH];
-	 void    *data_ptr;
-	 double  data_scalar;
+	 char    key[MAX_LABEL_LENGTH]; /**<\brief The key to refer to the argument */
+	 bool    scalar;                /**<\brief flag whether arg is scalar or pointer*/
+	 char    type[MAX_LABEL_LENGTH];/**<\brief e.g. double* ... */
+	 void    *data_ptr;             /**<\brief data if scalar=FALSE */
+	 double  data_scalar;           /**<\brief data if scalar=TRUE */
   } OptArg;
 
   /**\brief A list of optional Arguments. */
   typedef struct {
-	 int nargs;
-	 OptArg *args;
+	 int nargs; /**<\brief number of arguments in the list */
+	 OptArg *args; /**<\brief memory for the arguments */
   } OptArgList;
 
   /** \brief Check and assign a scalar from OptArgList.
@@ -110,7 +146,8 @@ extern "C" {
 	 if( (tmp) ) (var)=(type)(tmp);									\
   }
 
-  OptArgList* optarglist( char *format, ... );
+  OptArgList* optarglist( char *format,  ... );
+  OptArgList* optarglisttmp( char *format, ... );
 
   bool        optarglist_has_key( OptArgList *list, const char *key );
 
@@ -119,10 +156,12 @@ extern "C" {
   OptArg*     optarglist_optarg_by_key( OptArgList *list, const char *key );
 
   OptArgList* optarglist_append_arg   ( OptArgList *list, OptArg *arg );
-  void        optarglist_delete_arg   ( OptArgList *list, OptArg *arg );
+  OptArgList* optarglist_delete_arg   ( OptArgList *list, OptArg *arg );
 
   void        optarglist_print( OptArgList *list, FILE *out );
   void        optarglist_free( OptArgList *list );
+
+  OptArgList* optarglist_remove_freeflag( OptArgList *list, bool *removedflag );
 
   OptArg*     optarg_scalar( const char *key, double scalar );
   OptArg*     optarg_ptr   ( const char *key, void *ptr );

@@ -49,16 +49,19 @@
 #include "definitions.h"
 #include "complex.h"
 
-/** \ingroup helpermath*/
+/** \brief maximum of two elements. */
 #define MAX(a,b) ((a) > (b) ? (a):(b))
-/** \ingroup helpermath*/
+/** \brief minimum of two elements. */
 #define MIN(a,b) ((a) < (b) ? (a):(b))
-/** \ingroup helpermath*/
+/** \brief square of a number. */
 #define SQR(a) ((a)*(a))
-/** \ingroup helpermath*/
+/** \brief absolute value of a number */
 #define ABS(a) ( ((a)<0) ? (-1*(a)) : (a) )
-/** \ingroup helpermath*/
+
 #define ISODD(x)        ((((x)%2)==0)? (0) : (1))
+
+/** \brief check whether bit at position pos is 1. */
+#define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
 
 # define PI           3.14159265358979323846  /* pi */
 
@@ -68,8 +71,6 @@ extern "C" {
   /* -------- Math ----------- */  
 
  
-  /**\ingroup helpermath
-	*\{*/
   double  glog(double v, int b);  
   double  mad(const double *data, int n); 
   int     abscmp(const void *p1, const void *p2);
@@ -102,33 +103,23 @@ extern "C" {
 	---------------------------------------------------------------------------- */
   void fft(double *data,  unsigned long nn, int isign);
   
-  /**\}*/
-  
 /* ---------------------------------------------------------------------------- 
    -- Signal extension routines                                              -- 
    ---------------------------------------------------------------------------- */
-  /** \ingroup sigext
-	\{
-  */
  
   double* sigext_zeros(double *data, int ns, int n);
   double* sigext_zerosr(double *data, int ns, int n);
   double* sigext_sym(double *data, int ns, int n);
   double* sigext_smooth(double *data, int ns, int n);
-  /** \} */
 
   /* ---------------------------------------------------------------------------- 
 	  -- Interpolation
 	  ---------------------------------------------------------------------------- */ 
-  /** \ingroup interp
-	\{
-  */
+
   double  drawsample_nearest_neighbour( const double *v, int n, double x );
   double* resample_linear( const double *s, int n, int newn, double *news );
   double* resample_nearest_neighbour( const double *s, int n, int newn, double *news );
   double* resample_gsl( const double *s, int n, int newn, double *news, const gsl_interp_type *method );
-  /** \} */
-
   /* ---------------------------------------------------------------------------- 
 	  -- Merit Measures                                                         -- 
 	  ---------------------------------------------------------------------------- */
@@ -138,9 +129,7 @@ extern "C" {
   /* ---------------------------------------------------------------------------- 
 	  -- dblp ops                                                             -- 
 	  ---------------------------------------------------------------------------- */  
-  /** \ingroup dblpops
-		\{
-  */
+ 
   double  dblp_min( double *v, int n, int *idx );
   double  dblp_max( double *v, int n, int *idx );
   double* dblp_init( double *v, int n,  double val );
@@ -151,14 +140,11 @@ extern "C" {
   void    dblp_print( double *v, int n );
   void    dblp_print_int( int *v, int n );
   double  dblp_mean( double *v, int n );
-  /** \} */
 
   /* ---------------------------------------------------------------------------- 
 	  -- Dblpp ops                                                             -- 
 	  ---------------------------------------------------------------------------- */ 
-  /** \ingroup dblppops
-		\{
-  */
+ 
   double** dblpp_delrow(double **m, int N, int n, int row);
   double** dblpp_delcol(double **m, int N, int n, int col);
   double   dblpp_min(const double **m, int N, int n, int *i1, int *i2);
@@ -177,7 +163,6 @@ extern "C" {
   void     scalar_minus_dblpp( double scalar, double **m, int N, int M );
   double** dblpp_rand( double **m, int N, int M, double lower, double upper );
   void     dblpp_free(double **m, int N);
-  /**\}*/
 
 #ifdef __cplusplus
 }

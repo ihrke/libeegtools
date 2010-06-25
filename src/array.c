@@ -127,7 +127,6 @@ void   array_typecast( Array *a, DType target_type ){
   for( i=0; i<nel; i++ ){
 	 mem=a->data+(i*srcsize);
 	 array_dtype_to_double( &tmpel, mem, a->dtype );
-	 dprintf("numel=%i, el=%f\n", nel, tmpel);
 	 array_MEMSET( newdata+(i*destsize), target_type, tmpel );
   }
 
@@ -235,6 +234,8 @@ Array* array_concatenate( const Array *a, const Array *b, int dim ){
 
 /** \brief calculate the row-major index-tuple given the offset from element 0.
 
+	 It is assumed, that the data is in row-major format.
+
 	 \param offset 
 	 \param size the dimensions of the array
 	 \param nsize number of dimensions
@@ -260,6 +261,8 @@ void array_calc_rowindex( ulong offset, const uint *size, uint nsize, uint *inde
 
 /** \brief calculate the column-major index-tuple given the offset from element 0.
 
+	 It is assumed, that the data is in row-major format.
+	 
 	 \param offset 
 	 \param size the dimensions of the array
 	 \param nsize number of dimensions

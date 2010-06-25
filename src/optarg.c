@@ -39,41 +39,10 @@ void optarglist_print( OptArgList *list, FILE *out ){
   }
 }
 
-/** \brief Creates an OptArgList out of one or many arguments.
-
-	 The Format string has the following convention:
-	 <pre>
-	 key1=double*,key2=void*,key3=int,key=double,...
-	 </pre>
-
-	 If you have at least one asterisk (*) in the specification, then
-	 the corresponding argument needs to be a pointer. 
-	 Internally, all pointer types are \c void*  and stored along
-	 with the given specification.
-
-	 Be VERY careful to typecast all variables to match the type you indicated.
-	 For example, if you have a float-variable and pass it as double, you need to 
-	 typecast to (double).
-
-	 Only "basic" scalar values (without asterisk) are
-	 supported:
-	 <ul>
-	 <li> char
-	 <li> short
-	 <li> int
-	 <li> long
-	 <li> float
-	 <li> double
-	 </ul>
-
-	 Blanks/Newlines etc are stripped from key and type, so
-	 <pre>
-	 key = double , key2=void*
-	 </pre>
-	 are ok.
+/**\cond PRIVATE
  */
-OptArgList* optarglist( char *format, ... ){
-  va_list ap;
+
+OptArgList* optarglist_hidden( char *format, va_list ap ){
   char *key, *type;
   char *tmp;
   char *fmt;
@@ -125,10 +94,6 @@ OptArgList* optarglist( char *format, ... ){
   }
   dprintf("Parsing done\n");
 
-
-
-  va_start (ap, format );         /* Initialize the argument list. */
-
   for (i = 0; i < nargs; i++){
 	 if( !strchr( L->args[i].type, '*' ) ){ /* it's scalar */
 		L->args[i].scalar=TRUE;
@@ -159,10 +124,104 @@ OptArgList* optarglist( char *format, ... ){
 	 }
   }
 
-  va_end (ap);                  /* Clean up. */
 
   free( fmt );
   return L;
+}
+
+/**\endcond */
+
+/**\brief Creates an OptArgList including a optarglist_free arg.
+
+	 The Format string has the following convention:
+	 <pre>
+	 key1=double*,key2=void*,key3=int,key=double,...
+	 </pre>
+
+	 If you have at least one asterisk (*) in the specification, then
+	 the corresponding argument needs to be a pointer. 
+	 Internally, all pointer types are \c void*  and stored along
+	 with the given specification.
+
+	 Be VERY careful to typecast all variables to match the type you indicated.
+	 For example, if you have a float-variable and pass it as double, you need to 
+	 typecast to (double).
+
+	 Only "basic" scalar values (without asterisk) are
+	 supported:
+	 <ul>
+	 <li> char
+	 <li> short
+	 <li> int
+	 <li> long
+	 <li> float
+	 <li> double
+	 </ul>
+
+	 Blanks/Newlines etc are stripped from key and type, so
+	 <pre>
+	 key = double , key2=void*
+	 </pre>
+	 are ok.
+*/
+OptArgList* optarglisttmp( char *format, ... ){
+  va_list ap;
+  va_start (ap, format );         /* Initialize the argument list. */
+  OptArgList *o=optarglist_hidden( format, ap );
+  va_end(ap);
+  
+  OptArg f;
+  sprintf(f.key, "optarglist_free");
+  f.scalar=TRUE;
+  sprintf(f.type, "int");
+  f.data_ptr=NULL;
+  f.data_scalar=1.0;
+  OptArgList *no=optarglist_append_arg( o, &f );
+  optarglist_free( o );
+  
+  return no;
+}
+
+/** \brief Creates an OptArgList out of one or many arguments.
+
+	 The Format string has the following convention:
+	 <pre>
+	 key1=double*,key2=void*,key3=int,key=double,...
+	 </pre>
+
+	 If you have at least one asterisk (*) in the specification, then
+	 the corresponding argument needs to be a pointer. 
+	 Internally, all pointer types are \c void*  and stored along
+	 with the given specification.
+
+	 Be VERY careful to typecast all variables to match the type you indicated.
+	 For example, if you have a float-variable and pass it as double, you need to 
+	 typecast to (double).
+
+	 Only "basic" scalar values (without asterisk) are
+	 supported:
+	 <ul>
+	 <li> char
+	 <li> short
+	 <li> int
+	 <li> long
+	 <li> float
+	 <li> double
+	 </ul>
+
+	 Blanks/Newlines etc are stripped from key and type, so
+	 <pre>
+	 key = double , key2=void*
+	 </pre>
+	 are ok.
+ */
+OptArgList* optarglist( char *format, ... ){
+  va_list ap;
+  va_start (ap, format );         /* Initialize the argument list. */
+  OptArgList *o=optarglist_hidden( format, ap );
+  va_end(ap);
+
+  return o;
 }
 
 /** \brief free an optarglist.
@@ -170,6 +229,7 @@ OptArgList* optarglist( char *format, ... ){
 	 does not free any data_ptr.
  */
 void        optarglist_free( OptArgList *list ){
+  free( list->args );
   free( list );
 }
 
@@ -238,8 +298,10 @@ bool     optarglist_has_key( OptArgList *list, const char *key ){
 }
 
 /** \brief create a new optarglist that is the former optarglist with the new arg appended.
-	 
-	 \param list the pointer to the Optarglist* (use &optargs, where optargs is the pointer!)
+
+	 The caller is responsible for freeing the old list.
+
+	 \param list the pointer to the Optarglist
 	 \return the new list (the caller is responsible for freeing the old one)
  */
 OptArgList*     optarglist_append_arg   ( OptArgList *list, OptArg *arg ){
@@ -255,26 +317,85 @@ OptArgList*     optarglist_append_arg   ( OptArgList *list, OptArg *arg ){
 
 /**\brief delete an argument from the argument list.
 
-	The list is modified in place. The argument is free'd.
+	The function returns a new OptArgList containing 
+	which is the old list minus the argument. The arguments 
+	copied!
+
+	The caller is responsible for freeing the old list. 
 
 	\param list the list
 	\param arg the argument to delete
+	\return the new list (the caller is responsible for freeing the old one)
  */
-void optarglist_delete_arg   ( OptArgList *list, OptArg *arg ){
+OptArgList* optarglist_delete_arg   ( OptArgList *list, OptArg *arg ){
   int idx=-1;
-  int i;
+  int i,j;
   for( i=0; i<list->nargs; i++ ){
-	 /* if( list->args[i]==arg ){ */
-	 /* 	idx=i; */
-	 /* } */
+	 if( &(list->args[i])==arg ){
+	 	idx=i;
+	 }
   }
   if( idx<0 ){
 	 warnprintf("list did not contain the optional argument\n");
 	 return;
   }
-  /** CONTINUE HERE ***********/
-}
+  
+  OptArgList *L = (OptArgList*)malloc( sizeof( OptArgList ) );
+  L->nargs=list->nargs-1;
+  L->args=(OptArg*)malloc( L->nargs*sizeof( OptArg ) );
+  for( i=0,j=0; i<list->nargs; i++ ){
+	 if( i==idx ) continue;
+	 memcpy( &(L->args[i]), &(list->args[i]), sizeof(OptArg) );
+	 j++;
+  }
 
+  return L;
+}
+/** \brief remove the optarglist_free-flag from the list.
+	 
+	 This function is only interesting for you, if you want to write an
+	 own function that takes an OptArgList* as an argument.
+
+	 The function removes the optarglist_free-flag from the list
+	 and returns a new list without the flag. The old list is free'd 
+	 in case that the optarglist_free argument is found. 
+
+	 The removedflag-flag is set to FALSE if it is the same list,
+	 to TRUE if it is a new (truncated) list.
+
+	 Usage is as follows:
+	 \code
+	 void testfct( OptArgList *opts ){	 
+	    // overwrite the pointer
+		 bool freeflag_removed=FALSE;
+	    opts=optarglist_remove_freeflag( opts, &freeflag_removed );
+
+		 // do some stuff including passing the argument to some other function
+		 call_other_function( opts );
+		 
+		 // clean up in case the flag was indeed removed
+		 if( freeflag_removed )
+		    optarglist_free( opts );
+	 \endcode
+
+	 \param list the list
+	 \param removedflag is set to FALSE if it is the same list,
+	         to TRUE if it is a new (truncated) list.
+	 \return a pointer to the new (or the old) list
+ */
+OptArgList* optarglist_remove_freeflag( OptArgList *list, bool *removedflag ){
+  OptArg *freearg;
+  OptArgList *nlist=list;
+  *removedflag=FALSE;
+  if( optarglist_has_key( list, "optarglist_free" ) ){
+	 freearg=optarglist_optarg_by_key( list, "optarglist_free" );
+	 nlist=optarglist_delete_arg( list, freearg );
+	 optarglist_free( list );
+	 *removedflag=TRUE;
+  } 
+  
+  return nlist;
+}
 
 /** \brief create a new OptArg* containing a scalar value.
  */

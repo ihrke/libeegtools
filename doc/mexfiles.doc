@@ -5,77 +5,19 @@ libeegtools-functions from Matlab.  Please be careful with these, I
 didn't use them very much and they might be broken. They should mainly
 be used as examples for writing MEX-files with libeegtools. Here is a list of files:
 
-  - \subpage ml_denoise
-  - \subpage ml_adtw
-  - \subpage ml_dwt
-  - \subpage ml_moving_average
-  - \subpage ml_padtw
-  - \subpage ml_running_median
-  - \subpage ml_weighted_running_median
-
-\par Compilation 
-
-To compile the files you have to use the mex-compiler shipping with
-matlab. Because most of libeegtools depends on libgsl, you will
-probably have to do the following:
-
-Put these (or similar) lines	 at the bottom of ~/.matlab/<version>/mexopts.sh
-\code
- CFLAGS="$CFLAGS -I/path/to/gsl/include"
- LD="$LD -lm -lgsl -lgslcblas"   
- LDFLAGS="$LDFLAGS -L/path/to/gsl/lib"
-\endcode
-
-To compile the mex-files, you need the object-files (*.o) from libeegtools and do 
-\code
-mex -v -I../src -g -I../../../src ml_myfile.c ../src/denoising.o ../src/averaging.o ../src/mathadd.o ../src/helper.o 
-\endcode
-There is a file (Makefile.matlab) that does that for all ml_*.c files. You can call it by
-\code
-make -f Makefile.matlab
-\endcode
-
+  - \subpage signaldistancematrix
+  - \subpage distancetransform
 */
 
 
-/** \page ml_denoise
-This is ml_denoise
-\include ml_denoise.c
+/** \page signaldistancematrix
+
+\include signaldistmatrix.c
 
 */
 
-/** \page ml_adtw
+/** \page distancetransform
 
-\include ml_adtw.c
-
-*/
-
-/** \page ml_dwt
-
-\include ml_dwt.c
-
-*/
-
-/** \page ml_moving_average
-
-\include ml_moving_average.c
-
-*/
-
-/** \page ml_running_median
-
-\include ml_running_median.c
-
-*/
-
-/** \page ml_weighted_running_median
-
-\include ml_weighted_running_median.c
-
-*/
-
-/** \page ml_padtw
-
-\include ml_padtw.c
+\include distancetransform.c
 
 */

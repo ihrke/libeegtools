@@ -397,6 +397,21 @@ START_TEST (test_spectgram)
 }
 END_TEST
 
+START_TEST (test_check_bit)
+{
+  fail_unless( CHECK_BIT( 1, 0 ) );
+  fail_unless( !CHECK_BIT( 1, 1 ) );
+
+  fail_unless( CHECK_BIT( 7, 0 ) );
+  fail_unless( CHECK_BIT( 7, 1 ) );
+  fail_unless( CHECK_BIT( 7, 2 ) );
+
+  fail_unless( !CHECK_BIT( 4, 0 ) );
+  fail_unless( !CHECK_BIT( 4, 1 ) );
+  fail_unless( CHECK_BIT( 4, 2 ) );
+}
+END_TEST
+
 /* template
 START_TEST (test_)
 {
@@ -419,6 +434,7 @@ Suite * init_other_suite (void){
   tcase_add_test (tc_core, test_spectrogram_init);
   tcase_add_test (tc_core, test_windows);
   tcase_add_test (tc_core, test_spectgram);
+  tcase_add_test (tc_core, test_check_bit);
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

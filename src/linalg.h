@@ -21,7 +21,7 @@
 /**\file linalg.h
  \brief \ref status_inprogress Linear Algebra.
 
- \section matrices Vectors and Matrices
+ \par matrices Vectors and Matrices
  1D and 2D Array structs of DType DOUBLE are used to represent vectors and matrices, respectively. 
  I.e. that each function starting with matrix_*( Array *m ) accepts only 2D Arrays of DType DOUBLE 
  functions starting with vector_*( Array *m ) accept only 1D Arrays of DType DOUBLE.
@@ -36,6 +36,7 @@
 
 /** \brief is m a matrix?
 
+	 \ingroup grplinalg
 	 Usage:
 	 \code  
 	 bool ismatrix;
@@ -58,6 +59,7 @@
 
 /** \brief is m a square matrix?
 
+	 \ingroup grplinalg
 	 Usage:
 	 \code  
 	 bool ismatrix;
@@ -79,6 +81,8 @@
   } else { flag=TRUE; }																
 
 /** \brief index matrix at i,j.
+
+	 \ingroup grplinalg
 	 \param m matrix
 	 \param i,j indices
  */
@@ -86,6 +90,8 @@
   array_INDEX2( m, double, i, j )
 
 /** \brief index vector at i.
+
+	 \ingroup grplinalg
 	 \param v vector
 	 \param i index
  */
@@ -94,6 +100,7 @@
 
 /** \brief is v a vector?
 
+	 \ingroup grplinalg
 	 Usage:
 	 \code
 	 bool isvector;

@@ -10,7 +10,7 @@ if BUILD_PYAPI
 # interface files.
 BUILT_SOURCES = pyeegtools_wrap.c
 INTERFACES = pyeegtools.i eeg.i numpy.i pythonfunctions.i distances.i
-noinst_HEADERS=$(INTERFACES)
+EXTRA_DIST=$(INTERFACES)
 
 pyeegtools_wrap.c: $(INTERFACES)
 	echo "Swigging interface files"

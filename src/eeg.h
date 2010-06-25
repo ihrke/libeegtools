@@ -48,48 +48,48 @@ extern "C" {
   typedef struct{
 	 char         *filename;
 	 char         *comment;
-	 uint         nbchan;  /**< number of channels */
-	 uint         ntrials; /**< number of trials = dim(eeg) */ 
-	 uint         n;       /**< number of samples */
-    double       sampling_rate; /**< in Hz */
+	 uint         nbchan;  /**< \brief number of channels */
+	 uint         ntrials; /**< \brief number of trials = dim(eeg) */ 
+	 uint         n;       /**< \brief number of samples */
+    double       sampling_rate; /**< \brief in Hz */
 
-	 Array       *times;  /**< times vector (1D DOUBLE Array); n-long */
-	 ChannelInfo  *chaninfo; /**< location and other information
+	 Array       *times;  /**< \brief times vector (1D DOUBLE Array); n-long */
+	 ChannelInfo  *chaninfo; /**< \brief location and other information
 										 about the channels */
 
-	 Array         *data;   /**< 3D DOUBLE Array: channels x trials x samples */
+	 Array         *data;   /**< \brief 3D DOUBLE Array: channels x trials x samples */
 
-	 Array         *markers; /**< 2D UINT Array: trials x max_num_markers; 
+	 Array         *markers; /**< \brief 2D UINT Array: trials x max_num_markers; 
 									      this field gives the offset in sampling points
 									      of each time-marker (e.g. stimulus onset,...).
 									 */
-	 Array         *marker_type; /**< 2D UINT Array: trials x max_num_markers;
+	 Array         *marker_type; /**< \brief 2D UINT Array: trials x max_num_markers;
 											  this field describes the type of the marker, by
 										     indexing into the EEG->marker_types field that
 										     contains the complete description of the 
 										     available markers
 										  */
-	 SingleList    *marker_types; /**< contains the complete description of the 
+	 SingleList    *marker_types; /**<\brief  contains the complete description of the 
 												available markers; the list->content field 
 											   is a \ref MarkerType struct */
-	 void *additional;            /**< arbitrary, additional information for the
+	 void *additional;            /**< \brief arbitrary, additional information for the
 												data set. This can be anything e.g. ICA-components,
 												distance matrix or even both. The additional data
 												is automatically saved/retrieved from files (if 
 												supported by the format). To use it in your program
 												you wil of course need to know what it is.
 											*/
-	 ulong nbytes_additional;     /**< number of bytes in EEG->additional */
+	 ulong nbytes_additional;     /**<\brief  number of bytes in EEG->additional */
   } EEG;
 
   
-#define EEG_CLONE_ALL        0     /**< clone everything */
-#define EEG_CLONE_NODATA     2<<1  /**< clone everything except 
+#define EEG_CLONE_ALL        0     /**< \brief clone everything */
+#define EEG_CLONE_NODATA     2<<1  /**<\brief  clone everything except 
 												  the eeg->data field */
-#define EEG_CLONE_NOMARKERS  2<<2  /**< clone everything except
+#define EEG_CLONE_NOMARKERS  2<<2  /**<\brief  clone everything except
 												  the eeg->markers, eeg->nmarkers
 												  eeg->marker_labels fields */
-#define EEG_CLONE_NOCHANINFO 2<<3  /**< clone everything except
+#define EEG_CLONE_NOCHANINFO 2<<3  /**< \brief clone everything except
 												  the eeg->chaninfo field */
 
   

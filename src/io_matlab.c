@@ -211,12 +211,15 @@ Array* read_array_matlab( const char *file, const char *varname ){
 	 errprintf("Error opening MATLAB file '%s'\n", file );
 	 return NULL;
   }
+
   if( varname ){
 	 marr = Mat_VarRead( mfile, varname );
   } else {
 	 marr = Mat_VarReadNext( mfile );
   }
   Mat_Close( mfile );
+  dprintf("Done\n");
+
   if( !marr ){
 	 errprintf("Something is wrong, could not read variable\n");
 	 return NULL;
@@ -346,7 +349,7 @@ int write_array_matlab( const Array *a, const char *varname, const char *file, b
   int *size = (int*)malloc( ndim*sizeof(int));
   if( a->ndim==1 ){
 	 size[0]=1;
-	 size[1]=a->ndim;
+	 size[1]=a->size[0];
   } else {
 	 memcpy( size, a->size, ndim*sizeof(int));
   }
@@ -354,7 +357,7 @@ int write_array_matlab( const Array *a, const char *varname, const char *file, b
 
   /* convert to column major for MATLAB */
   Array *b=array_convert_rowcolmajor( (Array*)a, TRUE );
-  
+
   /* up-cast to DOUBLE - copy of b */
   Array *c=array_new( DOUBLE, b->ndim, b->size );
   for( i=0; i<array_NUMEL(b); i++ ){
@@ -362,11 +365,12 @@ int write_array_matlab( const Array *a, const char *varname, const char *file, b
   }
   array_free( b );
 
+  
   marr = Mat_VarCreate( varname, MAT_C_DOUBLE, MAT_T_DOUBLE, 
 								ndim, size, c->data, MEM_CONSERVE /* Array remains owner */
 								);
   
-  dprintf("mfile=%p, marr=%p\n", mfile, marr );
+  dprintf("mfile=%p, marr=%p, rank=%i,\n", mfile, marr, marr->rank );
   int succ=Mat_VarWrite( mfile, marr, 0 );
   dprintf("done writing with succ=%i\n", succ);
 

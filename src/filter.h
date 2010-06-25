@@ -36,28 +36,22 @@ extern "C" {
   /* ------------------------------ 
 	  -- Robust filtering methods  --
 	  ------------------------------ */
-  /** \ingroup robust_filtering\{	*/ 
   double* running_median         ( double *d, int n, int win );
   double* weighted_running_median( double *d, int n, int win );
 
   EEG*    eeg_filter_running_median( EEG *eeg, int win, bool alloc );
   EEG*    eeg_filter_weighted_running_median( EEG *eeg, int win, bool alloc );
-  /** \} */
 
   /* ------------------------------ 
 	  -- Other filtering methods  --
 	  ------------------------------ */
 
-  /** \ingroup other_filtering\{	*/
   double* moving_average(double *s, int n, int win);
-  /** \} */
 
  /* ------------------------------ 
 	  -- Bandpass filter  --
 	  ------------------------------ */ 
- /** \ingroup frequence_filter \{ */
   EEG* eeg_filter_fidlib( EEG *eeg, const char *spec, bool alloc );
-  /** \} */
   
 #ifdef __cplusplus
 }

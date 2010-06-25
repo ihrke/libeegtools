@@ -178,6 +178,74 @@ Array* hierarchical_average( const Array *data, const Array *distmat,
 }
 
 
+
+/** Calculate a simple, pointwise average across trials
+	 \f[
+	 \hat{s}(t) = \frac{1}{N}\sum_{i=1}^{N}s_i(t)
+	 \f]
+	 \param eeg input
+	 \return freshly allocate EEG-struct
+ */
+EEG*     eeg_simple_average( const EEG *eeg ){
+#ifdef FIXEEG
+  EEG *out;
+  int c;
+
+  out = eeg_init( eeg->nbchan, 1, eeg->n ); /* the average */
+  out->sampling_rate=eeg->sampling_rate;
+  if( eeg->times ){
+	 out->times = (double*) malloc( eeg->n*sizeof(double) );
+	 memcpy( out->times, eeg->times, eeg->n*sizeof(double) );
+  }
+  if( eeg->chaninfo ){
+	 out->chaninfo = (ChannelInfo*) malloc( eeg->nbchan*sizeof(ChannelInfo) );
+	 memcpy( out->chaninfo, eeg->chaninfo,  eeg->nbchan*sizeof(ChannelInfo) );
+  }
+  eeg_append_comment( out, "output from eegtrials_simple_average()\n" );
+  for( c=0; c<eeg->nbchan; c++ ){
+	 /* TODO */
+  }
+  return out;
+#endif
+}
+
+
+#ifdef EXPERIMENTAL
+
+/** Calculate a pointwise average across channels
+	 \f[
+	 \hat{s}_i(t) = \frac{1}{C}\sum_{c=1}^{C}s^c_i(t)
+	 \f]
+	 \param eeg input
+	 \return freshly allocate EEG-struct
+ */
+EEG*     eeg_average_channels( const EEG *eeg ){
+#ifdef FIXEEG
+
+  EEG *out;
+  int c, i, j;
+
+  out = eeg_init( 1, eeg->ntrials, eeg->n ); /* the average */
+  out->sampling_rate=eeg->sampling_rate;
+  if( eeg->times ){
+	 out->times = (double*) malloc( eeg->n*sizeof(double) );
+	 memcpy( out->times, eeg->times, eeg->n*sizeof(double) );
+  }
+  eeg_append_comment( out, "output from eegtrials_average_channels()\n" );
+
+  for( i=0; i<eeg->ntrials; i++ ){
+	 for( j=0; j<eeg->n; j++ ){
+		out->data[0][i][j] = 0;
+		for( c=0; c<eeg->nbchan; c++ ){
+		  out->data[0][i][j] += eeg->data[c][i][j];
+		}
+		out->data[0][i][j] /= (double)eeg->nbchan;
+	 }
+  }
+  return out;
+#endif
+}
+
 /** \brief example function to pass as SignalAverageFunctionUnequalLength doing a pointwise average.
 
 	 \param input data (N x C x n)
@@ -296,67 +364,4 @@ Array* hierarchical_average_unequal_length( Array **data, const Array *distmat,
   return avg;
 }
 
-
-
-/** Calculate a simple, pointwise average across trials
-	 \f[
-	 \hat{s}(t) = \frac{1}{N}\sum_{i=1}^{N}s_i(t)
-	 \f]
-	 \param eeg input
-	 \return freshly allocate EEG-struct
- */
-EEG*     eeg_simple_average( const EEG *eeg ){
-#ifdef FIXEEG
-  EEG *out;
-  int c;
-
-  out = eeg_init( eeg->nbchan, 1, eeg->n ); /* the average */
-  out->sampling_rate=eeg->sampling_rate;
-  if( eeg->times ){
-	 out->times = (double*) malloc( eeg->n*sizeof(double) );
-	 memcpy( out->times, eeg->times, eeg->n*sizeof(double) );
-  }
-  if( eeg->chaninfo ){
-	 out->chaninfo = (ChannelInfo*) malloc( eeg->nbchan*sizeof(ChannelInfo) );
-	 memcpy( out->chaninfo, eeg->chaninfo,  eeg->nbchan*sizeof(ChannelInfo) );
-  }
-  eeg_append_comment( out, "output from eegtrials_simple_average()\n" );
-  for( c=0; c<eeg->nbchan; c++ ){
-	 /* TODO */
-  }
-  return out;
 #endif
-}
-/** Calculate a pointwise average across channels
-	 \f[
-	 \hat{s}_i(t) = \frac{1}{C}\sum_{c=1}^{C}s^c_i(t)
-	 \f]
-	 \param eeg input
-	 \return freshly allocate EEG-struct
- */
-EEG*     eeg_average_channels( const EEG *eeg ){
-#ifdef FIXEEG
-
-  EEG *out;
-  int c, i, j;
-
-  out = eeg_init( 1, eeg->ntrials, eeg->n ); /* the average */
-  out->sampling_rate=eeg->sampling_rate;
-  if( eeg->times ){
-	 out->times = (double*) malloc( eeg->n*sizeof(double) );
-	 memcpy( out->times, eeg->times, eeg->n*sizeof(double) );
-  }
-  eeg_append_comment( out, "output from eegtrials_average_channels()\n" );
-
-  for( i=0; i<eeg->ntrials; i++ ){
-	 for( j=0; j<eeg->n; j++ ){
-		out->data[0][i][j] = 0;
-		for( c=0; c<eeg->nbchan; c++ ){
-		  out->data[0][i][j] += eeg->data[c][i][j];
-		}
-		out->data[0][i][j] /= (double)eeg->nbchan;
-	 }
-  }
-  return out;
-#endif
-}

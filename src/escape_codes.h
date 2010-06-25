@@ -378,6 +378,6 @@
  #define PRINTFTEXT_SCA()                 EMPTY
  #define PRINTFTEXT_RCA()                 EMPTY
 
-#endif // _WITH_ANSI_ESCAPE_CODES
+#endif /* _WITH_ANSI_ESCAPE_CODES */
 
-#endif // ESCAPE_CODES_H
+#endif /* ESCAPE_CODES_H */

@@ -25,7 +25,7 @@
 
 	\image html 2dwarping.jpg
 
-	\section dtw Dynamic Time Warping
+	\par pardtw Dynamic Time Warping
 
 		Dynamic Time-Warping is a method to account for temporal distortion when 
 		comparing two signals.
@@ -73,6 +73,8 @@ extern "C" {
 	 -  slope constraint for DTW
 	 ---------------------------------------------------------*/
   /**\brief Severity of the slope constraint in the Dynamic Time-Warping Alg.
+
+	  \ingroup grpdtw
 	*/
   typedef enum {
 	 SLOPE_CONSTRAINT_NONE=0,
@@ -96,6 +98,7 @@ extern "C" {
 
   /** \brief is w a warppath?
 		
+		\ingroup grpdtw
 		Usage:
 		\code  
 		bool ispath;
@@ -128,6 +131,10 @@ extern "C" {
 
   EEG* eeg_gibbons( EEG *eeg, int stimulus_marker, int response_marker, double k );
 
+#ifdef EXPERIMENTAL
+  Array* multiwarp( Array *in, uint window, OptArgList *opts );
+  Array* multiwarp_add( Array *in, Array *times, Array *path );
+#endif
 
   /******************************************************************/
   /** GOING TO BE OBSOLETE */

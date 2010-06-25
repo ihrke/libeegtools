@@ -8,7 +8,9 @@
 #define @DEF_DEBUG@
 #define @DEF_PLOTTER@
 #define @DEF_MATIO@
+#define @DEF_EXPERIMENTAL@
 #define @DEF_ANSI_ESCAPE_CODES@
+#define @DEF_MATLAB@
 
 #define ALLOC_IN_FCT NULL
 
@@ -16,19 +18,43 @@
 
 #define SEED_RANDOM 0 /**< use a random seed */
 
-#ifdef __cplusplus
-extern "C" { 
+#if HAVE_STDBOOL_H /* is the stdbool.h header in place? */
+
+#include <stdbool.h>
+
 #else
- /*-----------------------------------------------------------
-	 - CONVENIENCE -
-	 we don't need (or may) declare this in C++, since there is
-	 bool already
-	 ---------------------------------------------------------*/
-  typedef enum {
-	 FALSE=0,
-	 TRUE
-  } bool;
+
+#ifndef __cplusplus
+
+#define bool    _Bool
+#define true    1
+#define false   0
+
+#else /* __cplusplus */
+
+/* Supporting <stdbool.h> in C++ is a GCC extension.  */
+#ifndef bool
+#define _Bool   bool
+#define bool    bool
 #endif
+
+#ifndef false
+#define false   false
+#endif
+
+#ifndef true
+#define true    true
+#endif
+
+#endif /* __cplusplus */
+
+/* Signal that all the definitions are present.  */
+#define __bool_true_false_are_defined   1
+
+#endif
+
+#define FALSE false
+#define TRUE true
 
   typedef unsigned int uint;
   typedef unsigned long ulong;

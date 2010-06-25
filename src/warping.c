@@ -23,6 +23,7 @@
 #include "array.h"
 #include "linalg.h"
 #include "eeg.h"
+#include <math.h>
 
 /** \cond PRIVATE
 
@@ -84,6 +85,7 @@ double _slope_constraint( SlopeConstraint constraint, Array *d, Array *D, int i,
 
 /** \brief cumulate a distance matrix d for Dynamic Time-Warping.
 
+	 \ingroup grpdtw
 	 \f[
 	 D_{jk} = d_{jk}+\min{\{D_{j,k-1}, D_{j-1,k}, D_{j-1, k-1}\}}
 	 \f]
@@ -143,6 +145,7 @@ Array*      matrix_dtw_cumulate ( Array *mat, bool alloc, OptArgList *optargs ){
 
 /** \brief calculate the warping path.
 	 
+	 \ingroup grpdtw
 	 \param d is the cumulated distances matrix (usually output from matrix_dtw_cumulate())
 	 \return the warp-Path (2D uint array, 2 x N)
  */
@@ -223,6 +226,8 @@ Array* matrix_dtw_backtrack ( const Array *d ){
 
 /** \brief Add signals according to a warppath.
 
+	 \ingroup grpdtw
+
 	 If called from hierarchical averaging routines, you might
 	 want to pass a "weights" field in the optional arguments.
 
@@ -274,8 +279,8 @@ Array*  dtw_add_signals( const Array *s1, const Array *s2, const Array *path, Op
   int i,j;
   for( i=0; i<Nn; i++ ){
 	 for( j=0; j<p; j++ ){
-		mat_IDX( wa, i, j )=w[0]*mat_IDX( s1m, array_INDEX2(path,int,0,i),j )
-		  + w[1]*mat_IDX( s2m, array_INDEX2(path,int,1,i),j );
+		mat_IDX( wa, i, j )=w[0]*mat_IDX( s1m, array_INDEX2(path,uint,0,i),j )
+		  + w[1]*mat_IDX( s2m, array_INDEX2(path,uint,1,i),j );
 	 }
   }
   /* --------------------- /computation ------------------------*/
@@ -590,3 +595,215 @@ WarpPath* dtw_backtrack        ( const double **d, int M, int N, WarpPath *P ){
 
   return P;
 }
+
+
+#ifdef EXPERIMENTAL
+
+/**
+	return the sum of the individual pairwise
+	distances (euclidean) divided by N(n-1)/2
+ */
+double multidist( Array *dat, uint *idx ){  
+  bool ismat;
+  matrix_CHECK( ismat, dat );
+  if( !ismat ) return NAN;
+  
+  double dist=0.0;
+  int N=dat->size[0];
+  int i,j;
+
+  for( i=0; i<N-1; i++ ){
+	 for( j=i+1; j<N; j++ ){
+		//		dprintf("(i,j)=%i,%i, idx=%i,%i\n",i,j, idx[i], idx[j]);
+		dist += 0.9* ABS( mat_IDX( dat, i, idx[i] )-
+								mat_IDX( dat, j, idx[j] ) ) +
+		  0.1* ABS( idx[i]-idx[j] );
+	 }
+  }
+  dist /= (double)((N*(N-1))/2);
+
+  //  dprintf("d(i,j)=%f\n", dist );
+  return dist;
+}
+
+/** for now only 1D signals of equal length
+ */
+Array* multiwarp( Array *in, uint window, OptArgList *optargs ){
+  bool ismat;
+  matrix_CHECK( ismat, in );
+  if( !ismat ) return NULL;
+  void *ptr;
+  ProgressBarFunction progress=NULL;  
+  optarg_PARSE_PTR( optargs, "progress", progress, ProgressBarFunction, ptr );
+  if( progress )
+	 dprintf("found progressbar\n");
+
+  int i, j;  
+  int N=in->size[0]; /* num signals */
+  int n=in->size[1]; /* num samples per signal */
+
+  dprintf("N=%i,n=%i\n", N, n );
+
+  /* allocate N-dimensional distance matrix */
+  uint *dims;
+  MALLOC( dims, N, uint );
+  for( i=0; i<N; i++ )
+	 dims[i]=n;
+  Array *distmat=array_new( DOUBLE, N, dims );
+  free( dims );
+
+  /* calculate distmat and cumulate at the same time */
+  uint *idx, *cidx, *tidx;
+  MALLOC( idx, N, uint );
+  MALLOC( cidx, N, uint );
+  MALLOC( tidx, N, uint );
+
+  ulonglong lidx=0;
+  Array *minvec=array_new2( DOUBLE, 1, (1<<N)-1 );
+
+  if( progress )  progress( PROGRESSBAR_INIT, array_NUMEL( distmat ) );
+  for( lidx=0; lidx<array_NUMEL( distmat ); lidx++ ){	 
+	 /*--- distance calculation */
+	 array_calc_rowindex( lidx, distmat->size, distmat->ndim, idx );
+	 (*((double*)array_index( distmat, idx )))=multidist( in, idx );
+	 //	 dprintf("lidx=%li, %i, %i, (1<<N)-1=%i\n", lidx, idx[0], idx[1], (1<<N)-1 );	 
+
+	 /*--- cumulate the matrix */
+	 /* get all elements "surrounding" idx */
+	 for( i=0; i<( 1<<N )-1; i++ ){
+		for( j=0; j<N; j++ ){ /* calculate index */
+		  cidx[j] = idx[j];
+		  if( CHECK_BIT( i+1, j ) ){
+			 cidx[j] = (cidx[j]==0)?(0):(cidx[j]-1);
+		  }
+		}
+		vec_IDX( minvec, i ) = (*(double*)array_index( distmat, cidx ));
+	 }
+
+	 /* cumulating */
+	 (*((double*)array_index( distmat, idx ))) += (*(double*)array_min( minvec ));
+
+	 if( progress && (lidx % n==0) & lidx/n % n==0 ) 
+		progress( PROGRESSBAR_CONTINUE_LONG, lidx );
+  }
+  if( progress ) progress( PROGRESSBAR_FINISH, 0 );
+
+  /*--- backtracking-phase */
+  Array *p1=array_new2( UINT, 2, N, N*n ); /* dummy of maximum length */
+
+  dprintf("Backtrack\n");
+  lidx=0;
+  for( i=0; i<N; i++ ){
+	 idx[i]=n-1; /* start in the upper right */
+	 (*(uint*)array_index2( p1, i, lidx ))=idx[i];
+  }
+  lidx=1;
+  bool continue_flag, dontcheck_flag;
+  double dmin;
+  while(1){
+	 continue_flag=FALSE;
+	 dontcheck_flag=FALSE;
+
+	 /* get all elements "surrounding" idx and put minimal index in idx */
+	 dmin=DBL_MAX;
+	 for( i=0; i<( 1<<N )-1; i++ ){
+		for( j=0; j<N; j++ ){ /* calculate index */
+		  cidx[j] = idx[j];
+		  if( CHECK_BIT( i+1, j ) ){
+			 if( cidx[j]==0 ) 
+				dontcheck_flag=TRUE;
+			 else 
+				cidx[j] = cidx[j]-1;
+		  }
+		}
+		if( !dontcheck_flag ){
+		  //		  dprintf("Check field: (%i,%i,%i), dmin=%f\n", cidx[0], cidx[1], cidx[2], (*(double*)array_index( distmat, cidx )) );
+
+		  if(  (*(double*)array_index( distmat, cidx )) < dmin ){
+			 dmin = (*(double*)array_index( distmat, cidx ));
+			 for( j=0; j<N; j++ )
+				tidx[j]=cidx[j];
+		  }
+		} else {
+		  dontcheck_flag=FALSE;
+		}
+	 }	 
+	 for( j=0; j<N; j++ )
+		idx[j]=tidx[j];
+
+	 //	 dprintf("Select field: (%i,%i,%i), dmin=%f\n", idx[0], idx[1], idx[2], dmin );
+
+	 /* advance path */
+	 for( j=0; j<N; j++ ){
+		(*(uint*)array_index2( p1, j, lidx ))=idx[j];
+	 }
+	 lidx++;
+
+	 /* done? */
+	 for( i=0; i<N; i++ ){
+		if( idx[i]>0 ){
+		  continue_flag=TRUE;
+		  break;
+		}
+	 }
+
+	 if( !continue_flag )
+		break;
+  }
+
+  /* reverse warppath and trim to correct size */
+  Array *p2=array_new2( UINT, 2, N, lidx );
+  for( i=0; i<lidx; i++ ){
+	 for( j=0; j<N; j++ ){
+		array_INDEX2( p2, uint, j, lidx-i-1 ) = array_INDEX2( p1, uint, j, i );
+	 }
+  }
+
+  /* cleaning up */
+  array_free( minvec );
+  free( cidx );
+  free( idx );
+  free( tidx );
+  array_free( distmat );
+  array_free( p1 );
+
+  return p2;
+}
+
+Array* multiwarp_add( Array *in, Array *times, Array *path ){
+  bool ismat, isvec;
+  matrix_CHECK( ismat, in );
+  if( !ismat ) return NULL;
+  vector_CHECK( isvec, times );
+  if( !isvec ) return NULL;
+
+  int i, j;  
+  int N=in->size[0]; /* num signals */
+  int n=in->size[1]; /* num samples per signal */
+  int Nn=path->size[1];
+
+  dprintf("N=%i,n=%i,Nn=%i\n", N, n, Nn );
+
+  double *w;
+  MALLOC( w, N, double );
+  for( i=0; i<N; i++ ){
+	 w[i] = 1.0/(double)N;
+  }
+  dprintf("w=%f\n", w[0] );
+
+  /* return times array in first dim */
+  Array *wa = array_new2( DOUBLE, 2, 2, Nn );
+  for( i=0; i<Nn; i++ ){
+	 for( j=0; j<N; j++ ){
+		mat_IDX( wa, 0, i) += w[j]*vec_IDX( times, array_INDEX2(path,uint,j,i));
+		mat_IDX( wa, 1, i) += w[j]*mat_IDX( in, j, array_INDEX2(path,uint,j,i));
+	 }
+  }
+  
+  free( w );
+  
+  return wa;
+}
+
+
+#endif

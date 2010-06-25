@@ -21,9 +21,6 @@
 #include "imageproc.h"
 #include "linalg.h"
 
-
-
-
 /** \brief calculate the (signed) distance-transform of a binary image.
 
 	 This distance-transform (DT) of a binary image includes at each
@@ -152,21 +149,6 @@ Array*  disttransform_deadreckoning( const Array *in, Array *dt ){
 	 }
   }
   
-  /* corners */
-  mat_IDX(dt,0,  0  )=mat_IDX(dt,1,  1);
-  mat_IDX(dt,0,  Y-1)=mat_IDX(dt,1,  Y-2);
-  mat_IDX(dt,X-1,Y-1)=mat_IDX(dt,X-2,Y-2);
-  mat_IDX(dt,X-1,0  )=mat_IDX(dt,X-2,1);
-
-  /* borders */
-  for(x=1; x<X-1; x++){
-	 mat_IDX(dt,x,0)   = mat_IDX(dt,x,1);
-	 mat_IDX(dt,x,Y-1) = mat_IDX(dt,x,Y-2);
-  }
-  for(y=1; y<Y-1; y++){
-	 mat_IDX(dt,0,y)   = mat_IDX(dt,1,y);
-	 mat_IDX(dt,X-1,y) = mat_IDX(dt,X-2,y);
-  }
 
   /* indicate in- and outside */
   for(y=Y-2; y>0; y--){
@@ -175,6 +157,22 @@ Array*  disttransform_deadreckoning( const Array *in, Array *dt ){
 		  mat_IDX(dt,x,y) = -1*mat_IDX(dt,x,y);
 		}
 	 }
+  }  
+
+  /* corners */
+  mat_IDX(dt,0,  0  )=mat_IDX(dt,1,  1);
+  mat_IDX(dt,0,  Y-1)=mat_IDX(dt,1,  Y-2);
+  mat_IDX(dt,X-1,Y-1)=mat_IDX(dt,X-2,Y-2);
+  mat_IDX(dt,X-1,0  )=mat_IDX(dt,X-2,1);
+
+  /* borders */
+  for(x=1; x<X-1; x++){
+  	 mat_IDX(dt,x,0)   = mat_IDX(dt,x,1);
+  	 mat_IDX(dt,x,Y-1) = mat_IDX(dt,x,Y-2);
+  }
+  for(y=1; y<Y-1; y++){
+  	 mat_IDX(dt,0,y)   = mat_IDX(dt,1,y);
+  	 mat_IDX(dt,X-1,y) = mat_IDX(dt,X-2,y);
   }
   /*-------------------- /computation -----------------------*/
 
