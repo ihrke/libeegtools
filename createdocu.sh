@@ -1,15 +1,16 @@
 #!/bin/sh
 
 DOXYGEN="$HOME/install/doxygen-svn/bin/doxygen"
+DOXYGEN=`which doxygen`
 
 echo ">>> Removing current documentation in ./doc/html <ENTER>"
 read test
 rm -rf doc/html
 
-if ! test "${1}" = nocvs ; then
-	echo ">>> Getting CVS status for correct version numbers"
-	cvs status > filestatus
-fi
+#if ! test "${1}" = nocvs ; then
+#	echo ">>> Getting CVS status for correct version numbers"
+#	cvs status > filestatus
+#fi
 
 remove_experimental=yes
 if test "${remove_experimental}" = yes ; then
@@ -41,5 +42,5 @@ $DOXYGEN &> doxygen.log
 
 fi
 
-echo ">>> Deleting filestatus"
-rm filestatus
+#echo ">>> Deleting filestatus"
+#rm filestatus
