@@ -20,6 +20,8 @@
 
 /**\file hmm.h
  \brief \ref status_inprogress Hidden Markov Models.
+														 
+\experimental_do_not_document
 
  \warning For now this is only experimental but plans are to complete this file.
 

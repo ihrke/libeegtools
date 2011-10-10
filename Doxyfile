@@ -866,6 +866,15 @@ LATEX_BATCHMODE        = NO
 
 LATEX_HIDE_INDICES     = NO
 
+
+#---------------------------------------------------------------------------
+# configuration options for QtHelp output
+#---------------------------------------------------------------------------
+#GENERATE_QHP = YES
+#QHP_NAMESPACE = doc.libeegtools.com
+#QHP_VIRTUAL_FOLDER = doc
+#QHG_LOCATION = /opt/qtsdk-2010.04/qt/bin/qhelpgenerator
+
 #---------------------------------------------------------------------------
 # configuration options related to the RTF output
 #---------------------------------------------------------------------------

@@ -48,6 +48,8 @@
 #include "helper.h"
 #include "definitions.h"
 #include "complex.h"
+#include "array.h"
+#include "optarg.h"
 
 /** \brief maximum of two elements. */
 #define MAX(a,b) ((a) > (b) ? (a):(b))
@@ -116,6 +118,7 @@ extern "C" {
 	  -- Interpolation
 	  ---------------------------------------------------------------------------- */ 
 
+  Array*  vector_interp1( const Array *x, const Array *y, const Array *xi, OptArgList *opts );
   double  drawsample_nearest_neighbour( const double *v, int n, double x );
   double* resample_linear( const double *s, int n, int newn, double *news );
   double* resample_nearest_neighbour( const double *s, int n, int newn, double *news );

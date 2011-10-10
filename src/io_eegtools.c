@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#include "helper.h"
 
 #include "io_eegtools.h"
 #include <stdlib.h>
@@ -76,7 +77,6 @@ Array* array_from_file( FILE *in ){
 	 \param a the output array
  */ 
 void array_to_file( FILE *out, const Array *a ){
-  uint8_t  ui8;
   uint16_t ui16;
   uint32_t ui32;
   int i;
@@ -95,4 +95,30 @@ void array_to_file( FILE *out, const Array *a ){
   ffwrite( &ui32, 4, 1, out );	 
   /* data */
   ffwrite( a->data, 1, a->nbytes, out );
+}
+/** \brief Write Array to a given filename.
+
+	 The format of the array is described in
+	 \ref rawfileformat .
+
+	 \param fname name of the file
+	 \param a the output array
+	 \param append if TRUE, open file in 'ab' mode, else in 'wb' mode
+ */
+void array_to_filename( const char *fname, const Array *a, bool append ){
+	FILE *f;
+	if( append ){
+		if( !(f=fopen( fname, "ab" )) ){
+			errprintf("Could not open file '%s'\n",fname);
+			return;
+		}
+	} else {
+		if( !(f=fopen( fname, "wb" )) ){
+			errprintf("Could not open file '%s'\n",fname);
+			return;
+		}
+	}
+	array_to_file( f, a );
+	fclose( f );
+	return;
 }

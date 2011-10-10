@@ -21,6 +21,8 @@
 /**\file som.h
  \brief \ref status_experimental Self-Organizing Maps
 
+ \experimental_do_not_document 
+
  \warning For now this is only experimental but plans are to complete this file.
 
 

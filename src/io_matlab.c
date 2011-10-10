@@ -17,8 +17,10 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-
+#include "helper.h"
 #include "io_matlab.h"
+#include "mathadd.h"
+#include "array.h"
 
 #ifdef MATIO
 #include <matio.h>
@@ -358,14 +360,17 @@ int write_array_matlab( const Array *a, const char *varname, const char *file, b
   /* convert to column major for MATLAB */
   Array *b=array_convert_rowcolmajor( (Array*)a, TRUE );
 
+  dprintf("Up-cast, b->ndim=%i, b->size=%p, b->size[0]=%i\n", b->ndim, b->size, b->size[0]);
+
   /* up-cast to DOUBLE - copy of b */
   Array *c=array_new( DOUBLE, b->ndim, b->size );
+  dprintf("casting\n");
   for( i=0; i<array_NUMEL(b); i++ ){
 	 array_dtype_to_double( array_INDEXMEM1(c,i), array_INDEXMEM1(b,i), b->dtype );
   }
   array_free( b );
 
-  
+  dprintf("Creating MATLAB-rep\n");
   marr = Mat_VarCreate( varname, MAT_C_DOUBLE, MAT_T_DOUBLE, 
 								ndim, size, c->data, MEM_CONSERVE /* Array remains owner */
 								);

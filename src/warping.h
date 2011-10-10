@@ -124,15 +124,16 @@ extern "C" {
   Array*  matrix_dtw_backtrack ( const Array *d );
 
   Array*  dtw_add_signals( const Array *s1, const Array *s2, const Array *path, OptArgList *opts );
+  Array*  dtw_add_signals_downsample( const Array *s1, const Array *s2, const Array *times, const Array *path, OptArgList *opts );
 
   
   EEG* eeg_dtw_hierarchical( EEG *eeg_in, const double **distmatrix, 
 									  EEG *out, OptArgList *optargs );
-
+  Array* array_warp_gibbons( Array *data, Array *markers, int stimulus_marker, int response_marker, double k, bool alloc );
   EEG* eeg_gibbons( EEG *eeg, int stimulus_marker, int response_marker, double k );
 
 #ifdef EXPERIMENTAL
-  Array* multiwarp( Array *in, uint window, OptArgList *opts );
+  Array* multiwarp( Array *in, OptArgList *opts );
   Array* multiwarp_add( Array *in, Array *times, Array *path );
 #endif
 

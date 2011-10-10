@@ -17,6 +17,7 @@
 #include "check_all.h"
 #include "helper.h"
 #include "mathadd.h"
+#include "filter.h"
 
      
 START_TEST (test_sampled_line)
@@ -34,6 +35,27 @@ START_TEST (test_sampled_line)
 }
 END_TEST
 
+START_TEST (test_filter)
+{
+	char *script="load filter.mat\n"
+				 "plot( a, 'b' )\n"
+				 "hold on\n"
+				 "plot( b, 'r' )\n";
+	int n=10000;
+	Array *a=array_randunif( 3423, 1, n );
+	Array *b=filter( a, "LpBu4/4", 1000, true );
+
+	fail_unless( b );
+
+	write_array_matlab( a, "a", CHECKDATADIR"filter.mat", false);
+	write_array_matlab( b, "b", CHECKDATADIR"filter.mat", true);
+	write_script( CHECKDATADIR"test_filter.m", script);
+
+	array_free( a ) ;
+	array_free( b );
+}
+END_TEST
+
 
 
 Suite * init_denoising_suite (void){
@@ -41,6 +63,7 @@ Suite * init_denoising_suite (void){
 
   TCase *tc_core = tcase_create ("DenoiseCore");
   tcase_add_test (tc_core, test_sampled_line);
+  tcase_add_test (tc_core, test_filter);
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);
   return s;

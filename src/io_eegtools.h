@@ -78,7 +78,8 @@ extern "C" {
   
   /* -------------- WRITER ---------------- */
   void array_to_file( FILE *out, const Array *a );
-  
+  void array_to_filename( const char *fname, const Array *a, bool append );
+
 
 #ifdef __cplusplus
 }

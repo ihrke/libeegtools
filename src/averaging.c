@@ -210,8 +210,6 @@ EEG*     eeg_simple_average( const EEG *eeg ){
 }
 
 
-#ifdef EXPERIMENTAL
-
 /** Calculate a pointwise average across channels
 	 \f[
 	 \hat{s}_i(t) = \frac{1}{C}\sum_{c=1}^{C}s^c_i(t)
@@ -245,6 +243,8 @@ EEG*     eeg_average_channels( const EEG *eeg ){
   return out;
 #endif
 }
+
+#ifdef EXPERIMENTAL
 
 /** \brief example function to pass as SignalAverageFunctionUnequalLength doing a pointwise average.
 
@@ -284,8 +284,8 @@ Array* average_unequal_warp( Array **data, uint idx[2], double weights[2], OptAr
 /** \brief highly experimental
  */
 Array* hierarchical_average_unequal_length( Array **data, const Array *distmat, 
-														  SignalAverageFunctionUnequalLength avgfct, 
-														  OptArgList *optargs ){
+											SignalAverageFunctionUnequalLength avgfct,
+											OptArgList *optargs ){
   Dendrogram *T, *Tsub; 
   ProgressBarFunction progress=NULL;  
   LinkageFunction linkage=dgram_dist_completelinkage;

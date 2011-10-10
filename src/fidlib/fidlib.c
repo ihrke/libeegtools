@@ -86,7 +86,7 @@
 //	while (...) {
 //	   out_1= funcp(fbuf1, in_1);
 //	   out_2= funcp(fbuf2, in_2);
-//	   if (restart_required) fid_run_zapbuf(fbuf1);
+//	   if (restart_required) fid_run_(fbuf1);
 //	   ...
 //	}
 //	fid_run_freebuf(fbuf2);

@@ -20,10 +20,14 @@
 
 #include "array.h" 
 #include "helper.h" 
+
 #include <stdarg.h> 
 #include <string.h>
 #include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+#include <gsl/gsl_permutation.h>
 #include <time.h>
+#include <float.h>
 
 /** \brief Get maximum element from array.
 	 
@@ -192,10 +196,20 @@ Array* array_concatenate( const Array *a, const Array *b, int dim ){
 	 errprintf("Arrays must be 1D or 2D\n");
 	 return NULL;
   }
-  if( a->size[1-dim]!=b->size[1-dim] ){
-	 errprintf("Arrys must be of same dimension in dim %i, have %i vs. %i\n",
-				  1-dim, a->size[1-dim], b->size[1-dim] );
-	 return NULL;
+  if( dim==1 ){
+	  if( a->size[1-dim]!=b->size[1-dim] ){
+		  errprintf("1) Arrays must be of same dimension in dim %i, have %i vs. %i\n",
+					1-dim, a->size[1-dim], b->size[1-dim] );
+		  return NULL;
+	  }
+  } else {
+	  if( a->ndim>1 ){
+		  if( a->size[1]!=b->size[1] ){
+			  errprintf("2) Arrays must be of same dimension in dim 1, have %i vs. %i\n",
+						1-dim, a->size[1], b->size[1] );
+			  return NULL;
+		  }
+	  }
   }
 
   Array *sa,*sb;					  /* wrap 1D arrays */
@@ -210,17 +224,18 @@ Array* array_concatenate( const Array *a, const Array *b, int dim ){
 	 outr=sa->size[0];
 	 outc=sa->size[1]+sb->size[1];
   }
-  out = array_new2( a->dtype, 2, outr, outc );
+  dprintf("outr,outc=(%i,%i)\n", outr, outc );
+  out = array_new2( sa->dtype, 2, outr, outc );
 
   if( dim==0 ){
 	 memcpy( out->data, sa->data, sa->nbytes );
 	 memcpy( out->data+sa->nbytes, sb->data, sb->nbytes );
   } else {
 	 int i;
-	 for( i=0; i<a->size[0]; i++ ){
-		memcpy( array_INDEXMEM2( out, i, 0), array_INDEXMEM2( a, i, 0 ), a->dtype_size*a->size[1] );
-		memcpy( array_INDEXMEM2( out, i, a->size[1]), 
-				  array_INDEXMEM2( b, i, 0 ), b->dtype_size*b->size[1] );
+	 for( i=0; i<sa->size[0]; i++ ){
+		memcpy( array_INDEXMEM2( out, i, 0), array_INDEXMEM2( sa, i, 0 ), sa->dtype_size*sa->size[1] );
+		memcpy( array_INDEXMEM2( out, i, sa->size[1]),
+				array_INDEXMEM2( sb, i, 0 ), sb->dtype_size*sb->size[1] );
 	 }
   }
 
@@ -295,6 +310,12 @@ void array_calc_colindex( ulong offset, const uint *size, uint nsize, uint *inde
 	 \return a new col-major array
 */
 Array* array_convert_rowcolmajor( Array *a, bool alloc){
+	if( a->ndim==1 ){
+		if(!alloc)
+			return a;
+		else
+			return array_copy( a, TRUE );
+	}
   ulong i;
   uint *idx=(uint*)malloc( a->ndim*sizeof(uint) );
   Array *b = array_copy( a, TRUE );
@@ -400,7 +421,11 @@ int array_dimred( Array *a ){
 	 if( a->size[i]!=1 )
 		nd++;
   }
-  if( nd==a->ndim ) return 0;
+  if( nd==a->ndim ){
+	  dprintf("No dimensionality reduction\n");
+	  return 0;
+  }
+  dprintf("Dimensionality reduction, old=%i, new=%i\n", a->ndim, nd );
 
   MALLOC( nsize, nd, uint );
   j=0;
@@ -492,7 +517,7 @@ void parse_slicedesc( const Array *a, const char *slicedesc, uint *size, uint **
 		size[i]=(a2-a1)+1;
 		MALLOC( ind[i], size[i], uint );
 		for( j=0; j<(a2-a1)+1; j++ ){
-		  dprintf("j=%i\n", j);
+//		  dprintf("j=%i\n", j);
 		  ind[i][j] = a1+j;
 		}
 	 } else { /* drop dimension using index */
@@ -514,6 +539,8 @@ void parse_slicedesc( const Array *a, const char *slicedesc, uint *size, uint **
 	 similar to interpreted languages like python or MATLAB. 
 	 
 	 See \ref slicedesc for the format of the slice string.
+
+	 \warning There seems to be bugs here...
 
 	 \param a the array
 	 \param slicedesc the description of the slice as described in \ref slicedesc
@@ -754,7 +781,7 @@ Array *array_new2( DType dtype, uint ndim, ... ){
   return a;
 }
 
-/** \brief create array that is filled with random values 
+/** \brief create DOUBLE array that is filled with random values
 	     from [0, ..., 1].
 	 
 	 Mainly used for debugging stuff.

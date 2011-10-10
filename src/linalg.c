@@ -20,6 +20,8 @@
 
 #include "linalg.h"
 #include "helper.h"
+#include "mathadd.h"
+
 #include <string.h>
 #include <math.h>
 #include <gsl/gsl_linalg.h>

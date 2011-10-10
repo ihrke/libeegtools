@@ -209,56 +209,50 @@ double   vectordist_euclidean_normalized( const double *x1, const double *x2, in
 
   return d;
 }
-/** Distance which sums the absolute deviation from the main 
-	 diagonal of the dtw-warp-path computed on x1 and x2.
+/** \brief Dynamic Time-Warping distance.
+
+  Returns the upper right element of the cumulated matrix, which is the solution to
+  \f[
+	D( x, y ) = \min_{\phi}\int_0^T d( x(t), y(\phi(t)) )\,dt
+  \f]
+
 	 \param x1, x2 vectors of size p
 	 \param optargs may contain:
 	 <ul>
-	 <li> <tt>pointdistance=void*</tt> a PointwiseDistanceFunction, default is \c signaldist_euclidean
-	 <li> optargs for the distfunction (optargs is passed 'as is' to this function)
+	 <li> <tt>distfct=void*</tt> a VectorDistanceFunction, default is \c vectordist_euclidean
+	 <li> optargs for the distfunction and DTW (optargs is passed 'as is' to this function)
 	 </ul>
  */
 double   vectordist_dtw( const double *x1, const double *x2, int p, 
 								 OptArgList *optargs ){
-  double d;
-  double **D;
-  PointwiseDistanceFunction f;
+  VectorDistanceFunction f;
   void *tmp;
-  WarpPath *P;
-  double diag1[2], diag2[2], path[2];
   int i;
 
-  f = signaldist_euclidean;
-  if( optarglist_has_key( optargs, "distfct" ) ){
-	 tmp = optarglist_ptr_by_key( optargs, "distfct" );
-	 if( tmp )
-		f = (PointwiseDistanceFunction) tmp;
-  }
+  f = vectordist_euclidean;
+  optarg_PARSE_PTR( optargs, "distfct", f, VectorDistanceFunction, tmp);
 
-  D = f( (double*)x1, p, (double*)x2, p, NULL, optargs );
-  dtw_cumulate_matrix( D, p, p, NULL );
-  P = dtw_backtrack( (const double**)D, p, p, NULL );
+  /* thin wrapper for the distmatrix_signaldist() function */
+  Array *s1=array_fromptr2( DOUBLE, 1, x1, p );
+  Array *s2=array_fromptr2( DOUBLE, 1, x2, p );
 
-  d = 0;
-  diag1[0] = 0;   
-  diag1[1] = 0;
-  diag2[0] = p;
-  diag2[0] = p; /* line through (0,0), (p,p) */
-  for( i=0; i<P->n; i++ ){
-	 path[0] = (double)P->t1[i];
-	 path[1] = (double)P->t2[i];
-	 d += dist_point_line( path, diag1, diag2 );
-  }
+  /* calculation */
+  Array *D = distmatrix_signaldist( f, s1, s2, NULL, optargs );
+  matrix_dtw_cumulate( D, FALSE, optargs);
 
-  dblpp_free( D, p );
-  free_warppath( P );
+  double d=mat_IDX( D, D->size[0]-1, D->size[1]-1 );
+
+  /* cleaning up */
+  array_free( D );
+  array_free( s1 );
+  array_free( s2 );
 
   return d;
 }
 
 /** Compute trial-to-trial distance matrix for all trials in eeg-struct.
 	 Average over all channels in the EEG-struct.
-
+cat
 	 \param eeg the EEG-data
 	 \param f the function used to compare two ERPs
 	 \param d user allocated memory, or NULL -> own memory is alloc'ed

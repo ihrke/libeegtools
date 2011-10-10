@@ -87,3 +87,74 @@ src/tools.c:34:#ifdef FIXEEG
 src/warping.c:617:#ifdef FIXEEG
 src/wavelet.c:231:#ifdef FIXEEG
 
+------------------------
+Developer Configuration:
+------------------------
+
+../../configure --enable-debug --enable-unittest --enable-matlab --with-matlab-basedir=/opt/matlab/ --disable-python --prefix=`pwd`/install
+
+
+
+-------------------------
+DEBUGGING MEX-files
+--------------------------
+
+To debug with gdb,
+
+Compile the MEX-file with the -g option, which builds the file with debugging symbols included. For this example, at the Linux prompt, type
+linux> mex -g yprime.c
+
+
+On a Linux 32–bit platform, this command creates the executable file yprime.mexglx.
+
+At the Linux prompt, start the gdb debugger using the matlab function -D option:
+linux> matlab -Dgdb
+
+
+
+Start MATLAB without the Java virtual machine (JVM) by using the -nojvm startup flag:
+<gdb> run -nojvm
+
+
+In MATLAB, enable debugging with the dbmex function and run your MEX-file:
+>> dbmex on
+>> yprime(1,1:4)
+
+
+At this point, you are ready to start debugging.
+
+It is often convenient to set a breakpoint at mexFunction so you stop at the beginning of the gateway routine.
+<gdb> break mexFunction
+<gdb> continue
+
+
+Once you hit one of your breakpoints, you can make full use of any commands the debugger provides to examine variables, display memory, or inspect registers.
+
+To proceed from a breakpoint, type
+<gdb> continue
+
+
+After stopping at the last breakpoint, type
+<gdb> continue
+
+
+yprime finishes and MATLAB displays
+ans =
+
+	 2.0000    8.9685    4.0000   -1.0947
+
+
+
+From the MATLAB prompt you can return control to the debugger by typing
+>> dbmex stop
+
+
+Or, if you are finished running MATLAB, type
+>> quit
+
+
+When you are finished with the debugger, type
+<gdb> quit
+
+
+You return to the Linux prompt

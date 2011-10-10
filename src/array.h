@@ -151,7 +151,7 @@ Examples:
 # define ARRAY_H
 
 #include "definitions.h"
-#include "mathadd.h"
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -397,7 +397,6 @@ extern "C" {
 
   void*  array_max( const Array *a );
   void*  array_min( const Array *a );
-
 
   Array* array_convert_rowcolmajor( Array *a, bool alloc);
   void   array_calc_colindex( ulong idx, const uint *size, uint nsize, uint *index );

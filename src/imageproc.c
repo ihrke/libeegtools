@@ -17,7 +17,9 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-
+#include <float.h>
+#include "helper.h"
+#include "mathadd.h"
 #include "imageproc.h"
 #include "linalg.h"
 
@@ -204,7 +206,6 @@ Array*  bresenham_linesegments( const Array *points ){
   if( points->size[1]<2 ){
 	 errprintf("Need 2 coordinates per point\n"); return NULL;
   }
-
   int start[2], end[2];
   Array *bres=NULL, *line, *tmp;
   int i;

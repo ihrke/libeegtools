@@ -48,9 +48,16 @@ extern "C" {
 
   double* moving_average(double *s, int n, int win);
 
+
+  /* -----------------------------
+	 -- B-Spline Fit
+	 ----------------------------- */
+  //Array* bspline_smooth( Array *s, )
+
  /* ------------------------------ 
 	  -- Bandpass filter  --
 	  ------------------------------ */ 
+  Array* filter( Array *data, const char *spec, double srate, bool alloc );
   EEG* eeg_filter_fidlib( EEG *eeg, const char *spec, bool alloc );
   
 #ifdef __cplusplus

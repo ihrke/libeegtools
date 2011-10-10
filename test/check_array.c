@@ -522,9 +522,9 @@ START_TEST (test_concatenate_cols)
   Array *b=array_new_dummy( UINT, 2, 10, 4 );
   Array *c=array_concatenate( a, b, 1 );
   
-  /* array_print( a, -1, stderr ); */
-  /* array_print( b, -1, stderr ); */
-  /* array_print( c, -1, stderr ); */
+/*  array_print( a, -1, stderr );
+  array_print( b, -1, stderr );
+  array_print( c, -1, stderr );*/
 
   fail_unless( c!=NULL );
   int i,j;
@@ -551,22 +551,24 @@ START_TEST (test_concatenate_cols_dbl)
   Array *b=array_new_dummy( DOUBLE, 2, 10, 4 );
   Array *c=array_concatenate( a, b, 1 );
   
-  /* array_print( a, -1, stderr );  */
-  /* array_print( b, -1, stderr ); */
-  /* array_print( c, -1, stderr );  */
+  /*
+  array_print( a, -1, stderr );
+  array_print( b, -1, stderr );
+  array_print( c, -1, stderr );
+*/
 
   fail_unless( c!=NULL );
   int i,j;
   for( i=0; i<a->size[0]; i++ ){
 	 for( j=0; j<a->size[1]; j++ ){
-		fail_unless( cmpdouble( array_INDEX2( c, uint,i,j ),
-										array_INDEX2( a, uint,i,j ),3)==0 );
+		fail_unless( cmpdouble( array_INDEX2( c, double,i,j ),
+								array_INDEX2( a, double,i,j ),3)==0 );
 	 }
   }
   for( i=0; i<b->size[0]; i++ ){
 	 for( j=0; j<b->size[1]; j++ ){
-		fail_unless( cmpdouble( array_INDEX2( c, uint,i,j+a->size[1] ),
-										array_INDEX2( b, uint,i,j ),3)==0 );
+		fail_unless( cmpdouble( array_INDEX2( c, double,i,j+a->size[1] ),
+										array_INDEX2( b, double,i,j ),3)==0 );
 	 }
   }
 
@@ -581,6 +583,44 @@ START_TEST (test_concatenate_cols_dbl)
   array_free( b );
   array_free( c );
   array_free( d );
+}
+END_TEST
+
+START_TEST (test_concatenate_cols_dbl1d)
+{
+	Array *a=array_new_dummy( DOUBLE, 1, 10 );
+	Array *b=array_new_dummy( DOUBLE, 1, 10 );
+	Array *c=array_concatenate( a, b, 1 );
+
+//	array_print( a, -1, stderr );
+//	array_print( b, -1, stderr );
+//	array_print( c, -1, stderr );
+
+	fail_unless( c!=NULL );
+
+	int i,j;
+	for( i=0; i<a->size[0]; i++ ){
+		fail_unless( cmpdouble( array_INDEX2( c, double,i,0 ),
+								array_INDEX1( a, double,i ),3)==0 );
+	}
+
+	for( i=0; i<b->size[0]; i++ ){
+		fail_unless( cmpdouble( array_INDEX2( c, double,i,1 ),
+								array_INDEX1( b, double,i ),3)==0 );
+
+	}
+
+	Array *d=array_concatenate( a, NULL, DIM_COLS );
+	fail_unless( array_comparable( a, d ) );
+	for( i=0; i<array_NUMEL(a); i++ ){
+		fail_unless( cmpdouble( array_INDEX1( a,double,i),
+								array_INDEX1( d,double,i), 4)==0 );
+	}
+
+	array_free( a );
+	array_free( b );
+	array_free( c );
+	array_free( d );
 }
 END_TEST
 
@@ -615,7 +655,7 @@ START_TEST (test_max)
 
   mat_IDX( a, 2, 4 )=100.0;
   m=*(double*)array_max( a );
-  fail_unless( cmpdouble( m, 100, 4)==0 );
+  fail_unless( cmpdouble( m, 100.0, 4)==0, "Real maximum 100.0 not found: %f", m );
 
   array_free( a );
   array_free( b );
@@ -694,6 +734,7 @@ Suite * init_array_suite (void){
   tcase_add_test (tc_core, test_concatenate_rows);
   tcase_add_test (tc_core, test_concatenate_cols);
   tcase_add_test (tc_core, test_concatenate_cols_dbl);
+  tcase_add_test (tc_core, test_concatenate_cols_dbl1d);
   tcase_add_test (tc_core, test_min);
   tcase_add_test (tc_core, test_max);
   tcase_add_test (tc_core, test_typecast);

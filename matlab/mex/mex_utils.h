@@ -35,10 +35,15 @@ bool is_mex_scalar( const mxArray *arg );
 bool is_mex_fid( const mxArray *arg );
 int set_mex_field( mxArray *arg, const char *field_name, mxArray *value );
 bool is_mex_matrix( mxArray *arg );
+bool is_mex_vector( mxArray *arg );
+bool mex_have_same_size(mxArray *a, mxArray *b );
+
+char* get_mfile_as_string( const char *fname );
 
 /* array conversion */
 Array* mex_mxarray_to_array( mxArray * mxa );
 mxArray* mex_array_to_mxarray( Array * a );
 mxArray* mex_int_array_to_mxarray( Array * a );
+Array* mex_int_mxarray_to_array( mxArray *mxa );
 
 #endif

@@ -1,23 +1,11 @@
 /**
-	\file signaldistancematrix.c
+	\file signaldistmatrix.c
 	\brief Matlab wrapper for \ref distmatrix_signaldist().
 
  It calculates the 
  pointwise distance matrix: \f$ d_{ij} = d( s1_i, s2_j ) \f$.
 
-
- The MATLAB-interface is as follows:
-
-signaldistfunction Pointwise distance Matrix between two signals.
- [ distmat ] = signaldistfunction( signal1, signal2 );
- Calculate a euclidean distance matrix.
-
- [ distmat ] = signaldistfunction( signal1, signal2, metric, ... );
- Calculate a distance matrix with another metric. 
- Valid values for metric are:
- "euclidean", ...
- You can pass additional parameters for the distance function along.
-
+ The MATLAB-interface is documented in the corresponding M-file.
 
 */
 

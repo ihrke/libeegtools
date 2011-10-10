@@ -19,11 +19,29 @@
  ***************************************************************************/
 
 #include <string.h>
+#include <stdio.h>
 
 #include "mex_utils.h"
 #include "linalg.h"
 
 
+char* get_mfile_as_string( const char *fname ){
+	FILE *f;
+	if( !(f=fopen(fname, "r")) ) return NULL;
+	char *content;
+	int pos;
+	int len;
+
+	pos = ftell (f);
+	fseek (f, 0, SEEK_END);
+	len = ftell (f);
+	fseek (f, pos, SEEK_SET);
+
+	content=(char*)malloc( len*sizeof(char));
+	fread( content, sizeof(char), len, f );
+	fclose(f);
+	return content;
+}
 
 mxArray *create_mex_double( double val )
 {
@@ -107,6 +125,23 @@ bool is_mex_matrix( mxArray *arg ){
   return mxIsDouble( arg ) && mxGetNumberOfDimensions(arg)==2;
 }
 
+bool is_mex_vector( mxArray *arg ){
+  if( arg == NULL ) return false;
+  if(!mxIsDouble( arg )) return false;
+
+  int ndim=mxGetNumberOfDimensions(arg);
+  const mwSize *dims=mxGetDimensions( arg );
+
+  int i;
+  int dimgtone=0;
+  for( i=0; i<ndim; i++ ){
+	  if( dims[i]>1 )
+		  dimgtone++;
+  }
+  if( dimgtone!=1 ) return false;
+  return true;
+}
+
 /** \brief convert MxArray to libeegtools array.
 	 
 	 Everything must be double-precision.
@@ -134,6 +169,23 @@ Array* mex_mxarray_to_array( mxArray * mxa ){
 
   return out;
 }
+
+/** \brief Two mex-arrays of the same size?
+  */
+bool mex_have_same_size(mxArray *a, mxArray *b ){
+	int ndim1=mxGetNumberOfDimensions(a);
+	const mwSize *dims1=mxGetDimensions( a );
+	int ndim2=mxGetNumberOfDimensions(b);
+	const mwSize *dims2=mxGetDimensions( b );
+	if( ndim1!=ndim2 ) return false;
+	int i;
+	for( i=0; i<ndim1; i++ ){
+		if( dims1[i]!=dims2[i])
+			return false;
+	}
+	return true;
+}
+
 
 /** \brief convert libeegtools array to MxArray.
 	 
@@ -177,4 +229,32 @@ mxArray* mex_int_array_to_mxarray( Array * a ){
   array_free( tmp );
   
   return mxa;
+}
+
+/** \brief convert libeegtools array to MxArray.
+	 
+	 Everything must be int-precision.
+*/
+Array* mex_int_mxarray_to_array( mxArray *mxa ){
+  Array *out;
+  int ndim=mxGetNumberOfDimensions(mxa);
+  uint *dims=mxGetDimensions(mxa);
+  int *ptr=(int*)mxGetPr(mxa);
+  out = array_new( UINT, ndim, dims );
+
+  ulong i;
+  uint *idx=(uint*)malloc(ndim*sizeof(idx));;
+  uint cidx;
+
+  /* col major to row major */
+  for( i=0; i<array_NUMEL( out ); i++ ){
+	 array_calc_rowindex( i, out->size, out->ndim, idx );
+	 cidx=mxCalcSingleSubscript( mxa, ndim, idx);
+	 array_INDEX1( out, uint, i) = ptr[cidx];
+  }
+  free( idx );
+
+  array_dimred( out );
+
+  return out;
 }

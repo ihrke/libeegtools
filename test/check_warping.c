@@ -191,7 +191,6 @@ START_TEST (test_slopeconstraint)
 }
 END_TEST
 
-
 /* template
 START_TEST (test_)
 {

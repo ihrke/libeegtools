@@ -90,10 +90,12 @@ extern "C" {
 
   /* parameter estimation */
   int         tdelay_estimate_timelag_mutual( TimeDelayReconstruction *p, 
-															 long partitions, long corrlength, double *mutual );
+															 long partitions, long corrlength,
+															 double *mutual );
   int         tdelay_estimate_timelag_autocorr( TimeDelayReconstruction *p );
   int         tdelay_estimate_dimension( double Rtol, int m_start, int m_end );
-  double      tdelay_fnn_ratio( TimeDelayReconstruction *p, double Rtol, double Atol );
+  double      tdelay_fnn_ratio( TimeDelayReconstruction *p, double Rtol,
+										  double Atol );
   double      tdelay_attractor_size( TimeDelayReconstruction *p );
 
   /* struct handling */
@@ -107,9 +109,11 @@ extern "C" {
   void        tdelay_index_j ( TimeDelayReconstruction *p, int j, double *x);
 
   /* nonlinear prediction */
-  double tdelay_predict_simple( TimeDelayReconstruction *p, double *sample, int npredict, double epsilon );
-  double tdelay_simple_nonlinear_prediction_error( TimeDelayReconstruction *reference, double *y, int yn, 
-																	 int npredict, double epsilon );
+  double tdelay_predict_simple( TimeDelayReconstruction *p, double *sample,
+										  int npredict, double epsilon );
+  double tdelay_simple_nonlinear_prediction_error(
+			 TimeDelayReconstruction *reference, double *y, int yn,
+			 int npredict, double epsilon );
 
   double** eeg_nonlinear_prediction_error( const EEG *eeg, int embedding_dim, int time_lag,
 														 int npredict, double epsilon, 

@@ -23,6 +23,8 @@
 #include "imageproc.h"
 #include "time_frequency.h"
 #include "io.h"
+#include "array.h"
+#include "linalg.h"
      
 START_TEST (test_strip_blank)
 {
@@ -47,6 +49,7 @@ END_TEST
 
 START_TEST (test_nnprepare)
 {
+#ifdef EXPERIMENTAL
   double **X;
   double *q;
   int N, p;
@@ -97,7 +100,7 @@ START_TEST (test_nnprepare)
   free( q );
   free( nn_idx );
   free( nnd );
-					
+#endif					
 }
 END_TEST
 
@@ -295,13 +298,35 @@ START_TEST (test_regularization_gauss)
 						 0, 10, 20, 100, 110, 199 };
   int dims[2]={200,200};
   Array *p=array_fromptr2( INT, 2, points, 2, 6 );
-  Array *a=regularization_gaussian_corridor( p, dims, NULL, 0.4 );
+  Array *a=regularization_gaussian( p, dims, NULL, 0.2 );
 
   bool ismat;
   matrix_CHECK(ismat,a);
   fail_unless( ismat );
 
-  /* write_array_matlab( a, "reg", "reg.mat", FALSE );   */
+  /* write_array_matlab( a, "reg", "reg.mat", FALSE );*/
+
+  array_free( a );
+  array_free( p );
+}
+END_TEST
+START_TEST (test_regularization_gauss_narrowdown)
+{
+	/*
+	 load reg.mat
+	 imagesc(reg);
+	*/
+  int points[12]={ 0, 50, 60, 65, 150, 199,
+				 0, 10, 20, 100, 110, 199 };
+  int dims[2]={200,200};
+  Array *p=array_fromptr2( INT, 2, points, 2, 6 );
+  Array *a=regularization_gaussian_narrowdown( p, dims, NULL, 0.4 );
+
+  bool ismat;
+  matrix_CHECK(ismat,a);
+  fail_unless( ismat );
+
+  /* write_array_matlab( a, "reg", "reg.mat", FALSE );*/
 
   array_free( a );
   array_free( p );
@@ -411,6 +436,37 @@ START_TEST (test_check_bit)
   fail_unless( CHECK_BIT( 4, 2 ) );
 }
 END_TEST
+START_TEST (test_interp1)
+{
+	/* MATLAB
+	   load interp1.mat
+	   plot( x, y, 'rx-' );
+	   hold on
+	   plot( xi, yi, 'b-o' );
+	   hold off
+	   legend('original', 'interpolated');
+	   */
+	Array *x=array_new_dummy( DOUBLE, 1, 10 );
+	Array *y=array_new2( DOUBLE, 1, 10 );
+	int i;
+	for( i=0; i<10; i++ ){
+		vec_IDX( y, i)=sin(vec_IDX(x,i));
+	}
+	Array *xi=array_new2( DOUBLE, 1, 100 );
+	for( i=0; i<100; i++ ){
+		vec_IDX(xi, i)=((double)i)/100.0*10.0;
+	}
+	Array *yi=vector_interp1( x, y, xi, NULL );
+	write_array_matlab( x, "x", "interp1.mat", FALSE );
+	write_array_matlab( y, "y", "interp1.mat", TRUE );
+	write_array_matlab( xi, "xi", "interp1.mat", TRUE );
+	write_array_matlab( yi, "yi", "interp1.mat", TRUE );
+	array_free( x );
+	array_free( y );
+	array_free( xi );
+	array_free( yi );
+}
+END_TEST
 
 /* template
 START_TEST (test_)
@@ -431,10 +487,12 @@ Suite * init_other_suite (void){
   tcase_add_test (tc_core, test_disttransform);
   tcase_add_test (tc_core, test_regularization_line);
   tcase_add_test (tc_core, test_regularization_gauss);
+  tcase_add_test (tc_core, test_regularization_gauss_narrowdown);
   tcase_add_test (tc_core, test_spectrogram_init);
   tcase_add_test (tc_core, test_windows);
   tcase_add_test (tc_core, test_spectgram);
   tcase_add_test (tc_core, test_check_bit);
+  tcase_add_test (tc_core, test_interp1);
 
   tcase_set_timeout(tc_core, 20);
   suite_add_tcase (s, tc_core);

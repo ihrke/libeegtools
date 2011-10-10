@@ -107,9 +107,8 @@ Array* regularization_linear_points( const Array *points, uint dims[2], Array *m
 	 where $f$ is piecwise linear (approximated with bresenham-alg) and the minimization
 	 is approximated with distance-transform (deadreckoning).
 
-	 \todo there are artifacts here, check for numerical errors
 
-	 Example:
+	 Example (sigma=0.4):
 	 \image html regularization_gauss.jpg
 
 	 \note if you don't pass any arguments, the regularization is done 
@@ -121,10 +120,10 @@ Array* regularization_linear_points( const Array *points, uint dims[2], Array *m
 			  as points, i.e. the regularization is done along the main diagonal
     \param dims the dimensions of the output matrix (rows x cols)
 	 \param m the output matrix or NULL -> allocate in function 
-	 \param max_sigma the regularization parameter
+	 \param sigma within [0,1] std of the gaussian.
 	 \return the regularization matrix or NULL (error)
 */
-Array* regularization_gaussian_corridor( const Array *points, uint dims[2], Array *m, double max_sigma ){
+Array* regularization_gaussian( const Array *points, uint dims[2], Array *m, double sigma ){
   if( points->dtype!=INT ){
 	 errprintf("Need INT-array for coordinates\n"); return NULL;
   }
@@ -149,50 +148,110 @@ Array* regularization_gaussian_corridor( const Array *points, uint dims[2], Arra
   /* get distance transform of the linear interpolation between markers */
   m = regularization_linear_points( points, dims, m );
 
-  int i,j,k;
-  double sigma;
-  double maxdist, dist, closest_dist, normgauss;
-  int flag;
-  double pointdist=0.1;
-
-  /* apply gaussian with varying sigma */
-  flag = 0;
-  maxdist = sqrt(2.0)*(double)(dims[0]-1);
-
-  dprintf("maxdist=%f, max_sigma=%f\n", maxdist, max_sigma);
-  for( i=0; i<dims[0]; i++ ){
-  	 for( j=0; j<dims[1]; j++ ){
-		closest_dist = DBL_MAX;
-  		for( k=0; k<points->size[1]; k++ ){
-  		  dist = ( SQR( (double)(array_INDEX2(points,int,0,k)-i) )
-					  + SQR( (double)(array_INDEX2(points,int,1,k)-j) ) );
-  		  dist = sqrt( dist - SQR( mat_IDX(m,i,j) ) );
-		  dist /= maxdist;
-		  if(dist<closest_dist){
-			 closest_dist=dist;
-		  }
-  		  if( dist<(pointdist) )
-  			 flag=1;
-  		}
-
-		if( closest_dist==0 ){
-		  closest_dist = 1e-10;
-		}
-		sigma = max_sigma*maxdist;
-  		if( flag )
-		  sigma = sigma*closest_dist/pointdist;
-
-		normgauss = gaussian( 0.0, sigma, 0 );
-		if(normgauss > 10000000) {
-		  mat_IDX(m,i,j)=1;
-		} else {
-		  mat_IDX(m,i,j)=gaussian( mat_IDX(m,i,j), sigma, 0 )/normgauss;
-		}
-		
-  		flag = 0;
-  	 }
+  double maxel=*((double*)array_max( m ));
+  long i;
+  for( i=0; i<array_NUMEL(m); i++ ){
+	  array_INDEX1(m,double,i)=gaussian( array_INDEX1(m,double,i)/maxel, sigma, 0 );
   }
 
   return m;
+}
+
+/** \brief Calculate a ''gaussian corridor'' with narrowing down to markers.
+
+	 \f[
+	 G_f(x,y; \sigma) = \frac{1}{\sigma 2\pi} \exp{\left( -\frac{\min_{\xi}\sqrt{(\xi-x)^2+(y-f(\xi))^2}}{2\sigma^2} \right)}
+	 \f]
+	 where \f$f\f$ is piecwise linear (approximated with bresenham-alg) and the minimization
+	 is approximated with distance-transform (deadreckoning).
+
+	 \todo there are artifacts here, check for numerical errors
+
+	 Example:
+	 \image html regularization_gauss.jpg
+
+	 \note if you don't pass any arguments, the regularization is done
+	 along the main diagonal
+
+	 \param points defining the piecewise linear function through the regularization matrix;
+			this is a 2 x M dimensional INT-array, all points must be within the
+			  dimensions; if NULL is passed, the function assumes (0,0),(dims[0]-1,dims[1]-1)
+			  as points, i.e. the regularization is done along the main diagonal
+	\param dims the dimensions of the output matrix (rows x cols)
+	 \param m the output matrix or NULL -> allocate in function
+	 \param max_sigma the regularization parameter
+	 \return the regularization matrix or NULL (error)
+*/
+Array* regularization_gaussian_narrowdown( const Array *points, uint dims[2],
+										   Array *m, double max_sigma){
+	if( points->dtype!=INT ){
+	   errprintf("Need INT-array for coordinates\n"); return NULL;
+	}
+	if( points->ndim!=2 ){
+	   errprintf("Need 2D-array for coordinates\n"); return NULL;
+	}
+	if( points->size[1]<2 ){
+	   errprintf("Need 2 coordinates per point\n"); return NULL;
+	}
+	if( m!=NULL ){
+	   bool ismatrix;
+	   matrix_CHECK( ismatrix, m );
+	   if( !ismatrix) return NULL;
+	   if( m->size[0]!=dims[0] || m->size[1]!=dims[1] ){
+		  errprintf( "output matrix must be of same dimension as dims[2]\n");
+		  return NULL;
+	   }
+	} else {
+	   m=array_new2(DOUBLE, 2, dims[0], dims[1] );
+	}
+
+	/* get distance transform of the linear interpolation between markers */
+	m = regularization_linear_points( points, dims, m );
+
+	int i,j,k;
+	double sigma;
+	double maxdist, dist, closest_dist, normgauss;
+	int flag;
+	double pointdist=0.1;
+
+	/* apply gaussian with varying sigma */
+	flag = 0;
+	maxdist = sqrt(2.0)*(double)(dims[0]-1);
+
+	dprintf("maxdist=%f, max_sigma=%f\n", maxdist, max_sigma);
+	for( i=0; i<dims[0]; i++ ){
+	   for( j=0; j<dims[1]; j++ ){
+		  closest_dist = DBL_MAX;
+		  for( k=0; k<points->size[1]; k++ ){
+			dist = ( SQR( (double)(array_INDEX2(points,int,0,k)-i) )
+						+ SQR( (double)(array_INDEX2(points,int,1,k)-j) ) );
+			dist = sqrt( dist - SQR( mat_IDX(m,i,j) ) );
+			dist /= maxdist;
+			if(dist<closest_dist){
+			   closest_dist=dist;
+			}
+			if( dist<(pointdist) )
+			   flag=1;
+		  }
+
+		  if( closest_dist==0 ){
+			closest_dist = 1e-10;
+		  }
+		  sigma = max_sigma*maxdist;
+		  if( flag )
+			sigma = sigma*closest_dist/pointdist;
+
+		  normgauss = gaussian( 0.0, sigma, 0 );
+		  if(normgauss > 10000000) {
+			mat_IDX(m,i,j)=1;
+		  } else {
+			mat_IDX(m,i,j)=gaussian( mat_IDX(m,i,j), sigma, 0 )/normgauss;
+		  }
+
+		  flag = 0;
+	   }
+	}
+
+	return m;
 }
 

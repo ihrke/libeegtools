@@ -1,0 +1,6 @@
+SWIG=/usr/local/bin/swig
+PYTHON=/opt/local/bin/python2.6
+
+all:
+	$(SWIG) -python libeegtools.i
+	$(PYTHON) setup.py build_ext --inplace

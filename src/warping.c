@@ -146,8 +146,8 @@ Array*      matrix_dtw_cumulate ( Array *mat, bool alloc, OptArgList *optargs ){
 /** \brief calculate the warping path.
 	 
 	 \ingroup grpdtw
-	 \param d is the cumulated distances matrix (usually output from matrix_dtw_cumulate())
-	 \return the warp-Path (2D uint array, 2 x N)
+	 \param d (M x N) is the cumulated distances matrix (usually output from matrix_dtw_cumulate())
+	 \return the warp-Path (2D uint array, 2 x N); row 1 has the column-indices, row 2 has the row indices
  */
 Array* matrix_dtw_backtrack ( const Array *d ){ 
   int i,j,k, M, N; /* j = 0,...,M-1
@@ -206,8 +206,8 @@ Array* matrix_dtw_backtrack ( const Array *d ){
 
   	 }	/* if */
 
-  	 array_INDEX2( path2, uint, 0, idx ) = j;
-  	 array_INDEX2( path2, uint, 1, idx ) = k;
+	 array_INDEX2( path2, uint, 0, idx ) = j;
+	 array_INDEX2( path2, uint, 1, idx ) = k;
   	 idx++;
   }
   
@@ -222,6 +222,71 @@ Array* matrix_dtw_backtrack ( const Array *d ){
 
   array_free( path2);
   return path;
+}
+
+/** \brief Add signals according to a warppath and downsample to specified time-values.
+
+  \warning this works currently only for 1D signals!
+
+	 \ingroup grpdtw
+
+	 If called from hierarchical averaging routines, you might
+	 want to pass a "weights" field in the optional arguments.
+
+	 Both arrays must be of equal length N x p.
+
+	 \warning p=1, currently!
+
+	 \param s1 N x p (DOUBLE) array; first signal
+	 \param s2 N x p (DOUBLE) array; second signal
+	 \param path - contains warppath (2xN INT);
+	 \param times is the common time-scale of s1 and s2
+	 \param opts may contain:
+	 - "weights=double*" - weights in average, for using it with hierarchical averaging;
+					  should be 2 double values with w[0]+w[1]=1.0
+	 \return the warped average of the signals; Nxp samples
+ */
+Array*  dtw_add_signals_downsample( const Array *s1, const Array *s2, const Array *times, const Array *path, OptArgList *opts ){
+	int ispath;
+	warppath_CHECK( ispath, path );
+	if( !ispath ) return NULL;
+
+	bool isvector;
+	vector_CHECK( isvector, times );
+	if( !isvector ){ errprintf("times not a vector\n");	return NULL; }
+	vector_CHECK( isvector, s1 );
+	if( !isvector ){ errprintf("s1 not a vector\n");	return NULL; }
+	vector_CHECK( isvector, s2 );
+	if( !isvector ){ errprintf("s2 not a vector\n");	return NULL; }
+
+
+	int N = s1->size[0];
+	int Nn = path->size[1];
+	dprintf("Signals have %i samples\n", N);
+
+	double defaultw[2]={0.5,0.5};
+	void *tmp;
+	double *w=defaultw;
+	optarg_PARSE_PTR( opts, "weights", w, double*, tmp );
+
+	dprintf("weights=(%f,%f)\n", w[0], w[1]);
+	/* --------------------- computation ------------------------*/
+	Array *wa = array_new2( DOUBLE, 1, Nn );
+	Array *ntimes=array_new2( DOUBLE, 1, Nn );
+	int i;
+	for( i=0; i<Nn; i++ ){
+		vec_IDX( ntimes, i)=w[0]*vec_IDX( times, array_INDEX2(path,uint,0,i) )+
+							w[1]*vec_IDX( times, array_INDEX2(path,uint,1,i) );
+		vec_IDX( wa, i) = w[0]*vec_IDX( s1, array_INDEX2(path,uint,0,i) ) +
+						  w[1]*vec_IDX( s2, array_INDEX2(path,uint,1,i) );
+	}
+	Array *wavg=vector_interp1( ntimes, wa, times, NULL );
+	/* --------------------- /computation ------------------------*/
+
+	array_free( ntimes );
+	array_free( wa );
+
+	return wavg;
 }
 
 /** \brief Add signals according to a warppath.
@@ -268,6 +333,8 @@ Array*  dtw_add_signals( const Array *s1, const Array *s2, const Array *path, Op
   int Nn = path->size[1];
   int p = s1m->size[1];
 
+  dprintf("Signals have %i and %i samples and are of dimension p=%i\n", N1, N2, p);
+
   double defaultw[2]={0.5,0.5};
   void *tmp;
   double *w=defaultw;
@@ -288,6 +355,116 @@ Array*  dtw_add_signals( const Array *s1, const Array *s2, const Array *path, Op
   array_free( s1m );
   array_free( s2m );
   return wa;
+}
+
+/** \brief Warp-average according to Gibbons+Stahl 2007.
+	 They proposed to stretch or
+	 compress the single signals in order to match the average reaction
+	 time, by simply moving the sampling points in time according to a
+	 linear, quadratic, cubic or to-the-power-of-four function.
+	 Formally, they adjusted the time-axis by letting
+	 \f[
+	 \phi_t^{-1}(t) = t + \frac{t^k}{R^k_t}(E(R) - R_t)
+	 \f]
+	 where \f$ R_t \f$ denotes the reaction time of the current trial and E is
+	 the expected value (the mean reaction time across trials). In their
+	 work, Gibbons et al. studied this approach for \f$ k \in \{1,2,3,4\} \f$.
+
+	 Individual trials are warped according to \f$ \phi \f$ and also the
+	 averages obtained from different individuals.
+	 Warping takes place between stimulus-onset-marker and response-marker
+	 \param data C x N x n data input (DOUBLE, channels x trials x samples)
+	 \param times n-vector giving the sampling times of the data
+	 \param markers N x M time-markers (INT) in sampling-point units
+	 \param stmulus_marker gives the index indicating which of the markers within markers
+						   is the stimulus-onset; 0<m<M
+	 \param response_marker gives the index indicating which of the markers within markers
+						   is the response-onset
+	 \param k parameter for gibbon's method
+	 \param alloc if TRUE, new memory is allocated, else it is overwritten
+	 \return pointer to  newly allocated memory
+*/
+Array* array_warp_gibbons( Array *data, Array *markers, int stimulus_marker, int response_marker, double k, bool alloc ){
+	if( data->dtype!=DOUBLE || data->ndim!=3 ){
+		errprintf("Data must be 3D (C x N x n) and DOUBLE precision\n");
+		return NULL;
+	}
+	int C,N,n;
+	C=data->size[0]; N=data->size[1]; n=data->size[2];
+	if( markers->dtype!=INT || markers->ndim!=2 || markers->size[0]!=N ){
+		errprintf("Markers must be 2D (N x M) and INT\n");
+		return NULL;
+	}
+	int M=markers->size[0];
+	if( stimulus_marker<0 || stimulus_marker>=M || response_marker<0 || response_marker>=M ){
+		errprintf("Stimulus and Response-Markers must be between 0 and %i", M);
+		return NULL;
+	}
+	if( k<0 || k>4 ){
+		errprintf("k must be between 0 and 4\n");
+		return 0;
+	}
+
+	Array *out;
+	if( alloc ){
+		out = array_copy( data, TRUE );
+	} else {
+		out=data;
+	}
+
+	/* gsl interpolation allocation */
+	gsl_interp_accel *acc = gsl_interp_accel_alloc ();
+	gsl_spline *spline = gsl_spline_alloc (gsl_interp_linear, n); /* gibbons uses linear */
+
+	/* computing mean reaction time */
+	double meanRT=0.0;
+	int c,i,j;
+	for( i=0; i<N; i++ ){
+		meanRT+=array_INDEX2( markers, int, i, response_marker )-array_INDEX2( markers, int, i, stimulus_marker );
+	}
+	meanRT /= (double)N;
+
+	/* compute warping for each trial */
+	Array *ntimes = array_new2( DOUBLE, 1, n );
+	int stim_onset;
+	int resp_onset;
+	double curRT;
+	double step;
+	int l;
+	for( i=0; i<N; i++ ){
+		for( j=0; j<n; j++ ){
+			vec_IDX( ntimes, j )=(double)j;
+		}
+	   stim_onset = array_INDEX2( markers, int, i, stimulus_marker );
+		resp_onset = array_INDEX2( markers, int, i, response_marker );
+	   dprintf("markers = (%i,%i)\n", stim_onset, resp_onset);
+	   curRT = resp_onset-stim_onset;
+
+	   for( j=stim_onset; j<resp_onset; j++ ){
+		  vec_IDX( ntimes, j) = (double)j + pow( (double)j, k )
+			/pow( curRT, k )*( meanRT-curRT ); /* gibbons eq. */
+	   }
+	   /* warp the rest of the segments linearly */
+	   step =((double)(n-1)-curRT)/(double)(n-1-resp_onset);
+	   l = 0;
+	   for( j=resp_onset; j<n; j++ ){
+		  vec_IDX( ntimes,j)=meanRT + (l++)*step;
+	   }
+
+	   for( c=0; c<C; c++ ){ /* loop channels */
+		  gsl_spline_init (spline, ntimes->data, array_INDEXMEM3( data, c, i, 0), n);
+		  for( j=0; j<n; j++ ){	  /* and samples */
+			array_INDEX3( data, double, c, i, j ) = gsl_spline_eval ( spline, (double)j, acc );
+		  }
+	   }
+	}
+
+	/* free */
+	gsl_spline_free (spline);
+	gsl_interp_accel_free (acc);
+	array_free( ntimes );
+
+	return out;
 }
 
 
@@ -626,9 +803,28 @@ double multidist( Array *dat, uint *idx ){
   return dist;
 }
 
-/** for now only 1D signals of equal length
+/** \brief Calculate the N-dimensional warping path (brute force).
+
+
+	 \warning this function uses A LOT of memory and CPU. Memory
+	 and CPU usage scales O(n^N) where N is the number of trials
+	 and n the number of sampling points. In practice, that means that 
+	 it is usually only applicable for 3-4 trials with limited sampling
+	 rate (depending on the kind of computer you use).
+
+
+	 \note works for now only for 1D signals of equal length
+
+	 Example: 3 trials with the 3D warping path
+
+	 \image html multiwarp.jpg
+
+	 \param in 
+	 \param optargs may contain:
+	 - <tt>progress=void*</tt> progress-bar function, called every now and then.
+	 \return the N-dimensional warp-path
  */
-Array* multiwarp( Array *in, uint window, OptArgList *optargs ){
+Array* multiwarp( Array *in, OptArgList *optargs ){
   bool ismat;
   matrix_CHECK( ismat, in );
   if( !ismat ) return NULL;

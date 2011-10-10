@@ -20,6 +20,7 @@
 
 /**\file isomap.h
  \brief \ref status_inprogress isomap
+ \experimental_do_not_document 
 
 isomap
 	

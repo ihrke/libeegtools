@@ -44,20 +44,14 @@ extern "C" {
 	 - Recurrence Plots - 
 	 ---------------------------------------------------------*/
 
-  Array* recplot( const Array *s1, const Array *s2, Array *out, double epsilon, 
+  Array* recplot( const Array *s1, const Array *s2, Array *out, double epsilon,
 						OptArgList *optargs );
   double* recplot_calculate_epsilons( Array *s1, Array *s2, double *eps, int fan );
 
+  /* Line-of-synchrony detection */
+  Array* recplot_los_dtw_noise( const Array *R );
+  Array* recplot_los_marwan( const Array *R, int dx, int dy );
 
-  /*** TODO: implement the LOS-strategies on Array's *****/
-  /**********************************************************************/
-  /**********************************************************************/
-  /* WarpPath* recplot_los_marwan       ( const RecurrencePlot *R, int dx, int dy ); */
-  /* WarpPath* recplot_los_dtw          ( const RecurrencePlot *R ); */
-  /* WarpPath* recplot_los_dtw_markers  ( const RecurrencePlot *R, int **markers, int nmarkers ); */
-  /* WarpPath* recplot_los_disttransform( const RecurrencePlot *R ); */
-  /* WarpPath* recplot_los_dtw_noise    ( const RecurrencePlot *R ); */
-  
 #ifdef __cplusplus
 }
 #endif

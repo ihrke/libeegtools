@@ -19,6 +19,8 @@
  ***************************************************************************/
 
 #include "io_wav.h"
+#include "helper.h"
+
 #include <stdlib.h>
 
 /** \brief list content of WavFile struct.

@@ -512,7 +512,7 @@ double tdelay_index_ij( TimeDelayReconstruction *p, int i, int j ){
   return(p->x[idx]);
 }
 
-/** Get an element from phase-space reconstruction:
+/** \brief Get an element from phase-space reconstruction:
 	 \f[
 	 \vec{x}_i = \sum_{j=1}^{m}s_{i+(j-1)\tau}\vec{e}_j
 	 \f]
@@ -535,7 +535,7 @@ void tdelay_index_i( TimeDelayReconstruction *p, int i, double *x){
 	 x[j] = p->x[idx];
   }
 }
-/** Get a dimension from phase-space reconstruction:
+/** \brief Get a dimension from phase-space reconstruction:
 	 \f[
 	 \vec{x}_i = \sum_{j=1}^{m}s_{i+(j-1)\tau}\vec{e}_j
 	 \f]
@@ -580,3 +580,18 @@ void tdelay_print( FILE *out, TimeDelayReconstruction *p){
 			  " x   = %p\n"
 			  " xn  = %i\n", p, p->m, p->tau, p->x, p->xn );
 }
+
+/**\brief Return a full Array-struct of the time-delay reconstruction.
+
+  \param p the time-delay reconstruction of some signal
+  \return p->xn x p->m Array containing the values of the time-delay reconstruction.
+*/
+Array* tdelay_to_array( TimeDelayReconstruction *p ){
+	Array *out=array_new2( DOUBLE, 2, p->xn, p->m );
+	int i;
+	for( i=0; i<p->xn; i++ ){
+		tdelay_index_i( p, i, (double*)array_INDEXMEM2( out, i, 0 ) );
+	}
+	return out;
+}
+

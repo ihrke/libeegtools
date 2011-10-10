@@ -12,7 +12,7 @@
 */
 
 #include "checkfcts.h"
-
+#include <string.h>
 /** Compare two doubles to a certain precision.
  * cmpdouble()
  *
@@ -82,4 +82,15 @@ int isequal_doublearray_binfile(double *d, int n, const char *filename, int prec
   free(d2);
   return flag;
 }
+
+void write_script( const char *fname, const char*script ){
+	FILE *f;
+	if( !(f=fopen(fname, "w")) ){
+		errprintf("opening file '%s' failed\n", fname);
+		return;
+	}
+	fwrite( script, sizeof(char), strlen( script ), f);
+	fclose( f );
+}
+
 

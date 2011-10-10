@@ -21,6 +21,8 @@
 /**\file nnsearch.h
  \brief \ref status_inprogress Fast Nearest-Neighbour searching.
 
+ \experimental_do_not_document 
+
 see 
 
 Merkwirth et al. Fast nearest-neighbor searching for nonlinear signal

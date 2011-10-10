@@ -3,7 +3,10 @@ AM_LDFLAGS = `@GSL_CONFIG@ --libs`
 
 METASOURCES = AUTO
 
-noinst_PROGRAMS = #distmatrix
+noinst_PROGRAMS = devtest #distmatrix
+
+devtest_SOURCES = devtest.c
+devtest_LDADD = ../src/libeegtools.la
 
 #distmatrix_SOURCES = distmatrix.c
 #distmatrix_LDADD = ../src/libeegtools.la

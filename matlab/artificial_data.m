@@ -1,7 +1,7 @@
-function [single_trials_noisy single_trials range rts real_rt erp trans] = ...
-    artificial_data(trials, srate, beta);
+function [single_trials_noisy single_trials range rts real_rt erp alltrans] = ...
+	artificial_data(trials, srate, beta, noiseamp);
 % function [single_trials_noisy single_trials range rts real_rt erp] = ...
-%    artificial_data(trials, srate, beta);
+%    artificial_data(trials, srate, beta, noiseamp);
 %clear all;
 %close all;
 
@@ -11,7 +11,6 @@ sd_rt = 100;
 
 % sets: 0.8/1000; 0/100; 2/5000 
 noisebeta= 0;  
-%noiseamp = 100;
 %trials = 100;
 plotit = 0;
 
@@ -71,7 +70,6 @@ fixp2 = [
 
 fixp=fixp1;
 erp = spline(fixp(:,1), fixp(:,2), range);
-noiseamp = max(erp)*100;
 
 if plotit
     subplot(3,2,1);
@@ -89,6 +87,7 @@ rresp = closest(range, real_rt);
 
 
 single_trials = [];
+alltrans=[];
 for i = 1:trials
     rt = real_rt + sd_rt*randn(1); % gaussian rt
     rts = [rts rt];
@@ -110,6 +109,7 @@ for i = 1:trials
         end;
     end;
     single_trials = [single_trials terp];
+    alltrans=[alltrans; trans];
 end;
 [N p] = size(single_trials);
 single_trials_noisy=[];
@@ -134,7 +134,7 @@ for i=1:p
         return;
     end;
     noise = (fBm(beta, N)).*namp;
-    single_trials_noisy(:,i) = single_trials(:,i)+noise;%30*randn(N,1);%noise;
+	single_trials_noisy(:,i) = single_trials(:,i)+noiseamp*randn(N,1);%noise;
 end;
 
 if plotit

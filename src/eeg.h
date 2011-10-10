@@ -32,14 +32,10 @@
 #include "array.h"
 #include "slist.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
   /** \brief describe a type of time-marker.
 	*/
   typedef struct{
-	 uint class; /**< used to group different types of markers (e.g. different stimuli) */
+	 uint classtype; /**< used to group different types of markers (e.g. different stimuli) */
 	 char label[MAX_LABEL_LENGTH]; /**< a label for the marker */
   } MarkerType;
 
@@ -92,7 +88,11 @@ extern "C" {
 #define EEG_CLONE_NOCHANINFO 2<<3  /**< \brief clone everything except
 												  the eeg->chaninfo field */
 
-  
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
   EEG* eeg_init            ( int nbchan, int ntrials, int nsamples );
   EEG* eeg_init_markers    ( int nmarkers_per_trial, EEG *eeg );
   EEG* eeg_extract_channels( EEG* eeg, const int *channels, int nchannels, bool alloc );

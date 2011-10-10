@@ -21,5 +21,6 @@
 int cmpdouble(double d1, double d2, int precision);
 int isequal_doublearray_binfile(double *d, int n, const char *filename, int precision);
 int isequal_doublearray(const double *d1, const double *d2, int n, int precision);
+void write_script( const char *fname, const char*script );
 
 #endif 	    /* !CHECKFCTS_H_ */

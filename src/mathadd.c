@@ -18,11 +18,15 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "mathadd.h"
+#include "array.h"
+#include "linalg.h"
+
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
 #include <gsl/gsl_sort.h>
 #include <gsl/gsl_statistics.h>
+#include <gsl/gsl_spline.h>
 
 /** Weighted Median computation.
  * Formula:
@@ -752,8 +756,78 @@ double* resample_nearest_neighbour( const double *s, int n, int newn, double *ne
 double* resample_linear( const double *s, int n, int newn, double *news ){
   return resample_gsl( s, n, newn, news, gsl_interp_linear );
 }
+/** \brief Resample a vector new sampling points.
 
-/** Resample a vector to match a new length using GSL's interpolation
+	 Example:
+  \image html interp1.jpg
+
+	 options:
+	  -# gsl_interp_linear
+	  -# gsl_interp_polynomial
+	  -# gsl_interp_cspline
+	  -# gsl_interp_cspline_periodic
+	  -# gsl_interp_akima
+	  -# gsl_interp_akima_periodic
+
+	 \param x n-vector; the values where the function is sampled (must be increasing)
+	 \param y the samples of the function at the values x;
+	 \param xi the new samples of the function; it is necessary, that all values are
+			 in [x_1, x_n]; no extrapolation
+	\param opts optional argumens:
+		 - "interpolationmethod=void*" - method one of GSL interpolation types (see above); default is gsl_interp_cspline
+	 \return values of f at xi
+*/
+Array*  vector_interp1( const Array *x, const Array *y, const Array *xi, OptArgList *opts ){
+	bool isvec;
+	vector_CHECK( isvec, x );
+	if( !isvec ){ errprintf("x not a vector\n"); return NULL;}
+	vector_CHECK( isvec, xi );
+	if( !isvec ){ errprintf("xi not a vector\n");  return NULL;}
+	vector_CHECK( isvec, y );
+	if( !isvec ){ errprintf("y not a vector\n");  return NULL;}
+
+	if( x->size[0] != y->size[0] ){
+		errprintf("x and y must be of the same length, got %i and %i\n", x->size[0], y->size[0]);
+		return NULL;
+	}
+	int n=x->size[0];
+
+	int i;
+	for( i=1; i<n; i++ ){
+		if( vec_IDX( x, i-1 )>vec_IDX(x, i) ){
+			errprintf("x must be increasing\n");
+			return NULL;
+		}
+	}
+	int nn=xi->size[0];
+	for( i=0; i<nn; i++){
+		if( vec_IDX(xi,i)<(vec_IDX(x,0)-0.001) || vec_IDX(xi,i)>(vec_IDX(x,n-1)+0.001)){
+			errprintf("Values of xi must be in [%f, %f], got %f\n",vec_IDX(x,0),vec_IDX(x,n-1),vec_IDX(xi,i));
+			return NULL;
+		}
+	}
+	void *ptr;
+	gsl_interp_type *method=gsl_interp_cspline;
+/*	optarg_PARSE_PTR( opts, "interpolationmethod", method, gsl_interp_type, ptr );*/
+
+
+	gsl_interp_accel *acc = gsl_interp_accel_alloc ();
+	gsl_spline *spline = gsl_spline_alloc (method, n);
+	gsl_spline_init (spline, x->data, y->data, n);
+
+	Array *yi=array_new2( DOUBLE, 1, nn );
+	for( i=0; i<nn; i++ ){
+	  vec_IDX( yi,i ) = gsl_spline_eval( spline, vec_IDX(xi,i), acc );
+	}
+
+	/* free */
+	gsl_spline_free (spline);
+	gsl_interp_accel_free (acc);
+
+	return yi;
+}
+
+/** \brief Resample a vector to match a new length using GSL's interpolation.
 	 options:
 	  -# gsl_interp_linear
 	  -# gsl_interp_polynomial
@@ -968,7 +1042,8 @@ int iremainder( double x, double y){
   return result;
 }
 
-/** \f$
+/**\brief Gaussian function.
+   \f$
 	 G(x) = \frac{1}{\sigma\sqrt{2\pi}} \exp{\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)}
 	 \f$
 */

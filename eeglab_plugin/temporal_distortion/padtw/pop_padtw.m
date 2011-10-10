@@ -90,7 +90,7 @@
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 %
-% $Log$
+% $Log: pop_padtw.m,v $
 % Revision 1.1  2009/05/05 20:43:06  mihrke
 % fixed autotools issues
 %

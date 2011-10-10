@@ -18,6 +18,8 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+/** \experimental_do_not_document */
+
 #include "nnsearch.h"
 #include <gsl/gsl_sort.h>
 #include "pqueue.h"

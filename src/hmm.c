@@ -18,7 +18,9 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+/** \experimental_do_not_document */
 #include "hmm.h"
+
 
 
 /** \ref status_inprogress

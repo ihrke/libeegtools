@@ -1,6 +1,5 @@
-/**
-	\file dtwpath.c
-	\brief Matlab wrapper for dynamic time warping.
+/** \file dtwpath.c
+	 \brief Matlab wrapper for dynamic time warping.
 
  The script can be used to calculate the warping-path for
  either a given distance matrix between individual points in
@@ -10,17 +9,7 @@
  It returns the warping path (that is corresponding elements in 
  both series as a 2 x M integer-array).
 
- The MATLAB-interface is as follows:
-
- [ path ] = dtwpath( s1, s2 );
- s1 and s2 are matrices or vectors giving the signals to be warped.
-
- [ path ] = dtwpath( s1, s2, metric );
- s1 and s2 are matrices or vectors giving the signals to be warped.
- metric is a string giving the distance metric. \todo implement this!
-
- [ path ] = dtwpath( distmat );
- distmat is the n x n pointwise distance matrix between signal points.
+ The MATLAB-interface is documented in the corresponding M-file.
 */
 
 #include "mex.h"
@@ -29,6 +18,7 @@
 #include <stdlib.h>
 #include "array.h"
 #include "distances.h"
+#include "warping.h"
 
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){ 
@@ -65,6 +55,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
   Array *path = matrix_dtw_backtrack( distmat );
 
   plhs[0]=mex_int_array_to_mxarray( path );
+  plhs[1]=mex_array_to_mxarray( distmat );
 
   /* cleaning up */
   array_free( path );
