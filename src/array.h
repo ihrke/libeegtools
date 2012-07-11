@@ -353,7 +353,8 @@ extern "C" {
 	 LONG,
 	 ULONG,
 	 FLOAT,
-	 DOUBLE
+     DOUBLE,
+    DT_END
   } DType;
 
   /** \brief Numerical Array struct. */

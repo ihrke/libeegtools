@@ -9,7 +9,7 @@ if BUILD_PYAPI
 # to any compilation. Here it is used to call swig on the 
 # interface files.
 BUILT_SOURCES = pyeegtools_wrap.c
-INTERFACES = pyeegtools.i eeg.i numpy.i pythonfunctions.i distances.i
+INTERFACES = pyeegtools.i i numpy.i pythonfunctions.i imageproc.i
 EXTRA_DIST=$(INTERFACES)
 
 pyeegtools_wrap.c: $(INTERFACES)

@@ -8,8 +8,8 @@ from distutils.core import setup, Extension
 import numpy as np
 import os
 
-gslcflags  = "@GSL_CFLAGS@" #os.popen( "gsl-config --cflags" ).read().strip();
-gslldflags = "@GSL_LIBS@" #os.popen( "gsl-config --libs" ).read().strip();
+gslcflags  = "@GSL_CFLAGS@"
+gslldflags = "@GSL_LIBS@"
 gsllibdirs = []
 for l in gslldflags.split(" "):
     if l.strip().startswith("-L"):
