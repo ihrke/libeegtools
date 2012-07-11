@@ -229,4 +229,4 @@
 /home/ihrke/work/prog/libeegtools/tags.sh
 /home/ihrke/work/prog/libeegtools/upload_documentation.sh
 pythonapi/imageproc.i
-pythonapi/unittest.py
+pythonapi/pyeeg_unittest.py
